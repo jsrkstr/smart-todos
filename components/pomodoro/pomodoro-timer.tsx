@@ -105,7 +105,7 @@ export function PomodoroTimer() {
     <div className="grid gap-6 md:grid-cols-2">
       <Card className="md:col-span-2">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Pomodoro Timerrrrr</CardTitle>
+          <CardTitle className="text-2xl">Pomodoro Timer</CardTitle>
           <CardDescription>Use the Pomodoro Technique to boost your productivity</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center">

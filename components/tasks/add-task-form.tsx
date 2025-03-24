@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { CalendarIcon, MapPin, Plus, Trash2 } from "lucide-react"
+import { CalendarIcon, Clock, MapPin, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
@@ -24,6 +24,7 @@ export function AddTaskForm() {
 
   const [title, setTitle] = useState("")
   const [deadline, setDeadline] = useState<Date | undefined>(undefined)
+  const [time, setTime] = useState("09:00") // Default time
   const [location, setLocation] = useState("")
   const [priority, setPriority] = useState("medium")
   const [why, setWhy] = useState("")
@@ -50,6 +51,7 @@ export function AddTaskForm() {
       id: Date.now().toString(),
       title,
       deadline: deadline?.toISOString() || new Date().toISOString(),
+      time,
       dateAdded: new Date().toISOString(),
       completed: false,
       priority,
@@ -61,6 +63,21 @@ export function AddTaskForm() {
     addTask(newTask)
     router.push("/")
   }
+
+  // Generate time options
+  const generateTimeOptions = () => {
+    const options = []
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const formattedHour = hour.toString().padStart(2, "0")
+        const formattedMinute = minute.toString().padStart(2, "0")
+        options.push(`${formattedHour}:${formattedMinute}`)
+      }
+    }
+    return options
+  }
+
+  const timeOptions = generateTimeOptions()
 
   return (
     <Card>
@@ -97,6 +114,27 @@ export function AddTaskForm() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="time">Time</Label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Select value={time} onValueChange={setTime}>
+                  <SelectTrigger id="time" className="pl-9">
+                    <SelectValue placeholder="Select time" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {timeOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
               <Select defaultValue="medium" onValueChange={(value) => setPriority(value)}>
                 <SelectTrigger id="priority">
@@ -109,19 +147,19 @@ export function AddTaskForm() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="location">Location (Optional)</Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="location"
-                className="pl-9"
-                placeholder="Where will you complete this task?"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="location">Location (Optional)</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="location"
+                  className="pl-9"
+                  placeholder="Where will you complete this task?"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 

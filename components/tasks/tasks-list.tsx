@@ -7,15 +7,30 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TaskItem } from "@/components/tasks/task-item"
+import { EditTaskDialog } from "@/components/tasks/edit-task-dialog"
 import { useTasks } from "@/hooks/use-tasks"
+import type { Task } from "@/types/task"
 
 export function TasksList() {
-  const { tasks, completedTasks } = useTasks()
+  const { tasks, completedTasks, deleteTask } = useTasks()
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   const filterTasks = (taskList: typeof tasks) => {
     if (priorityFilter === "all") return taskList
     return taskList.filter((task) => task.priority === priorityFilter)
+  }
+
+  const handleEditTask = (task: Task) => {
+    setTaskToEdit(task)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleDeleteTask = (taskId: string) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      deleteTask(taskId)
+    }
   }
 
   return (
@@ -55,7 +70,14 @@ export function TasksList() {
           {filterTasks(tasks).length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No tasks found. Add a new task to get started!</p>
           ) : (
-            filterTasks(tasks).map((task) => <TaskItem key={task.id} task={task} />)
+            filterTasks(tasks).map((task) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onEdit={() => handleEditTask(task)}
+                onDelete={() => handleDeleteTask(task.id)}
+              />
+            ))
           )}
         </TabsContent>
 
@@ -63,7 +85,14 @@ export function TasksList() {
           {filterTasks(tasks.filter((task) => !task.completed)).length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No active tasks. All done for now!</p>
           ) : (
-            filterTasks(tasks.filter((task) => !task.completed)).map((task) => <TaskItem key={task.id} task={task} />)
+            filterTasks(tasks.filter((task) => !task.completed)).map((task) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onEdit={() => handleEditTask(task)}
+                onDelete={() => handleDeleteTask(task.id)}
+              />
+            ))
           )}
         </TabsContent>
 
@@ -73,10 +102,19 @@ export function TasksList() {
               No completed tasks yet. Complete a task to see it here!
             </p>
           ) : (
-            filterTasks(completedTasks).map((task) => <TaskItem key={task.id} task={task} />)
+            filterTasks(completedTasks).map((task) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onEdit={() => handleEditTask(task)}
+                onDelete={() => handleDeleteTask(task.id)}
+              />
+            ))
           )}
         </TabsContent>
       </Tabs>
+
+      {taskToEdit && <EditTaskDialog task={taskToEdit} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />}
     </div>
   )
 }
