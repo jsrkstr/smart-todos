@@ -7,21 +7,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTasks } from "@/hooks/use-tasks"
+import { useSettings } from "@/hooks/use-settings"
+import { useNotifications } from "@/hooks/use-notifications"
 
 type TimerMode = "focus" | "shortBreak" | "longBreak"
 
-const TIMER_CONFIG = {
-  focus: 25 * 60, // 25 minutes in seconds
-  shortBreak: 5 * 60, // 5 minutes in seconds
-  longBreak: 15 * 60, // 15 minutes in seconds
-}
-
 export function PomodoroTimer() {
+  const { settings } = useSettings()
+  const { sendNotification } = useNotifications()
+
+  // Get timer durations from settings
+  const TIMER_CONFIG = {
+    focus: Number.parseInt(settings.pomodoroDuration) * 60, // minutes to seconds
+    shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
+    longBreak: Number.parseInt(settings.longBreakDuration) * 60,
+  }
+
   const [mode, setMode] = useState<TimerMode>("focus")
   const [timeLeft, setTimeLeft] = useState(TIMER_CONFIG[mode])
   const [isActive, setIsActive] = useState(false)
   const [pomodorosCompleted, setPomodorosCompleted] = useState(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const halfwayNotificationSent = useRef(false)
   const { tasks } = useTasks()
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
@@ -29,6 +36,7 @@ export function PomodoroTimer() {
   useEffect(() => {
     setTimeLeft(TIMER_CONFIG[mode])
     setIsActive(false)
+    halfwayNotificationSent.current = false
 
     if (timerRef.current) {
       clearInterval(timerRef.current)
@@ -38,13 +46,48 @@ export function PomodoroTimer() {
 
   // Timer logic
   useEffect(() => {
+    const currentTimerConfig = {
+      focus: Number.parseInt(settings.pomodoroDuration) * 60, // minutes to seconds
+      shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
+      longBreak: Number.parseInt(settings.longBreakDuration) * 60,
+    }
+
     if (isActive && timeLeft > 0) {
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => prev - 1)
+        setTimeLeft((prev) => {
+          // Check if we're at halfway point
+          if (prev === Math.floor(currentTimerConfig[mode] / 2) && !halfwayNotificationSent.current) {
+            halfwayNotificationSent.current = true
+
+            if (settings.notificationsEnabled) {
+              const minutesLeft = Math.floor(prev / 60)
+              sendNotification(`${mode === "focus" ? "Pomodoro" : "Break"} Halfway Point`, {
+                body: `${minutesLeft} minutes remaining in your ${mode === "focus" ? "focus session" : "break"}`,
+                icon: "/favicon.ico",
+              })
+            }
+          }
+
+          return prev - 1
+        })
       }, 1000)
     } else if (isActive && timeLeft === 0) {
       // Timer completed
       setIsActive(false)
+
+      if (settings.notificationsEnabled) {
+        if (mode === "focus") {
+          sendNotification("Pomodoro Completed!", {
+            body: "Great job! Time to take a break.",
+            icon: "/favicon.ico",
+          })
+        } else {
+          sendNotification("Break Completed!", {
+            body: "Break time is over. Ready to focus again?",
+            icon: "/favicon.ico",
+          })
+        }
+      }
 
       if (mode === "focus") {
         setPomodorosCompleted((prev) => prev + 1)
@@ -56,9 +99,11 @@ export function PomodoroTimer() {
           setMode("shortBreak")
         }
 
-        // Play notification sound
-        const audio = new Audio("/notification.mp3")
-        audio.play().catch((e) => console.error("Error playing sound:", e))
+        // Play notification sound if enabled
+        if (settings.soundEnabled) {
+          const audio = new Audio("/notification.mp3")
+          audio.play().catch((e) => console.error("Error playing sound:", e))
+        }
       } else {
         // Break completed, back to focus
         setMode("focus")
@@ -70,7 +115,7 @@ export function PomodoroTimer() {
         clearInterval(timerRef.current)
       }
     }
-  }, [isActive, timeLeft, mode, pomodorosCompleted])
+  }, [isActive, timeLeft, mode, pomodorosCompleted, settings, sendNotification])
 
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
@@ -81,7 +126,12 @@ export function PomodoroTimer() {
 
   // Calculate progress percentage
   const calculateProgress = () => {
-    const total = TIMER_CONFIG[mode]
+    const currentTimerConfig = {
+      focus: Number.parseInt(settings.pomodoroDuration) * 60, // minutes to seconds
+      shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
+      longBreak: Number.parseInt(settings.longBreakDuration) * 60,
+    }
+    const total = currentTimerConfig[mode]
     return ((total - timeLeft) / total) * 100
   }
 
@@ -92,8 +142,14 @@ export function PomodoroTimer() {
 
   // Reset timer
   const resetTimer = () => {
+    const currentTimerConfig = {
+      focus: Number.parseInt(settings.pomodoroDuration) * 60, // minutes to seconds
+      shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
+      longBreak: Number.parseInt(settings.longBreakDuration) * 60,
+    }
     setIsActive(false)
-    setTimeLeft(TIMER_CONFIG[mode])
+    setTimeLeft(currentTimerConfig[mode])
+    halfwayNotificationSent.current = false
 
     if (timerRef.current) {
       clearInterval(timerRef.current)
@@ -208,17 +264,19 @@ export function PomodoroTimer() {
               <span className="text-foreground font-medium">Choose a task</span> - Select a task you want to work on
             </li>
             <li className="text-muted-foreground">
-              <span className="text-foreground font-medium">Set the timer</span> - Work for 25 minutes (one Pomodoro)
+              <span className="text-foreground font-medium">Set the timer</span> - Work for {settings.pomodoroDuration}{" "}
+              minutes (one Pomodoro)
             </li>
             <li className="text-muted-foreground">
               <span className="text-foreground font-medium">Focus</span> - Work on the task until the timer rings
             </li>
             <li className="text-muted-foreground">
-              <span className="text-foreground font-medium">Take a break</span> - Take a short 5-minute break
+              <span className="text-foreground font-medium">Take a break</span> - Take a short{" "}
+              {settings.shortBreakDuration}-minute break
             </li>
             <li className="text-muted-foreground">
-              <span className="text-foreground font-medium">Repeat</span> - After 4 Pomodoros, take a longer 15-30
-              minute break
+              <span className="text-foreground font-medium">Repeat</span> - After 4 Pomodoros, take a longer{" "}
+              {settings.longBreakDuration}-minute break
             </li>
           </ol>
 

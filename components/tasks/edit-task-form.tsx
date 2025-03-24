@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { CalendarIcon, Clock, MapPin, Plus, Trash2, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -16,23 +16,49 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useTasks } from "@/hooks/use-tasks"
-import { useToast } from "@/hooks/use-toast"
 import type { SubTask } from "@/types/task"
+import { useToast } from "@/hooks/use-toast"
 
-export function AddTaskForm() {
+interface EditTaskFormProps {
+  taskId: string
+}
+
+export function EditTaskForm({ taskId }: EditTaskFormProps) {
   const router = useRouter()
-  const { addTask } = useTasks()
+  const { tasks, updateTask } = useTasks()
   const { toast } = useToast()
+
+  const task = tasks.find((t) => t.id === taskId)
 
   const [title, setTitle] = useState("")
   const [deadline, setDeadline] = useState<Date | undefined>(undefined)
-  const [time, setTime] = useState("09:00") // Default time
+  const [time, setTime] = useState("09:00")
   const [location, setLocation] = useState("")
-  const [priority, setPriority] = useState("medium")
+  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium")
   const [why, setWhy] = useState("")
   const [subTasks, setSubTasks] = useState<SubTask[]>([])
   const [newSubTask, setNewSubTask] = useState("")
   const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false)
+
+  useEffect(() => {
+    if (task) {
+      setTitle(task.title)
+      setDeadline(task.deadline ? new Date(task.deadline) : undefined)
+      setTime(task.time || "09:00")
+      setLocation(task.location || "")
+      setPriority(task.priority)
+      setWhy(task.why || "")
+      setSubTasks(task.subTasks || [])
+    } else {
+      // If task not found, redirect back
+      toast({
+        title: "Task not found",
+        description: "The task you're trying to edit doesn't exist.",
+        variant: "destructive",
+      })
+      router.push("/tasks")
+    }
+  }, [task, router, toast])
 
   const handleAddSubTask = () => {
     if (newSubTask.trim()) {
@@ -48,27 +74,25 @@ export function AddTaskForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!title.trim()) return
+    if (!title.trim() || !task) return
 
-    const newTask = {
-      id: Date.now().toString(),
+    const updatedTask = {
+      ...task,
       title,
       deadline: deadline?.toISOString() || new Date().toISOString(),
       time,
-      dateAdded: new Date().toISOString(),
-      completed: false,
       priority,
       location,
       why,
       subTasks,
     }
 
-    addTask(newTask)
+    updateTask(taskId, updatedTask)
     toast({
-      title: "Task added",
-      description: "Your new task has been added successfully.",
+      title: "Task updated",
+      description: "Your task has been updated successfully.",
     })
-    router.push("/")
+    router.push("/tasks")
   }
 
   const generateSubtasks = async () => {
@@ -127,6 +151,10 @@ export function AddTaskForm() {
   }
 
   const timeOptions = generateTimeOptions()
+
+  if (!task) {
+    return <div>Loading...</div>
+  }
 
   return (
     <Card>
@@ -197,7 +225,7 @@ export function AddTaskForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
-              <Select defaultValue="medium" onValueChange={(value) => setPriority(value)}>
+              <Select value={priority} onValueChange={(value: "low" | "medium" | "high") => setPriority(value)}>
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
@@ -281,7 +309,7 @@ export function AddTaskForm() {
             <Button type="button" variant="outline" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit">Add Task</Button>
+            <Button type="submit">Save Changes</Button>
           </div>
         </form>
       </CardContent>

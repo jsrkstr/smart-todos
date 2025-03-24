@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, CheckCircle, ChevronDown, ChevronUp, MapPin, MoreHorizontal, Star } from "lucide-react"
+import { Calendar, CheckCircle, ChevronDown, ChevronUp, MapPin, MoreHorizontal, Star, Clock } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -12,15 +13,38 @@ import { useTasks } from "@/hooks/use-tasks"
 
 interface TaskItemProps {
   task: Task
+  onEdit?: () => void
+  onDelete?: () => void
 }
 
-export function TaskItem({ task }: TaskItemProps) {
-  const { toggleTaskCompletion, deleteTask } = useTasks()
+export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
+  const router = useRouter()
+  const { toggleTaskCompletion, deleteTask, updateTask } = useTasks()
   const [expanded, setExpanded] = useState(false)
 
   const subTasksCompleted = task.subTasks?.filter((st) => st.completed).length || 0
   const subTasksTotal = task.subTasks?.length || 0
   const subTaskProgress = subTasksTotal > 0 ? Math.round((subTasksCompleted / subTasksTotal) * 100) : 0
+
+  const handleEdit = () => {
+    router.push(`/edit-task/${task.id}`)
+  }
+
+  const handlePostpone = () => {
+    const currentDeadline = new Date(task.deadline)
+    const nextDay = new Date(currentDeadline)
+    nextDay.setDate(currentDeadline.getDate() + 1)
+
+    updateTask(task.id, {
+      ...task,
+      deadline: nextDay.toISOString(),
+    })
+  }
+
+  const handleDelete = () => {
+    deleteTask(task.id)
+    if (onDelete) onDelete()
+  }
 
   return (
     <div
@@ -50,9 +74,9 @@ export function TaskItem({ task }: TaskItemProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Edit</DropdownMenuItem>
-                    <DropdownMenuItem>Postpone</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => deleteTask(task.id)}>Delete</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleEdit}>Edit</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handlePostpone}>Postpone</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDelete}>Delete</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -63,6 +87,13 @@ export function TaskItem({ task }: TaskItemProps) {
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Calendar className="h-3.5 w-3.5 mr-1" />
                   <span>{new Date(task.deadline).toLocaleDateString()}</span>
+                </div>
+              )}
+
+              {task.time && (
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5 mr-1" />
+                  <span>{task.time}</span>
                 </div>
               )}
 
@@ -109,7 +140,15 @@ export function TaskItem({ task }: TaskItemProps) {
               <div className="mt-2 space-y-1">
                 {task.subTasks.map((subTask, index) => (
                   <div key={index} className="flex items-start gap-2">
-                    <Checkbox checked={subTask.completed} className="mt-0.5" />
+                    <Checkbox
+                      checked={subTask.completed}
+                      className="mt-0.5"
+                      onCheckedChange={(checked) => {
+                        const updatedSubTasks = [...task.subTasks!]
+                        updatedSubTasks[index].completed = !!checked
+                        updateTask(task.id, { subTasks: updatedSubTasks })
+                      }}
+                    />
                     <span className={cn("text-sm", subTask.completed && "line-through text-muted-foreground")}>
                       {subTask.title}
                     </span>

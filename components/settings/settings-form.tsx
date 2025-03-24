@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect } from "react"
 import { Bell, Calendar, Clock, Moon, Sun, ListTodo } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,12 +11,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
+import { useSettings } from "@/hooks/use-settings"
+import { useNotifications } from "@/hooks/use-notifications"
+import { useToast } from "@/hooks/use-toast"
 
 export function SettingsForm() {
   const { theme, setTheme } = useTheme()
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
-  const [emailNotifications, setEmailNotifications] = useState(false)
-  const [soundEnabled, setSoundEnabled] = useState(true)
+  const { settings, updateSettings } = useSettings()
+  const { requestPermission, permissionGranted } = useNotifications()
+  const { toast } = useToast()
+
+  useEffect(() => {
+    // Sync theme with settings
+    if (theme !== settings.theme) {
+      updateSettings({ theme: theme as "light" | "dark" | "system" })
+    }
+  }, [theme, settings.theme, updateSettings])
+
+  const handleNotificationsToggle = async (enabled: boolean) => {
+    if (enabled) {
+      const granted = await requestPermission()
+      if (!granted) {
+        toast({
+          title: "Notification permission denied",
+          description: "Please enable notifications in your browser settings.",
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
+    updateSettings({ notificationsEnabled: enabled })
+  }
 
   return (
     <Tabs defaultValue="general">
@@ -36,7 +62,14 @@ export function SettingsForm() {
             <div className="space-y-2">
               <Label>Theme</Label>
               <div className="flex items-center gap-4">
-                <RadioGroup defaultValue={theme} onValueChange={setTheme} className="flex gap-4">
+                <RadioGroup
+                  defaultValue={settings.theme}
+                  onValueChange={(value) => {
+                    setTheme(value)
+                    updateSettings({ theme: value as "light" | "dark" | "system" })
+                  }}
+                  className="flex gap-4"
+                >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="light" id="light" />
                     <Label htmlFor="light" className="flex items-center gap-1.5">
@@ -61,7 +94,10 @@ export function SettingsForm() {
 
             <div className="space-y-2">
               <Label htmlFor="pomodoro-duration">Pomodoro Duration (minutes)</Label>
-              <Select defaultValue="25">
+              <Select
+                defaultValue={settings.pomodoroDuration}
+                onValueChange={(value) => updateSettings({ pomodoroDuration: value })}
+              >
                 <SelectTrigger id="pomodoro-duration">
                   <SelectValue placeholder="Select duration" />
                 </SelectTrigger>
@@ -78,7 +114,10 @@ export function SettingsForm() {
 
             <div className="space-y-2">
               <Label htmlFor="short-break">Short Break Duration (minutes)</Label>
-              <Select defaultValue="5">
+              <Select
+                defaultValue={settings.shortBreakDuration}
+                onValueChange={(value) => updateSettings({ shortBreakDuration: value })}
+              >
                 <SelectTrigger id="short-break">
                   <SelectValue placeholder="Select duration" />
                 </SelectTrigger>
@@ -92,7 +131,10 @@ export function SettingsForm() {
 
             <div className="space-y-2">
               <Label htmlFor="long-break">Long Break Duration (minutes)</Label>
-              <Select defaultValue="15">
+              <Select
+                defaultValue={settings.longBreakDuration}
+                onValueChange={(value) => updateSettings({ longBreakDuration: value })}
+              >
                 <SelectTrigger id="long-break">
                   <SelectValue placeholder="Select duration" />
                 </SelectTrigger>
@@ -110,10 +152,20 @@ export function SettingsForm() {
                 <Label htmlFor="sound">Sound Effects</Label>
                 <p className="text-sm text-muted-foreground">Play sounds for notifications and timer completion</p>
               </div>
-              <Switch id="sound" checked={soundEnabled} onCheckedChange={setSoundEnabled} />
+              <Switch
+                id="sound"
+                checked={settings.soundEnabled}
+                onCheckedChange={(checked) => updateSettings({ soundEnabled: checked })}
+              />
             </div>
 
-            <Button>Save Changes</Button>
+            <Button
+              onClick={() =>
+                toast({ title: "Settings saved", description: "Your settings have been saved successfully." })
+              }
+            >
+              Save Changes
+            </Button>
           </CardContent>
         </Card>
       </TabsContent>
@@ -130,7 +182,11 @@ export function SettingsForm() {
                 <Label htmlFor="notifications">Enable Notifications</Label>
                 <p className="text-sm text-muted-foreground">Receive notifications for tasks and reminders</p>
               </div>
-              <Switch id="notifications" checked={notificationsEnabled} onCheckedChange={setNotificationsEnabled} />
+              <Switch
+                id="notifications"
+                checked={settings.notificationsEnabled}
+                onCheckedChange={handleNotificationsToggle}
+              />
             </div>
 
             <div className="flex items-center justify-between">
@@ -140,9 +196,9 @@ export function SettingsForm() {
               </div>
               <Switch
                 id="email-notifications"
-                checked={emailNotifications}
-                onCheckedChange={setEmailNotifications}
-                disabled={!notificationsEnabled}
+                checked={settings.emailNotifications}
+                onCheckedChange={(checked) => updateSettings({ emailNotifications: checked })}
+                disabled={!settings.notificationsEnabled}
               />
             </div>
 
@@ -154,7 +210,7 @@ export function SettingsForm() {
                     <Bell className="h-4 w-4 text-muted-foreground" />
                     <span>Task Reminders</span>
                   </div>
-                  <Switch defaultChecked disabled={!notificationsEnabled} />
+                  <Switch defaultChecked disabled={!settings.notificationsEnabled} />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -162,7 +218,7 @@ export function SettingsForm() {
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span>Upcoming Deadlines</span>
                   </div>
-                  <Switch defaultChecked disabled={!notificationsEnabled} />
+                  <Switch defaultChecked disabled={!settings.notificationsEnabled} />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -170,14 +226,17 @@ export function SettingsForm() {
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>Pomodoro Timer</span>
                   </div>
-                  <Switch defaultChecked disabled={!notificationsEnabled} />
+                  <Switch defaultChecked disabled={!settings.notificationsEnabled} />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="reminder-time">Default Reminder Time</Label>
-              <Select defaultValue="30">
+              <Select
+                defaultValue={settings.reminderTime}
+                onValueChange={(value) => updateSettings({ reminderTime: value })}
+              >
                 <SelectTrigger id="reminder-time">
                   <SelectValue placeholder="Select time" />
                 </SelectTrigger>
@@ -191,7 +250,34 @@ export function SettingsForm() {
               </Select>
             </div>
 
-            <Button disabled={!notificationsEnabled}>Save Notification Settings</Button>
+            <Button
+              disabled={!settings.notificationsEnabled}
+              onClick={() => {
+                if (permissionGranted) {
+                  toast({
+                    title: "Notification settings saved",
+                    description: "Your notification settings have been updated.",
+                  })
+                } else {
+                  requestPermission().then((granted) => {
+                    if (granted) {
+                      toast({
+                        title: "Notification settings saved",
+                        description: "Your notification settings have been updated.",
+                      })
+                    } else {
+                      toast({
+                        title: "Permission denied",
+                        description: "Please enable notifications in your browser settings.",
+                        variant: "destructive",
+                      })
+                    }
+                  })
+                }
+              }}
+            >
+              Save Notification Settings
+            </Button>
           </CardContent>
         </Card>
       </TabsContent>
@@ -239,7 +325,16 @@ export function SettingsForm() {
               </p>
             </div>
 
-            <Button>Save Integration Settings</Button>
+            <Button
+              onClick={() =>
+                toast({
+                  title: "Integration settings saved",
+                  description: "Your integration settings have been updated.",
+                })
+              }
+            >
+              Save Integration Settings
+            </Button>
           </CardContent>
         </Card>
       </TabsContent>

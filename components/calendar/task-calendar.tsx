@@ -56,6 +56,17 @@ const categorizeTasksByTime = (tasks: Task[]) => {
     }
   })
 
+  // Sort tasks by time within each category
+  const sortByTime = (a: Task, b: Task) => {
+    const timeA = a.time || "00:00"
+    const timeB = b.time || "00:00"
+    return timeA.localeCompare(timeB)
+  }
+
+  morning.sort(sortByTime)
+  afternoon.sort(sortByTime)
+  evening.sort(sortByTime)
+
   return { morning, afternoon, evening }
 }
 

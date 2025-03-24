@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useNotifications } from "@/hooks/use-notifications"
 import type { Task } from "@/types/task"
 
 // Sample initial tasks
@@ -9,6 +10,7 @@ const initialTasks: Task[] = [
     id: "1",
     title: "Complete project proposal",
     deadline: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
+    time: "14:00",
     dateAdded: new Date().toISOString(),
     completed: false,
     priority: "high",
@@ -25,6 +27,7 @@ const initialTasks: Task[] = [
     id: "2",
     title: "Go for a 30-minute run",
     deadline: new Date().toISOString(), // Today
+    time: "08:00",
     dateAdded: new Date(Date.now() - 86400000).toISOString(), // Yesterday
     completed: false,
     priority: "medium",
@@ -39,6 +42,7 @@ const initialTasks: Task[] = [
     id: "3",
     title: "Read 20 pages of book",
     deadline: new Date().toISOString(), // Today
+    time: "20:00",
     dateAdded: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
     completed: true,
     priority: "low",
@@ -47,6 +51,7 @@ const initialTasks: Task[] = [
 ]
 
 export function useTasks() {
+  const { scheduleTaskReminder } = useNotifications()
   const [tasks, setTasks] = useState<Task[]>(() => {
     // Load from localStorage if available
     if (typeof window !== "undefined") {
@@ -63,12 +68,22 @@ export function useTasks() {
     }
   }, [tasks])
 
+  // Schedule reminders for all active tasks
+  useEffect(() => {
+    tasks.forEach((task) => {
+      if (!task.completed) {
+        scheduleTaskReminder(task)
+      }
+    })
+  }, [tasks, scheduleTaskReminder])
+
   // Get completed tasks
   const completedTasks = tasks.filter((task) => task.completed)
 
   // Add a new task
   const addTask = (task: Task) => {
     setTasks((prev) => [task, ...prev])
+    scheduleTaskReminder(task)
   }
 
   // Toggle task completion
@@ -83,7 +98,16 @@ export function useTasks() {
 
   // Update a task
   const updateTask = (taskId: string, updates: Partial<Task>) => {
-    setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, ...updates } : task)))
+    setTasks((prev) =>
+      prev.map((task) => {
+        if (task.id === taskId) {
+          const updatedTask = { ...task, ...updates }
+          scheduleTaskReminder(updatedTask)
+          return updatedTask
+        }
+        return task
+      }),
+    )
   }
 
   return {
