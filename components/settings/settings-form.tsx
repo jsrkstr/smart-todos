@@ -122,6 +122,7 @@ export function SettingsForm() {
                   <SelectValue placeholder="Select duration" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="1">1 minutes</SelectItem>
                   <SelectItem value="3">3 minutes</SelectItem>
                   <SelectItem value="5">5 minutes</SelectItem>
                   <SelectItem value="10">10 minutes</SelectItem>

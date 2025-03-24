@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTasks } from "@/hooks/use-tasks"
 import { useSettings } from "@/hooks/use-settings"
 import { useNotifications } from "@/hooks/use-notifications"
+import { startPomodoroTimer, stopPomodoroTimer, isMobileApp } from "@/lib/mobileBridge"
 
 type TimerMode = "focus" | "shortBreak" | "longBreak"
 
@@ -47,12 +48,17 @@ export function PomodoroTimer() {
   // Timer logic
   useEffect(() => {
     const currentTimerConfig = {
-      focus: Number.parseInt(settings.pomodoroDuration) * 60, // minutes to seconds
+      focus: Number.parseInt(settings.pomodoroDuration) * 60,
       shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
       longBreak: Number.parseInt(settings.longBreakDuration) * 60,
     }
 
     if (isActive && timeLeft > 0) {
+      // Start native timer if in mobile app and only if it wasn't already active
+      if (isMobileApp() && !timerRef.current) {
+        startPomodoroTimer(currentTimerConfig[mode] / 60)
+      }
+
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           // Check if we're at halfway point
@@ -71,9 +77,15 @@ export function PomodoroTimer() {
           return prev - 1
         })
       }, 1000)
-    } else if (isActive && timeLeft === 0) {
+    } else if (timeLeft === 0) {
       // Timer completed
       setIsActive(false)
+
+      // Stop native timer if in mobile app
+      if (isMobileApp()) {
+        console.log('stopPomodoroTimer 1');
+        stopPomodoroTimer()
+      }
 
       if (settings.notificationsEnabled) {
         if (mode === "focus") {
@@ -114,6 +126,11 @@ export function PomodoroTimer() {
       if (timerRef.current) {
         clearInterval(timerRef.current)
       }
+      // Stop native timer if in mobile app and only if it was active
+      if (isMobileApp() && isActive) {
+        console.log('stopPomodoroTimer 2');
+        stopPomodoroTimer()
+      }
     }
   }, [isActive, timeLeft, mode, pomodorosCompleted, settings, sendNotification])
 
@@ -127,7 +144,7 @@ export function PomodoroTimer() {
   // Calculate progress percentage
   const calculateProgress = () => {
     const currentTimerConfig = {
-      focus: Number.parseInt(settings.pomodoroDuration) * 60, // minutes to seconds
+      focus: Number.parseInt(settings.pomodoroDuration) * 60,
       shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
       longBreak: Number.parseInt(settings.longBreakDuration) * 60,
     }
@@ -143,7 +160,7 @@ export function PomodoroTimer() {
   // Reset timer
   const resetTimer = () => {
     const currentTimerConfig = {
-      focus: Number.parseInt(settings.pomodoroDuration) * 60, // minutes to seconds
+      focus: Number.parseInt(settings.pomodoroDuration) * 60,
       shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
       longBreak: Number.parseInt(settings.longBreakDuration) * 60,
     }
@@ -154,6 +171,12 @@ export function PomodoroTimer() {
     if (timerRef.current) {
       clearInterval(timerRef.current)
       timerRef.current = null
+    }
+
+    // Stop native timer if in mobile app
+    if (isMobileApp()) {
+      console.log('stopPomodoroTimer 3');
+      stopPomodoroTimer()
     }
   }
 
