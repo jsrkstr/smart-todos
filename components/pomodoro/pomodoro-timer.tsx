@@ -10,6 +10,7 @@ import { useTasks } from "@/hooks/use-tasks"
 import { useSettings } from "@/hooks/use-settings"
 import { useNotifications } from "@/hooks/use-notifications"
 import { startPomodoroTimer, stopPomodoroTimer, isMobileApp } from "@/lib/mobileBridge"
+import { usePomodoroTimer } from "@/hooks/usePomodoroTimer"
 
 type TimerMode = "focus" | "shortBreak" | "longBreak"
 
@@ -24,115 +25,32 @@ export function PomodoroTimer() {
     longBreak: Number.parseInt(settings.longBreakDuration) * 60,
   }
 
-  const [mode, setMode] = useState<TimerMode>("focus")
-  const [timeLeft, setTimeLeft] = useState(TIMER_CONFIG[mode])
-  const [isActive, setIsActive] = useState(false)
-  const [pomodorosCompleted, setPomodorosCompleted] = useState(0)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const halfwayNotificationSent = useRef(false)
   const { tasks } = useTasks()
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
+  const {
+    mode,
+    setMode,
+    timeLeft,
+    isActive,
+    toggleTimer,
+    resetTimer,
+    pomodorosCompleted,
+  } = usePomodoroTimer()
+
   // Reset timer when mode changes
-  useEffect(() => {
-    setTimeLeft(TIMER_CONFIG[mode])
-    setIsActive(false)
-    halfwayNotificationSent.current = false
+  // useEffect(() => {
+  //   setTimeLeft(TIMER_CONFIG[mode])
+  //   setIsActive(false)
+  //   halfwayNotificationSent.current = false
 
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
-  }, [mode])
-
-  // Timer logic
-  useEffect(() => {
-    const currentTimerConfig = {
-      focus: Number.parseInt(settings.pomodoroDuration) * 60,
-      shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
-      longBreak: Number.parseInt(settings.longBreakDuration) * 60,
-    }
-
-    if (isActive && timeLeft > 0) {
-      // Start native timer if in mobile app and only if it wasn't already active
-      if (isMobileApp() && !timerRef.current) {
-        startPomodoroTimer(currentTimerConfig[mode] / 60)
-      }
-
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          // Check if we're at halfway point
-          if (prev === Math.floor(currentTimerConfig[mode] / 2) && !halfwayNotificationSent.current) {
-            halfwayNotificationSent.current = true
-
-            if (settings.notificationsEnabled) {
-              const minutesLeft = Math.floor(prev / 60)
-              sendNotification(`${mode === "focus" ? "Pomodoro" : "Break"} Halfway Point`, {
-                body: `${minutesLeft} minutes remaining in your ${mode === "focus" ? "focus session" : "break"}`,
-                icon: "/favicon.ico",
-              })
-            }
-          }
-
-          return prev - 1
-        })
-      }, 1000)
-    } else if (timeLeft === 0) {
-      // Timer completed
-      setIsActive(false)
-
-      // Stop native timer if in mobile app
-      if (isMobileApp()) {
-        console.log('stopPomodoroTimer 1');
-        stopPomodoroTimer()
-      }
-
-      if (settings.notificationsEnabled) {
-        if (mode === "focus") {
-          sendNotification("Pomodoro Completed!", {
-            body: "Great job! Time to take a break.",
-            icon: "/favicon.ico",
-          })
-        } else {
-          sendNotification("Break Completed!", {
-            body: "Break time is over. Ready to focus again?",
-            icon: "/favicon.ico",
-          })
-        }
-      }
-
-      if (mode === "focus") {
-        setPomodorosCompleted((prev) => prev + 1)
-
-        // After 4 pomodoros, take a long break
-        if ((pomodorosCompleted + 1) % 4 === 0) {
-          setMode("longBreak")
-        } else {
-          setMode("shortBreak")
-        }
-
-        // Play notification sound if enabled
-        if (settings.soundEnabled) {
-          const audio = new Audio("/notification.mp3")
-          audio.play().catch((e) => console.error("Error playing sound:", e))
-        }
-      } else {
-        // Break completed, back to focus
-        setMode("focus")
-      }
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
-      }
-      // Stop native timer if in mobile app and only if it was active
-      if (isMobileApp() && isActive) {
-        console.log('stopPomodoroTimer 2');
-        stopPomodoroTimer()
-      }
-    }
-  }, [isActive, timeLeft, mode, pomodorosCompleted, settings, sendNotification])
+  //   if (timerRef.current) {
+  //     clearInterval(timerRef.current)
+  //     timerRef.current = null
+  //   }
+  // }, [mode])
 
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
@@ -150,34 +68,6 @@ export function PomodoroTimer() {
     }
     const total = currentTimerConfig[mode]
     return ((total - timeLeft) / total) * 100
-  }
-
-  // Toggle timer
-  const toggleTimer = () => {
-    setIsActive(!isActive)
-  }
-
-  // Reset timer
-  const resetTimer = () => {
-    const currentTimerConfig = {
-      focus: Number.parseInt(settings.pomodoroDuration) * 60,
-      shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
-      longBreak: Number.parseInt(settings.longBreakDuration) * 60,
-    }
-    setIsActive(false)
-    setTimeLeft(currentTimerConfig[mode])
-    halfwayNotificationSent.current = false
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
-
-    // Stop native timer if in mobile app
-    if (isMobileApp()) {
-      console.log('stopPomodoroTimer 3');
-      stopPomodoroTimer()
-    }
   }
 
   return (
