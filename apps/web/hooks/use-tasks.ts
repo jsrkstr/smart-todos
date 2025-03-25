@@ -17,10 +17,10 @@ export function useTasks() {
   } = useTaskStore()
   
   // Use a ref to track if we've already set up the notification handler
-  const handlerSetupRef = useRef(false)
+  const handlerSetupRef = useRef<boolean>(false)
   
   // Create a memoized notification setup function
-  const setupNotifications = useCallback((tasks: Task[]) => {
+  const setupNotifications = useCallback((tasks: Task[]): void => {
     tasks.forEach((task: Task) => {
       if (!task.completed) {
         scheduleTaskReminder(task)
@@ -29,7 +29,7 @@ export function useTasks() {
   }, [scheduleTaskReminder])
   
   // Set up notification handler only once
-  useEffect(() => {
+  useEffect((): void => {
     if (!handlerSetupRef.current) {
       handlerSetupRef.current = true
       setNotificationHandler(setupNotifications)
@@ -37,11 +37,11 @@ export function useTasks() {
   }, [setNotificationHandler, setupNotifications]);
 
   // Get completed tasks
-  const completedTasks = tasks.filter((task) => task.completed)
+  const completedTasks: Task[] = tasks.filter((task: Task) => task.completed)
 
   // Add a new task with notification scheduling
-  const addTask = async (task: Task) => {
-    const newTask = await storeAddTask(task)
+  const addTask = async (task: Task): Promise<Task | null> => {
+    const newTask: Task | null = await storeAddTask(task)
     if (newTask) {
       scheduleTaskReminder(newTask)
     }
@@ -49,8 +49,8 @@ export function useTasks() {
   }
 
   // Update a task with notification rescheduling
-  const updateTask = async (taskId: string, updates: Partial<Task>) => {
-    const updatedTask = await storeUpdateTask(taskId, updates)
+  const updateTask = async (taskId: string, updates: Partial<Task>): Promise<Task | null> => {
+    const updatedTask: Task | null = await storeUpdateTask(taskId, updates)
     if (updatedTask && !updatedTask.completed) {
       scheduleTaskReminder(updatedTask)
     }

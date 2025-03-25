@@ -34,36 +34,43 @@ const initialRewards: Reward[] = [
   },
 ]
 
-export function useRewards() {
+interface RewardsHookReturn {
+  rewards: Reward[];
+  addReward: (reward: Reward) => void;
+  claimReward: (rewardId: string) => void;
+  deleteReward: (rewardId: string) => void;
+}
+
+export function useRewards(): RewardsHookReturn {
   const [rewards, setRewards] = useState<Reward[]>(() => {
     // Load from localStorage if available
     if (typeof window !== "undefined") {
-      const savedRewards = localStorage.getItem("smartTodos-rewards")
-      return savedRewards ? JSON.parse(savedRewards) : initialRewards
+      const savedRewards: string | null = localStorage.getItem("smartTodos-rewards")
+      return savedRewards ? JSON.parse(savedRewards) as Reward[] : initialRewards
     }
     return initialRewards
   })
 
   // Save to localStorage whenever rewards change
-  useEffect(() => {
+  useEffect((): void => {
     if (typeof window !== "undefined") {
       localStorage.setItem("smartTodos-rewards", JSON.stringify(rewards))
     }
   }, [rewards])
 
   // Add a new reward
-  const addReward = (reward: Reward) => {
-    setRewards((prev) => [...prev, reward])
+  const addReward = (reward: Reward): void => {
+    setRewards((prev: Reward[]) => [...prev, reward])
   }
 
   // Claim a reward
-  const claimReward = (rewardId: string) => {
-    setRewards((prev) => prev.map((reward) => (reward.id === rewardId ? { ...reward, claimed: true } : reward)))
+  const claimReward = (rewardId: string): void => {
+    setRewards((prev: Reward[]) => prev.map((reward: Reward) => (reward.id === rewardId ? { ...reward, claimed: true } : reward)))
   }
 
   // Delete a reward
-  const deleteReward = (rewardId: string) => {
-    setRewards((prev) => prev.filter((reward) => reward.id !== rewardId))
+  const deleteReward = (rewardId: string): void => {
+    setRewards((prev: Reward[]) => prev.filter((reward: Reward) => reward.id !== rewardId))
   }
 
   return {

@@ -31,16 +31,16 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const { toast } = useToast()
   const { settings } = useSettings()
 
-  const [title, setTitle] = useState("")
+  const [title, setTitle] = useState<string>("")
   const [date, setDate] = useState<Date | undefined>(undefined)
-  const [time, setTime] = useState("09:00")
+  const [time, setTime] = useState<string>("09:00")
   const [deadline, setDeadline] = useState<Date | undefined>(undefined)
-  const [location, setLocation] = useState("")
-  const [priority, setPriority] = useState("medium")
-  const [why, setWhy] = useState("")
+  const [location, setLocation] = useState<string>("")
+  const [priority, setPriority] = useState<string>("medium")
+  const [why, setWhy] = useState<string>("")
   const [subTasks, setSubTasks] = useState<SubTask[]>([])
-  const [newSubTask, setNewSubTask] = useState("")
-  const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false)
+  const [newSubTask, setNewSubTask] = useState<string>("")
+  const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState<boolean>(false)
   const [suggestedSubTasks, setSuggestedSubTasks] = useState<SubTask[]>([])
   const [reminderTime, setReminderTime] = useState<ReminderTimeOption>(
     // Make sure we have a valid enum value
@@ -49,9 +49,9 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const [task, setTask] = useState<Task | null>(null)
 
   // Fetch task data if editing
-  useEffect(() => {
+  useEffect((): void => {
     if (isEditing && taskId) {
-      const existingTask = tasks.find(t => t.id === taskId) || null
+      const existingTask: Task | undefined = tasks.find(t => t.id === taskId)
       if (existingTask) {
         setTask(existingTask)
         setTitle(existingTask.title)
@@ -83,7 +83,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     }
   }, [isEditing, taskId, tasks])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
 
     if (!title.trim()) {
@@ -151,28 +151,28 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     router.push("/tasks")
   }
 
-  const handleAddSubTask = () => {
+  const handleAddSubTask = (): void => {
     if (newSubTask.trim()) {
       setSubTasks([...subTasks, { title: newSubTask, completed: false }])
       setNewSubTask("")
     }
   }
 
-  const handleRemoveSubTask = (index: number) => {
+  const handleRemoveSubTask = (index: number): void => {
     setSubTasks(subTasks.filter((_, i) => i !== index))
   }
 
-  const handleAcceptSubTask = (subTask: SubTask) => {
+  const handleAcceptSubTask = (subTask: SubTask): void => {
     setSubTasks([...subTasks, subTask])
     setSuggestedSubTasks(suggestedSubTasks.filter(st => st.title !== subTask.title))
   }
 
-  const handleAcceptAllSubTasks = () => {
+  const handleAcceptAllSubTasks = (): void => {
     setSubTasks([...subTasks, ...suggestedSubTasks])
     setSuggestedSubTasks([])
   }
 
-  const generateSubtasks = async () => {
+  const generateSubtasks = async (): Promise<void> => {
     if (!title) return
 
     setIsGeneratingSubtasks(true)

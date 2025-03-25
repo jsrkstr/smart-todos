@@ -10,12 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TaskItem } from "@/components/tasks/task-item"
 import { useTasks } from "@/hooks/use-tasks"
 import { QuoteCard } from "@/components/profile/quote-card"
+import type { Task } from "@/types/task"
+import type React from "react"
 
-export function TasksOverview() {
+export function TasksOverview(): JSX.Element {
   const { tasks, completedTasks } = useTasks()
-  const [activeTab, setActiveTab] = useState("today")
+  const [activeTab, setActiveTab] = useState<string>("today")
 
-  const completionRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0
+  const completionRate: number = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0
 
   return (
     <div className="container mx-auto py-6">
@@ -48,7 +50,7 @@ export function TasksOverview() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {tasks.slice(0, 3).map((task) => (
+              {tasks.slice(0, 3).map((task: Task) => (
                 <div key={task.id} className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
@@ -90,11 +92,11 @@ export function TasksOverview() {
 
           <TabsContent value="today" className="space-y-4">
             {tasks
-              .filter((task) => new Date(task.deadline).toDateString() === new Date().toDateString())
-              .map((task) => (
+              .filter((task: Task) => new Date(task.deadline).toDateString() === new Date().toDateString())
+              .map((task: Task) => (
                 <TaskItem key={task.id} task={task} />
               ))}
-            {tasks.filter((task) => new Date(task.deadline).toDateString() === new Date().toDateString()).length ===
+            {tasks.filter((task: Task) => new Date(task.deadline).toDateString() === new Date().toDateString()).length ===
               0 && (
               <p className="text-center text-muted-foreground py-8">
                 No tasks for today. Add a new task to get started!
@@ -105,15 +107,15 @@ export function TasksOverview() {
           <TabsContent value="upcoming" className="space-y-4">
             {tasks
               .filter(
-                (task) =>
+                (task: Task) =>
                   new Date(task.deadline) > new Date() &&
                   new Date(task.deadline).toDateString() !== new Date().toDateString(),
               )
-              .map((task) => (
+              .map((task: Task) => (
                 <TaskItem key={task.id} task={task} />
               ))}
             {tasks.filter(
-              (task) =>
+              (task: Task) =>
                 new Date(task.deadline) > new Date() &&
                 new Date(task.deadline).toDateString() !== new Date().toDateString(),
             ).length === 0 && (
@@ -124,7 +126,7 @@ export function TasksOverview() {
           </TabsContent>
 
           <TabsContent value="completed" className="space-y-4">
-            {completedTasks.map((task) => (
+            {completedTasks.map((task: Task) => (
               <TaskItem key={task.id} task={task} />
             ))}
             {completedTasks.length === 0 && (

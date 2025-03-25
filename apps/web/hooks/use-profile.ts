@@ -17,18 +17,25 @@ const initialProfile: UserProfile = {
   inspirations: [],
 }
 
-export function useProfile() {
+interface ProfileHookReturn {
+  profile: UserProfile | null;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  addPrinciple: (principle: string) => Promise<void>;
+  removePrinciple: (index: number) => Promise<void>;
+}
+
+export function useProfile(): ProfileHookReturn {
   const [profile, setProfile] = useState<UserProfile | null>(null)
 
-  useEffect(() => {
+  useEffect((): void => {
     // Load profile from API
-    async function loadProfile() {
+    async function loadProfile(): Promise<void> {
       try {
-        const response = await fetch('/api/profile')
+        const response: Response = await fetch('/api/profile')
         if (!response.ok) {
           throw new Error('Failed to load profile')
         }
-        const data = await response.json()
+        const data: UserProfile = await response.json()
         setProfile(data)
       } catch (error) {
         console.error("Failed to load profile:", error)
@@ -40,9 +47,9 @@ export function useProfile() {
   }, [])
 
   // Update profile
-  const updateProfile = async (updates: Partial<UserProfile>) => {
+  const updateProfile = async (updates: Partial<UserProfile>): Promise<void> => {
     try {
-      const response = await fetch('/api/profile', {
+      const response: Response = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
@@ -50,7 +57,7 @@ export function useProfile() {
       if (!response.ok) {
         throw new Error('Failed to update profile')
       }
-      const data = await response.json()
+      const data: UserProfile = await response.json()
       setProfile(data)
     } catch (error) {
       console.error("Failed to update profile:", error)
@@ -58,9 +65,9 @@ export function useProfile() {
   }
 
   // Add a principle
-  const addPrinciple = async (principle: string) => {
+  const addPrinciple = async (principle: string): Promise<void> => {
     try {
-      const response = await fetch('/api/profile/principles', {
+      const response: Response = await fetch('/api/profile/principles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ principle }),
@@ -68,7 +75,7 @@ export function useProfile() {
       if (!response.ok) {
         throw new Error('Failed to add principle')
       }
-      const data = await response.json()
+      const data: { principles: string[] } = await response.json()
       setProfile(prev => prev ? { ...prev, principles: data.principles } : null)
     } catch (error) {
       console.error("Failed to add principle:", error)
@@ -76,9 +83,9 @@ export function useProfile() {
   }
 
   // Remove a principle
-  const removePrinciple = async (index: number) => {
+  const removePrinciple = async (index: number): Promise<void> => {
     try {
-      const response = await fetch('/api/profile/principles', {
+      const response: Response = await fetch('/api/profile/principles', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ index }),
@@ -86,7 +93,7 @@ export function useProfile() {
       if (!response.ok) {
         throw new Error('Failed to remove principle')
       }
-      const data = await response.json()
+      const data: { principles: string[] } = await response.json()
       setProfile(prev => prev ? { ...prev, principles: data.principles } : null)
     } catch (error) {
       console.error("Failed to remove principle:", error)

@@ -1,8 +1,33 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import type { Task } from '@/types/task'
+
+interface TaskPayload {
+  id: string;
+  title: string;
+  date: string;
+  time?: string;
+  deadline?: string | null;
+  dateAdded: string;
+  completed: boolean;
+  priority: "low" | "medium" | "high";
+  location?: string;
+  why?: string;
+  subTasks?: { title: string; completed: boolean }[];
+  reminderTime?: string;
+}
+
+interface TaskUpdatePayload {
+  id: string;
+  [key: string]: any;
+}
+
+interface DeleteTaskPayload {
+  id: string;
+}
 
 // GET /api/tasks
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   try {
     const user = await prisma.user.findFirst()
     if (!user) {
@@ -23,21 +48,21 @@ export async function GET() {
     })))
   } catch (error) {
     // Safe error handling
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage: string = error instanceof Error ? error.message : 'Unknown error';
     console.error('Failed to get tasks:', errorMessage);
     return NextResponse.json({ error: 'Failed to get tasks' }, { status: 500 })
   }
 }
 
 // POST /api/tasks
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<NextResponse> {
   try {
     // Wrap in a try/catch to handle potential JSON parsing errors
-    let taskData;
+    let taskData: TaskPayload;
     try {
       taskData = await request.json();
     } catch (jsonError) {
-      const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown error';
+      const errorMessage: string = jsonError instanceof Error ? jsonError.message : 'Unknown error';
       console.error('Invalid JSON in request body:', errorMessage);
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
@@ -58,7 +83,7 @@ export async function POST(request: Request) {
     // Make sure reminderTime is a valid enum value
     if (taskData.reminderTime && typeof taskData.reminderTime === 'string') {
       // Verify it's a valid enum value
-      const validReminderTimes = [
+      const validReminderTimes: string[] = [
         "at_time", "5_minutes", "10_minutes", "15_minutes", 
         "30_minutes", "1_hour", "2_hours", "1_day"
       ];
@@ -91,7 +116,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     // Safe error handling
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage: string = error instanceof Error ? error.message : 'Unknown error';
     console.error('Failed to create task:', errorMessage);
     
     return NextResponse.json({ 
@@ -102,13 +127,13 @@ export async function POST(request: Request) {
 }
 
 // PUT /api/tasks
-export async function PUT(request: Request) {
+export async function PUT(request: Request): Promise<NextResponse> {
   try {
-    let payload;
+    let payload: TaskUpdatePayload;
     try {
       payload = await request.json();
     } catch (jsonError) {
-      const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown error';
+      const errorMessage: string = jsonError instanceof Error ? jsonError.message : 'Unknown error';
       console.error('Invalid JSON in request body:', errorMessage);
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
@@ -120,7 +145,7 @@ export async function PUT(request: Request) {
     // Make sure reminderTime is a valid enum value
     if (payload.reminderTime && typeof payload.reminderTime === 'string') {
       // Verify it's a valid enum value
-      const validReminderTimes = [
+      const validReminderTimes: string[] = [
         "at_time", "5_minutes", "10_minutes", "15_minutes", 
         "30_minutes", "1_hour", "2_hours", "1_day"
       ];
@@ -153,20 +178,20 @@ export async function PUT(request: Request) {
     });
   } catch (error) {
     // Safe error handling
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage: string = error instanceof Error ? error.message : 'Unknown error';
     console.error('Failed to update task:', errorMessage);
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
   }
 }
 
 // DELETE /api/tasks
-export async function DELETE(request: Request) {
+export async function DELETE(request: Request): Promise<NextResponse> {
   try {
-    let payload;
+    let payload: DeleteTaskPayload;
     try {
       payload = await request.json();
     } catch (jsonError) {
-      const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown error';
+      const errorMessage: string = jsonError instanceof Error ? jsonError.message : 'Unknown error';
       console.error('Invalid JSON in request body:', errorMessage);
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
@@ -182,7 +207,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     // Safe error handling
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage: string = error instanceof Error ? error.message : 'Unknown error';
     console.error('Failed to delete task:', errorMessage);
     return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 });
   }

@@ -5,24 +5,40 @@ import { startPomodoroTimer, stopPomodoroTimer, isMobileApp } from "@/lib/mobile
 
 type TimerMode = "focus" | "shortBreak" | "longBreak"
 
-export function usePomodoroTimer() {
+interface TimerConfig {
+  focus: number;
+  shortBreak: number;
+  longBreak: number;
+}
+
+interface PomodoroHookReturn {
+  mode: TimerMode;
+  setMode: (mode: TimerMode) => void;
+  timeLeft: number;
+  isActive: boolean;
+  toggleTimer: () => void;
+  resetTimer: () => void;
+  pomodorosCompleted: number;
+}
+
+export function usePomodoroTimer(): PomodoroHookReturn {
   const { settings } = useSettings()
   const { sendNotification } = useNotifications()
 
-  const TIMER_CONFIG = {
+  const TIMER_CONFIG: TimerConfig = {
     focus: Number.parseInt(settings.pomodoroDuration) * 60,
     shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
     longBreak: Number.parseInt(settings.longBreakDuration) * 60,
   }
 
   const [mode, setMode] = useState<TimerMode>("focus")
-  const [timeLeft, setTimeLeft] = useState(TIMER_CONFIG[mode])
-  const [isActive, setIsActive] = useState(false)
-  const [pomodorosCompleted, setPomodorosCompleted] = useState(0)
+  const [timeLeft, setTimeLeft] = useState<number>(TIMER_CONFIG[mode])
+  const [isActive, setIsActive] = useState<boolean>(false)
+  const [pomodorosCompleted, setPomodorosCompleted] = useState<number>(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const halfwayNotificationSent = useRef(false)
+  const halfwayNotificationSent = useRef<boolean>(false)
 
-  useEffect(() => {
+  useEffect((): void => {
     setTimeLeft(TIMER_CONFIG[mode])
     setIsActive(false)
     halfwayNotificationSent.current = false
@@ -33,8 +49,8 @@ export function usePomodoroTimer() {
     }
   }, [mode])
 
-  useEffect(() => {
-    const currentTimerConfig = {
+  useEffect((): () => void => {
+    const currentTimerConfig: TimerConfig = {
       focus: Number.parseInt(settings.pomodoroDuration) * 60,
       shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
       longBreak: Number.parseInt(settings.longBreakDuration) * 60,
@@ -49,12 +65,12 @@ export function usePomodoroTimer() {
       }
 
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
+        setTimeLeft((prev: number) => {
           if (prev === Math.floor(currentTimerConfig[mode] / 2) && !halfwayNotificationSent.current) {
             halfwayNotificationSent.current = true
 
             if (settings.notificationsEnabled && !isMobileApp()) {
-              const minutesLeft = Math.floor(prev / 60)
+              const minutesLeft: number = Math.floor(prev / 60)
               sendNotification(`${mode === "focus" ? "Pomodoro" : "Break"} Halfway Point`, {
                 body: `${minutesLeft} minutes remaining in your ${mode === "focus" ? "focus session" : "break"}`,
                 icon: "/favicon.ico",
@@ -87,7 +103,7 @@ export function usePomodoroTimer() {
       }
 
       if (mode === "focus") {
-        setPomodorosCompleted((prev) => prev + 1)
+        setPomodorosCompleted((prev: number) => prev + 1)
 
         if ((pomodorosCompleted + 1) % 4 === 0) {
           setMode("longBreak")
@@ -97,14 +113,14 @@ export function usePomodoroTimer() {
 
         if (settings.soundEnabled && !isMobileApp()) {
           const audio = new Audio("/notification.mp3")
-          audio.play().catch((e) => console.error("Error playing sound:", e))
+          audio.play().catch((e: Error) => console.error("Error playing sound:", e))
         }
       } else {
         setMode("focus")
       }
     }
 
-    return () => {
+    return (): void => {
       if (timerRef.current) {
         clearInterval(timerRef.current)
       }
@@ -119,9 +135,9 @@ export function usePomodoroTimer() {
     setMode,
     timeLeft,
     isActive,
-    toggleTimer: () => setIsActive(!isActive),
-    resetTimer: () => {
-      const currentTimerConfig = {
+    toggleTimer: (): void => setIsActive(!isActive),
+    resetTimer: (): void => {
+      const currentTimerConfig: TimerConfig = {
         focus: Number.parseInt(settings.pomodoroDuration) * 60,
         shortBreak: Number.parseInt(settings.shortBreakDuration) * 60,
         longBreak: Number.parseInt(settings.longBreakDuration) * 60,

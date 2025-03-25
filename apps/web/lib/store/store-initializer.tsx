@@ -4,12 +4,12 @@ import { useEffect, useRef } from "react"
 import { useTaskStore } from "./useTaskStore"
 import { useSettingsStore } from "./useSettingsStore"
 
-export function StoreInitializer() {
+export function StoreInitializer(): null {
   const { fetchTasks } = useTaskStore()
   const { fetchSettings } = useSettingsStore()
-  const initialized = useRef(false)
+  const initialized = useRef<boolean>(false)
 
-  useEffect(() => {
+  useEffect((): void => {
     // Only initialize stores once
     if (!initialized.current) {
       initialized.current = true

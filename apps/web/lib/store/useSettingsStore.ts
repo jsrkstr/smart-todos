@@ -39,17 +39,17 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   error: null,
   loaded: false,
 
-  fetchSettings: async () => {
+  fetchSettings: async (): Promise<void> => {
     // Skip if already loaded or loading
     if (get().loaded || get().loading) return
     
     set({ loading: true, error: null })
     try {
-      const response = await fetch('/api/settings')
+      const response: Response = await fetch('/api/settings')
       if (!response.ok) {
         throw new Error('Failed to load settings')
       }
-      const data = await response.json()
+      const data: Settings = await response.json()
       set({ settings: data, loading: false, loaded: true })
     } catch (error) {
       console.error("Failed to load settings:", error)
@@ -61,9 +61,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     }
   },
 
-  updateSettings: async (updates: Partial<Settings>) => {
+  updateSettings: async (updates: Partial<Settings>): Promise<Settings | null> => {
     try {
-      const response = await fetch('/api/settings', {
+      const response: Response = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
@@ -71,7 +71,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       if (!response.ok) {
         throw new Error('Failed to update settings')
       }
-      const data = await response.json()
+      const data: Settings = await response.json()
       set({ settings: data })
       return data
     } catch (error) {

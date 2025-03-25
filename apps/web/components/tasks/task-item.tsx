@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
-import type { Task } from "@/types/task"
+import type { Task, SubTask } from "@/types/task"
 import { useTasks } from "@/hooks/use-tasks"
 
 interface TaskItemProps {
@@ -20,19 +20,19 @@ interface TaskItemProps {
 export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
   const router = useRouter()
   const { toggleTaskCompletion, deleteTask, updateTask } = useTasks()
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState<boolean>(false)
 
-  const subTasksCompleted = task.subTasks?.filter((st) => st.completed).length || 0
-  const subTasksTotal = task.subTasks?.length || 0
-  const subTaskProgress = subTasksTotal > 0 ? Math.round((subTasksCompleted / subTasksTotal) * 100) : 0
+  const subTasksCompleted: number = task.subTasks?.filter((st: SubTask) => st.completed).length || 0
+  const subTasksTotal: number = task.subTasks?.length || 0
+  const subTaskProgress: number = subTasksTotal > 0 ? Math.round((subTasksCompleted / subTasksTotal) * 100) : 0
 
-  const handleEdit = () => {
+  const handleEdit = (): void => {
     router.push(`/edit-task/${task.id}`)
   }
 
-  const handlePostpone = () => {
-    const currentDeadline = new Date(task.deadline)
-    const nextDay = new Date(currentDeadline)
+  const handlePostpone = (): void => {
+    const currentDeadline: Date = new Date(task.deadline as string)
+    const nextDay: Date = new Date(currentDeadline)
     nextDay.setDate(currentDeadline.getDate() + 1)
 
     updateTask(task.id, {
@@ -41,7 +41,7 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
     })
   }
 
-  const handleDelete = () => {
+  const handleDelete = (): void => {
     deleteTask(task.id)
     if (onDelete) onDelete()
   }
@@ -138,13 +138,13 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
 
             {expanded && (
               <div className="mt-2 space-y-1">
-                {task.subTasks.map((subTask, index) => (
+                {task.subTasks.map((subTask: SubTask, index: number) => (
                   <div key={index} className="flex items-start gap-2">
                     <Checkbox
                       checked={subTask.completed}
                       className="mt-0.5"
                       onCheckedChange={(checked) => {
-                        const updatedSubTasks = [...task.subTasks!]
+                        const updatedSubTasks: SubTask[] = [...task.subTasks!]
                         updatedSubTasks[index].completed = !!checked
                         updateTask(task.id, { subTasks: updatedSubTasks })
                       }}

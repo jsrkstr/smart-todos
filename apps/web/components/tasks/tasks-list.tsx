@@ -15,19 +15,19 @@ export function TasksList() {
   const { tasks, completedTasks, deleteTask } = useTasks()
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false)
 
-  const filterTasks = (taskList: typeof tasks) => {
+  const filterTasks = (taskList: Task[]): Task[] => {
     if (priorityFilter === "all") return taskList
-    return taskList.filter((task) => task.priority === priorityFilter)
+    return taskList.filter((task: Task) => task.priority === priorityFilter)
   }
 
-  const handleEditTask = (task: Task) => {
+  const handleEditTask = (task: Task): void => {
     setTaskToEdit(task)
     setIsEditDialogOpen(true)
   }
 
-  const handleDeleteTask = (taskId: string) => {
+  const handleDeleteTask = (taskId: string): void => {
     if (window.confirm("Are you sure you want to delete this task?")) {
       deleteTask(taskId)
     }
@@ -70,7 +70,7 @@ export function TasksList() {
           {filterTasks(tasks).length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No tasks found. Add a new task to get started!</p>
           ) : (
-            filterTasks(tasks).map((task) => (
+            filterTasks(tasks).map((task: Task) => (
               <TaskItem
                 key={task.id}
                 task={task}
@@ -82,10 +82,10 @@ export function TasksList() {
         </TabsContent>
 
         <TabsContent value="active" className="space-y-4">
-          {filterTasks(tasks.filter((task) => !task.completed)).length === 0 ? (
+          {filterTasks(tasks.filter((task: Task) => !task.completed)).length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No active tasks. All done for now!</p>
           ) : (
-            filterTasks(tasks.filter((task) => !task.completed)).map((task) => (
+            filterTasks(tasks.filter((task: Task) => !task.completed)).map((task: Task) => (
               <TaskItem
                 key={task.id}
                 task={task}
@@ -102,7 +102,7 @@ export function TasksList() {
               No completed tasks yet. Complete a task to see it here!
             </p>
           ) : (
-            filterTasks(completedTasks).map((task) => (
+            filterTasks(completedTasks).map((task: Task) => (
               <TaskItem
                 key={task.id}
                 task={task}

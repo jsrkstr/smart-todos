@@ -3,12 +3,21 @@
 import { useState, useEffect } from "react"
 import { useSettings } from "@/hooks/use-settings"
 import { isMobileApp, sendToMobile } from "@/lib/mobileBridge"
+import type { Task } from "@/types/task"
+
+interface TaskReminder {
+  id: string;
+  title: string;
+  date: string;
+  time?: string;
+  reminderTime?: string;
+}
 
 export function useNotifications() {
-  const [permissionGranted, setPermissionGranted] = useState(false)
+  const [permissionGranted, setPermissionGranted] = useState<boolean>(false)
   const { settings } = useSettings()
 
-  useEffect(() => {
+  useEffect((): void => {
     // Check if browser supports notifications
     if (!isMobileApp() && !("Notification" in window)) {
       console.log("This browser does not support notifications")
@@ -21,7 +30,7 @@ export function useNotifications() {
     }
   }, [])
 
-  const requestPermission = async () => {
+  const requestPermission = async (): Promise<boolean> => {
     if (isMobileApp()) {
       return true
     }
@@ -36,8 +45,8 @@ export function useNotifications() {
     }
 
     if (Notification.permission !== "denied") {
-      const permission = await Notification.requestPermission()
-      const granted = permission === "granted"
+      const permission: NotificationPermission = await Notification.requestPermission()
+      const granted: boolean = permission === "granted"
       setPermissionGranted(granted)
       return granted
     }
@@ -45,7 +54,7 @@ export function useNotifications() {
     return false
   }
 
-  const sendNotification = (title: string, options?: NotificationOptions) => {
+  const sendNotification = (title: string, options?: NotificationOptions): void => {
     if (!settings.notificationsEnabled) return
 
     if (isMobileApp()) {
@@ -59,7 +68,7 @@ export function useNotifications() {
     }
 
     if (!permissionGranted) {
-      requestPermission().then((granted) => {
+      requestPermission().then((granted: boolean) => {
         if (granted) {
           new Notification(title, options)
         }
@@ -70,20 +79,21 @@ export function useNotifications() {
     new Notification(title, options)
   }
 
-  const scheduleTaskReminder = (task: { id: string; title: string; date: string; time?: string; reminderTime?: string }) => {
+  const scheduleTaskReminder = (task: TaskReminder): void => {
     if (!settings.notificationsEnabled) return
 
     if (isMobileApp()) {
+      const storedTasks: Task[] = JSON.parse(localStorage.getItem('smartTodos-tasks') || '[]')
       sendToMobile({
         type: 'UPDATE_TASKS',
-        tasks: JSON.parse(localStorage.getItem('smartTodos-tasks') || '[]')
+        tasks: storedTasks
       })
       return
     }
 
-    const taskDate = new Date(task.date)
+    const taskDate: Date = new Date(task.date)
     if (task.time) {
-      const [hours, minutes] = task.time.split(":").map(Number)
+      const [hours, minutes]: number[] = task.time.split(":").map(Number)
       taskDate.setHours(hours, minutes, 0, 0)
     }
 
@@ -91,14 +101,14 @@ export function useNotifications() {
     if (task.reminderTime) {
       reminderTime = new Date(task.reminderTime)
     } else {
-      const reminderMinutes = Number.parseInt(settings.reminderTime || "30")
+      const reminderMinutes: number = Number.parseInt(settings.reminderTime || "30")
       reminderTime = new Date(taskDate.getTime() - reminderMinutes * 60 * 1000)
     }
 
     // If reminder time is in the past, don't schedule
     if (reminderTime <= new Date()) return
 
-    const timeUntilReminder = reminderTime.getTime() - Date.now()
+    const timeUntilReminder: number = reminderTime.getTime() - Date.now()
 
     setTimeout(() => {
       sendNotification(`Task Reminder: ${task.title}`, {

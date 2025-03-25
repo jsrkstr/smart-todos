@@ -1,5 +1,5 @@
 interface MobileBridge {
-  postMessage: (message: any) => void;
+  postMessage: (message: string) => void;
 }
 
 declare global {
@@ -12,7 +12,45 @@ export function isMobileApp(): boolean {
   return !!window.ReactNativeWebView;
 }
 
-export function sendToMobile(message: any): void {
+type MessageType = 
+  | 'START_POMODORO' 
+  | 'STOP_POMODORO' 
+  | 'SEND_NOTIFICATION' 
+  | 'UPDATE_TASKS';
+
+interface BaseMessage {
+  type: MessageType;
+}
+
+interface TaskUpdateMessage extends BaseMessage {
+  type: 'UPDATE_TASKS';
+  tasks: Task[];
+}
+
+interface NotificationMessage extends BaseMessage {
+  type: 'SEND_NOTIFICATION';
+  title: string;
+  body?: string;
+  data?: Record<string, unknown>;
+}
+
+interface PomodoroStartMessage extends BaseMessage {
+  type: 'START_POMODORO';
+  duration: number;
+  mode: string;
+}
+
+interface PomodoroStopMessage extends BaseMessage {
+  type: 'STOP_POMODORO';
+}
+
+type BridgeMessage = 
+  | TaskUpdateMessage 
+  | NotificationMessage 
+  | PomodoroStartMessage 
+  | PomodoroStopMessage;
+
+export function sendToMobile(message: BridgeMessage): void {
   if (isMobileApp()) {
     window.ReactNativeWebView?.postMessage(JSON.stringify(message));
   }
@@ -26,8 +64,11 @@ interface PomodoroTimerParams {
 interface NotificationParams {
   title: string;
   body?: string;
-  data?: any;
+  data?: Record<string, unknown>;
 }
+
+// Import Task type
+import type { Task } from '@/types/task';
 
 export function startPomodoroTimer(params: PomodoroTimerParams): void {
   sendToMobile({
@@ -52,7 +93,7 @@ export function sendNotification(params: NotificationParams): void {
   });
 }
 
-export function updateTasks(tasks: any[]): void {
+export function updateTasks(tasks: Task[]): void {
   sendToMobile({
     type: 'UPDATE_TASKS',
     tasks

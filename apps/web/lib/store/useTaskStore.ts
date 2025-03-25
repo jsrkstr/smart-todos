@@ -24,24 +24,24 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   error: null,
   setupNotifications: null,
 
-  setNotificationHandler: (handler: SetupNotificationsFunction) => {
+  setNotificationHandler: (handler: SetupNotificationsFunction): void => {
     // Only update if the handler is different or not set
     if (get().setupNotifications !== handler) {
       set({ setupNotifications: handler })
     }
   },
 
-  fetchTasks: async () => {
+  fetchTasks: async (): Promise<void> => {
     // Skip if already loaded or loading
     if (get().tasks.length > 0 || get().loading) return
     
     set({ loading: true, error: null })
     try {
-      const response = await fetch('/api/tasks')
+      const response: Response = await fetch('/api/tasks')
       if (!response.ok) {
         throw new Error('Failed to load tasks')
       }
-      const data = await response.json()
+      const data: Task[] = await response.json()
       set({ tasks: data, loading: false })
       
       // Schedule notifications for tasks if handler is set
@@ -59,7 +59,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 
-  addTask: async (task: Task) => {
+  addTask: async (task: Task): Promise<Task | null> => {
     try {
       // Validate task data before sending
       if (!task || !task.title) {
@@ -68,7 +68,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       }
       
       // Ensure the data structure is valid and the reminderTime is an enum value
-      const validatedTask = {
+      const validatedTask: Task = {
         ...task,
         id: task.id,
         title: task.title,
@@ -87,18 +87,18 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
       console.log("Sending task to server:", JSON.stringify(validatedTask, null, 2));
 
-      const response = await fetch('/api/tasks', {
+      const response: Response = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validatedTask),
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData: { error: string } = await response.json();
         throw new Error(errorData.error || 'Failed to add task');
       }
       
-      const newTask = await response.json();
+      const newTask: Task = await response.json();
       set(state => ({ tasks: [newTask, ...state.tasks] }));
       return newTask;
     } catch (error) {
@@ -108,12 +108,12 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 
-  toggleTaskCompletion: async (taskId: string) => {
-    const task = get().tasks.find(t => t.id === taskId)
+  toggleTaskCompletion: async (taskId: string): Promise<void> => {
+    const task: Task | undefined = get().tasks.find(t => t.id === taskId)
     if (!task) return
 
     try {
-      const response = await fetch('/api/tasks', {
+      const response: Response = await fetch('/api/tasks', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -124,7 +124,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       if (!response.ok) {
         throw new Error('Failed to toggle task completion')
       }
-      const updatedTask = await response.json()
+      const updatedTask: Task = await response.json()
       set(state => ({
         tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
       }))
@@ -134,9 +134,9 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 
-  deleteTask: async (taskId: string) => {
+  deleteTask: async (taskId: string): Promise<void> => {
     try {
-      const response = await fetch('/api/tasks', {
+      const response: Response = await fetch('/api/tasks', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: taskId }),
@@ -153,9 +153,9 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 
-  updateTask: async (taskId: string, updates: Partial<Task>) => {
+  updateTask: async (taskId: string, updates: Partial<Task>): Promise<Task | null> => {
     try {
-      const response = await fetch('/api/tasks', {
+      const response: Response = await fetch('/api/tasks', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: taskId, ...updates }),
@@ -163,7 +163,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       if (!response.ok) {
         throw new Error('Failed to update task')
       }
-      const updatedTask = await response.json()
+      const updatedTask: Task = await response.json()
       set(state => ({
         tasks: state.tasks.map(task => task.id === taskId ? updatedTask : task)
       }))

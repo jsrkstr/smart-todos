@@ -32,36 +32,36 @@ interface EditTaskDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps) {
+export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps): JSX.Element {
   const router = useRouter()
   const { updateTask, deleteTask } = useTasks()
 
-  const [title, setTitle] = useState(task.title)
+  const [title, setTitle] = useState<string>(task.title)
   const [deadline, setDeadline] = useState<Date | undefined>(task.deadline ? new Date(task.deadline) : undefined)
-  const [time, setTime] = useState(task.time || "09:00") // Default time
-  const [location, setLocation] = useState(task.location || "")
-  const [priority, setPriority] = useState(task.priority)
-  const [why, setWhy] = useState(task.why || "")
+  const [time, setTime] = useState<string>(task.time || "09:00") // Default time
+  const [location, setLocation] = useState<string>(task.location || "")
+  const [priority, setPriority] = useState<"low" | "medium" | "high">(task.priority)
+  const [why, setWhy] = useState<string>(task.why || "")
   const [subTasks, setSubTasks] = useState<SubTask[]>(task.subTasks || [])
-  const [newSubTask, setNewSubTask] = useState("")
+  const [newSubTask, setNewSubTask] = useState<string>("")
 
-  const handleAddSubTask = () => {
+  const handleAddSubTask = (): void => {
     if (newSubTask.trim()) {
       setSubTasks([...subTasks, { title: newSubTask, completed: false }])
       setNewSubTask("")
     }
   }
 
-  const handleRemoveSubTask = (index: number) => {
+  const handleRemoveSubTask = (index: number): void => {
     setSubTasks(subTasks.filter((_, i) => i !== index))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
 
     if (!title.trim()) return
 
-    const updatedTask = {
+    const updatedTask: Partial<Task> = {
       title,
       deadline: deadline?.toISOString() || new Date().toISOString(),
       time,
@@ -77,19 +77,19 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   }
 
   // Generate time options
-  const generateTimeOptions = () => {
-    const options = []
+  const generateTimeOptions = (): string[] => {
+    const options: string[] = []
     for (let hour = 0; hour < 24; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
-        const formattedHour = hour.toString().padStart(2, "0")
-        const formattedMinute = minute.toString().padStart(2, "0")
+        const formattedHour: string = hour.toString().padStart(2, "0")
+        const formattedMinute: string = minute.toString().padStart(2, "0")
         options.push(`${formattedHour}:${formattedMinute}`)
       }
     }
     return options
   }
 
-  const timeOptions = generateTimeOptions()
+  const timeOptions: string[] = generateTimeOptions()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -157,7 +157,10 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
-                  <Select defaultValue={priority} onValueChange={(value) => setPriority(value)}>
+                  <Select 
+                    defaultValue={priority} 
+                    onValueChange={(value: "low" | "medium" | "high") => setPriority(value)}
+                  >
                     <SelectTrigger id="priority">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
