@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { WebView } from 'react-native-webview';
 import { StyleSheet, View, ActivityIndicator, Text } from 'react-native';
 import * as Notifications from 'expo-notifications';
@@ -7,28 +7,71 @@ import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKGROUND_FETCH_TASK = 'POMODORO_TIMER';
+const TASK_NOTIFICATION_TASK = 'TASK_NOTIFICATIONS';
 
 // Configure notifications
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: false,
+    shouldSetBadge: true,
   }),
 });
 
-// Define background task
+// Define background task for pomodoro timer
 TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   const timerEnd = await AsyncStorage.getItem('pomodoroEndTime');
+  const timerMode = await AsyncStorage.getItem('pomodoroMode');
+  
   if (timerEnd && new Date().getTime() >= parseInt(timerEnd)) {
+    const notificationTitle = timerMode === 'focus' 
+      ? 'Focus Session Complete!'
+      : timerMode === 'shortBreak'
+        ? 'Short Break Complete!'
+        : 'Long Break Complete!';
+        
+    const notificationBody = timerMode === 'focus'
+      ? 'Great job! Time to take a break.'
+      : 'Break time is over. Ready to focus again?';
+
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Time's Up!",
-        body: 'Your Pomodoro session is complete',
+        title: notificationTitle,
+        body: notificationBody,
+        sound: true,
+        badge: 1,
       },
       trigger: null,
     });
+    
     await AsyncStorage.removeItem('pomodoroEndTime');
+    await AsyncStorage.removeItem('pomodoroMode');
+  }
+  return BackgroundFetch.Result.NewData;
+});
+
+// Define background task for task notifications
+TaskManager.defineTask(TASK_NOTIFICATION_TASK, async () => {
+  const tasks = JSON.parse(await AsyncStorage.getItem('tasks') || '[]');
+  const now = new Date().getTime();
+
+  for (const task of tasks) {
+    if (task.completed) continue;
+
+    const taskDate = new Date(task.date).getTime();
+    const reminderTime = task.reminderTime ? new Date(task.reminderTime).getTime() : null;
+
+    if (reminderTime && now >= reminderTime) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `Reminder: ${task.title}`,
+          body: `This task is scheduled for ${new Date(task.date).toLocaleString()}`,
+          sound: true,
+          badge: 1,
+        },
+        trigger: null,
+      });
+    }
   }
   return BackgroundFetch.Result.NewData;
 });
@@ -67,14 +110,11 @@ async function triggerNotificationWithButton(notificationText: string, buttonTex
   };
 }
 
-
-
-
 export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const webViewRef = useRef<WebView>(null);
 
-  const setupBackgroundTimer = async (durationMinutes: number) => {
+  const setupBackgroundTimer = async (durationMinutes: number, mode: string) => {
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== 'granted') {
       alert('Need notification permissions!');
@@ -83,6 +123,7 @@ export default function HomeScreen() {
 
     const endTime = new Date().getTime() + (durationMinutes * 60 * 1000);
     await AsyncStorage.setItem('pomodoroEndTime', endTime.toString());
+    await AsyncStorage.setItem('pomodoroMode', mode);
 
     await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
       minimumInterval: 60,
@@ -91,13 +132,36 @@ export default function HomeScreen() {
     });
   };
 
+  const setupTaskNotifications = async () => {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Need notification permissions!');
+      return;
+    }
+
+    await BackgroundFetch.registerTaskAsync(TASK_NOTIFICATION_TASK, {
+      minimumInterval: 60,
+      stopOnTerminate: false,
+      startOnBoot: true,
+    });
+  };
+
+  useEffect(() => {
+    setupTaskNotifications();
+  }, []);
+
   const handleMessage = async (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       console.log('Received message from WebView:', data);
 
       if (data.type === 'START_POMODORO') {
-        await setupBackgroundTimer(data.duration);
+        await setupBackgroundTimer(data.duration, data.mode);
+      } else if (data.type === 'STOP_POMODORO') {
+        await AsyncStorage.removeItem('pomodoroEndTime');
+        await AsyncStorage.removeItem('pomodoroMode');
+      } else if (data.type === 'UPDATE_TASKS') {
+        await AsyncStorage.setItem('tasks', JSON.stringify(data.tasks));
       }
     } catch (error) {
       console.error('Error handling message:', error);

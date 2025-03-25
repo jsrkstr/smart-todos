@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSettings } from "@/hooks/use-settings"
+import { isMobileApp, sendToMobile } from "@/lib/mobileBridge"
 
 export function useNotifications() {
   const [permissionGranted, setPermissionGranted] = useState(false)
@@ -9,18 +10,22 @@ export function useNotifications() {
 
   useEffect(() => {
     // Check if browser supports notifications
-    if (!("Notification" in window)) {
+    if (!isMobileApp() && !("Notification" in window)) {
       console.log("This browser does not support notifications")
       return
     }
 
     // Check if permission is already granted
-    if (Notification.permission === "granted") {
+    if (!isMobileApp() && Notification.permission === "granted") {
       setPermissionGranted(true)
     }
   }, [])
 
   const requestPermission = async () => {
+    if (isMobileApp()) {
+      return true
+    }
+
     if (!("Notification" in window)) {
       return false
     }
@@ -41,6 +46,18 @@ export function useNotifications() {
   }
 
   const sendNotification = (title: string, options?: NotificationOptions) => {
+    if (!settings.notificationsEnabled) return
+
+    if (isMobileApp()) {
+      sendToMobile({
+        type: 'SEND_NOTIFICATION',
+        title,
+        body: options?.body,
+        data: options?.data,
+      })
+      return
+    }
+
     if (!permissionGranted) {
       requestPermission().then((granted) => {
         if (granted) {
@@ -53,20 +70,30 @@ export function useNotifications() {
     new Notification(title, options)
   }
 
-  const scheduleTaskReminder = (task: { id: string; title: string; deadline: string; time?: string }) => {
+  const scheduleTaskReminder = (task: { id: string; title: string; date: string; time?: string; reminderTime?: string }) => {
     if (!settings.notificationsEnabled) return
 
-    const deadlineDate = new Date(task.deadline)
-    const reminderMinutes = Number.parseInt(settings.reminderTime || "30")
-
-    // If task has a specific time, use it
-    if (task.time) {
-      const [hours, minutes] = task.time.split(":").map(Number)
-      deadlineDate.setHours(hours, minutes, 0, 0)
+    if (isMobileApp()) {
+      sendToMobile({
+        type: 'UPDATE_TASKS',
+        tasks: JSON.parse(localStorage.getItem('smartTodos-tasks') || '[]')
+      })
+      return
     }
 
-    // Calculate reminder time
-    const reminderTime = new Date(deadlineDate.getTime() - reminderMinutes * 60 * 1000)
+    const taskDate = new Date(task.date)
+    if (task.time) {
+      const [hours, minutes] = task.time.split(":").map(Number)
+      taskDate.setHours(hours, minutes, 0, 0)
+    }
+
+    let reminderTime: Date
+    if (task.reminderTime) {
+      reminderTime = new Date(task.reminderTime)
+    } else {
+      const reminderMinutes = Number.parseInt(settings.reminderTime || "30")
+      reminderTime = new Date(taskDate.getTime() - reminderMinutes * 60 * 1000)
+    }
 
     // If reminder time is in the past, don't schedule
     if (reminderTime <= new Date()) return
@@ -75,7 +102,7 @@ export function useNotifications() {
 
     setTimeout(() => {
       sendNotification(`Task Reminder: ${task.title}`, {
-        body: `Your task is due ${reminderMinutes === 1440 ? "tomorrow" : `in ${reminderMinutes} minutes`}`,
+        body: `Your task is scheduled for ${taskDate.toLocaleString()}`,
         icon: "/favicon.ico",
         tag: `task-reminder-${task.id}`,
       })

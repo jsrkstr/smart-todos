@@ -123,7 +123,7 @@ export function TaskCalendar() {
   // Get tasks for a specific day
   const getTasksForDay = (date: Date) => {
     return tasks.filter((task) => {
-      const taskDate = new Date(task.deadline)
+      const taskDate = new Date(task.date)
       return (
         taskDate.getDate() === date.getDate() &&
         taskDate.getMonth() === date.getMonth() &&
@@ -326,88 +326,76 @@ export function TaskCalendar() {
 
                 return (
                   <div key={dateIndex} className="min-h-[400px] border rounded-md p-2">
-                    {dayTasks.length === 0 ? (
-                      <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                        No tasks
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-xs font-medium text-muted-foreground mb-1">MORNING</h4>
+                        <div className="space-y-1">
+                          {morning.map((task) => (
+                            <div
+                              key={task.id}
+                              className={`text-xs p-1.5 rounded ${
+                                task.completed
+                                  ? "line-through text-muted-foreground bg-muted/30"
+                                  : task.priority === "high"
+                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                    : task.priority === "medium"
+                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                              }`}
+                            >
+                              <div className="font-medium">{task.time || "9:00"}</div>
+                              <div>{task.title}</div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {morning.length > 0 && (
-                          <div>
-                            <h4 className="text-xs font-medium text-muted-foreground mb-1">MORNING</h4>
-                            <div className="space-y-1">
-                              {morning.map((task) => (
-                                <div
-                                  key={task.id}
-                                  className={`text-xs p-1.5 rounded ${
-                                    task.completed
-                                      ? "line-through text-muted-foreground bg-muted/30"
-                                      : task.priority === "high"
-                                        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                        : task.priority === "medium"
-                                          ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                                          : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                                  }`}
-                                >
-                                  <div className="font-medium">{task.time || "9:00"}</div>
-                                  <div>{task.title}</div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
 
-                        {afternoon.length > 0 && (
-                          <div>
-                            <h4 className="text-xs font-medium text-muted-foreground mb-1">AFTERNOON</h4>
-                            <div className="space-y-1">
-                              {afternoon.map((task) => (
-                                <div
-                                  key={task.id}
-                                  className={`text-xs p-1.5 rounded ${
-                                    task.completed
-                                      ? "line-through text-muted-foreground bg-muted/30"
-                                      : task.priority === "high"
-                                        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                        : task.priority === "medium"
-                                          ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                                          : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                                  }`}
-                                >
-                                  <div className="font-medium">{task.time || "13:00"}</div>
-                                  <div>{task.title}</div>
-                                </div>
-                              ))}
+                      <div>
+                        <h4 className="text-xs font-medium text-muted-foreground mb-1">AFTERNOON</h4>
+                        <div className="space-y-1">
+                          {afternoon.map((task) => (
+                            <div
+                              key={task.id}
+                              className={`text-xs p-1.5 rounded ${
+                                task.completed
+                                  ? "line-through text-muted-foreground bg-muted/30"
+                                  : task.priority === "high"
+                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                    : task.priority === "medium"
+                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                              }`}
+                            >
+                              <div className="font-medium">{task.time || "13:00"}</div>
+                              <div>{task.title}</div>
                             </div>
-                          </div>
-                        )}
-
-                        {evening.length > 0 && (
-                          <div>
-                            <h4 className="text-xs font-medium text-muted-foreground mb-1">EVENING</h4>
-                            <div className="space-y-1">
-                              {evening.map((task) => (
-                                <div
-                                  key={task.id}
-                                  className={`text-xs p-1.5 rounded ${
-                                    task.completed
-                                      ? "line-through text-muted-foreground bg-muted/30"
-                                      : task.priority === "high"
-                                        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                        : task.priority === "medium"
-                                          ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                                          : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                                  }`}
-                                >
-                                  <div className="font-medium">{task.time || "18:00"}</div>
-                                  <div>{task.title}</div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                          ))}
+                        </div>
                       </div>
-                    )}
+
+                      <div>
+                        <h4 className="text-xs font-medium text-muted-foreground mb-1">EVENING</h4>
+                        <div className="space-y-1">
+                          {evening.map((task) => (
+                            <div
+                              key={task.id}
+                              className={`text-xs p-1.5 rounded ${
+                                task.completed
+                                  ? "line-through text-muted-foreground bg-muted/30"
+                                  : task.priority === "high"
+                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                    : task.priority === "medium"
+                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                              }`}
+                            >
+                              <div className="font-medium">{task.time || "18:00"}</div>
+                              <div>{task.title}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )
               })}

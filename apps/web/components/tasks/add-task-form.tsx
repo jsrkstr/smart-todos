@@ -18,21 +18,26 @@ import { format } from "date-fns"
 import { useTasks } from "@/hooks/use-tasks"
 import { useToast } from "@/hooks/use-toast"
 import type { SubTask } from "@/types/task"
+import { useSettings } from "@/hooks/use-settings"
 
 export function AddTaskForm() {
   const router = useRouter()
   const { addTask } = useTasks()
   const { toast } = useToast()
+  const { settings } = useSettings()
 
   const [title, setTitle] = useState("")
+  const [date, setDate] = useState<Date | undefined>(undefined)
+  const [time, setTime] = useState("09:00")
   const [deadline, setDeadline] = useState<Date | undefined>(undefined)
-  const [time, setTime] = useState("09:00") // Default time
   const [location, setLocation] = useState("")
   const [priority, setPriority] = useState("medium")
   const [why, setWhy] = useState("")
   const [subTasks, setSubTasks] = useState<SubTask[]>([])
   const [newSubTask, setNewSubTask] = useState("")
   const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false)
+  const [suggestedSubTasks, setSuggestedSubTasks] = useState<SubTask[]>([])
+  const [reminderTime, setReminderTime] = useState(settings.reminderTime)
 
   const handleAddSubTask = () => {
     if (newSubTask.trim()) {
@@ -45,30 +50,14 @@ export function AddTaskForm() {
     setSubTasks(subTasks.filter((_, i) => i !== index))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleAcceptSubTask = (subTask: SubTask) => {
+    setSubTasks([...subTasks, subTask])
+    setSuggestedSubTasks(suggestedSubTasks.filter(st => st.title !== subTask.title))
+  }
 
-    if (!title.trim()) return
-
-    const newTask = {
-      id: Date.now().toString(),
-      title,
-      deadline: deadline?.toISOString() || new Date().toISOString(),
-      time,
-      dateAdded: new Date().toISOString(),
-      completed: false,
-      priority,
-      location,
-      why,
-      subTasks,
-    }
-
-    addTask(newTask)
-    toast({
-      title: "Task added",
-      description: "Your new task has been added successfully.",
-    })
-    router.push("/")
+  const handleAcceptAllSubTasks = () => {
+    setSubTasks([...subTasks, ...suggestedSubTasks])
+    setSuggestedSubTasks([])
   }
 
   const generateSubtasks = async () => {
@@ -84,23 +73,27 @@ export function AddTaskForm() {
     setIsGeneratingSubtasks(true)
 
     try {
-      // This is a mock implementation - in a real app, you would call an API
-      // that interfaces with ChatGPT
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const response = await fetch('/api/generate-subtasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          description: why,
+        }),
+      })
 
-      // Mock generated subtasks based on the title
-      const generatedSubtasks = [
-        { title: `Research about ${title}`, completed: false },
-        { title: `Create outline for ${title}`, completed: false },
-        { title: `Draft initial version of ${title}`, completed: false },
-        { title: `Review and finalize ${title}`, completed: false },
-      ]
+      if (!response.ok) {
+        throw new Error('Failed to generate subtasks')
+      }
 
-      setSubTasks([...subTasks, ...generatedSubtasks])
+      const { subtasks } = await response.json()
+      setSuggestedSubTasks(subtasks.map((title: string) => ({ title, completed: false })))
 
       toast({
         title: "Subtasks generated",
-        description: "AI-generated subtasks have been added to your task.",
+        description: "AI-generated subtasks are ready for review.",
       })
     } catch (error) {
       toast({
@@ -111,6 +104,34 @@ export function AddTaskForm() {
     } finally {
       setIsGeneratingSubtasks(false)
     }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!title.trim() || !date) return
+
+    const newTask = {
+      id: Date.now().toString(),
+      title,
+      date: date.toISOString(),
+      time,
+      deadline: deadline?.toISOString(),
+      dateAdded: new Date().toISOString(),
+      completed: false,
+      priority,
+      location,
+      why,
+      subTasks,
+      reminderTime: reminderTime ? new Date(date.setMinutes(date.getMinutes() - parseInt(reminderTime))).toISOString() : undefined,
+    }
+
+    addTask(newTask)
+    toast({
+      title: "Task added",
+      description: "Your new task has been added successfully.",
+    })
+    router.push("/")
   }
 
   // Generate time options
@@ -155,21 +176,52 @@ export function AddTaskForm() {
             </div>
           </div>
 
+          {suggestedSubTasks.length > 0 && (
+            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Suggested Subtasks</h3>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setSuggestedSubTasks([])}>
+                    Discard All
+                  </Button>
+                  <Button size="sm" onClick={handleAcceptAllSubTasks}>
+                    Accept All
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {suggestedSubTasks.map((subTask, index) => (
+                  <div key={index} className="flex items-center gap-2 rounded-md border p-2 bg-background">
+                    <span className="flex-1 text-sm">{subTask.title}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleAcceptSubTask(subTask)}
+                    >
+                      Accept
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="deadline">Deadline</Label>
+              <Label htmlFor="date">Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className={cn("w-full justify-start text-left font-normal", !deadline && "text-muted-foreground")}
+                    className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {deadline ? format(deadline, "PPP") : "Select a date"}
+                    {date ? format(date, "PPP") : "Select a date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={deadline} onSelect={setDeadline} initialFocus />
+                  <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
                 </PopoverContent>
               </Popover>
             </div>
@@ -224,15 +276,40 @@ export function AddTaskForm() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="why">Why is this task important? (Simon Sinek's Golden Circle)</Label>
-            <Textarea
-              id="why"
-              placeholder="Understanding your 'why' increases motivation..."
-              value={why}
-              onChange={(e) => setWhy(e.target.value)}
-              className="min-h-[100px]"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="deadline">Deadline (Optional)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !deadline && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {deadline ? format(deadline, "PPP") : "Select a deadline"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={deadline} onSelect={setDeadline} initialFocus />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reminder">Reminder Time</Label>
+              <Select value={reminderTime} onValueChange={setReminderTime}>
+                <SelectTrigger id="reminder">
+                  <SelectValue placeholder="Select reminder time" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="15">15 minutes before</SelectItem>
+                  <SelectItem value="30">30 minutes before</SelectItem>
+                  <SelectItem value="60">1 hour before</SelectItem>
+                  <SelectItem value="120">2 hours before</SelectItem>
+                  <SelectItem value="1440">1 day before</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -275,6 +352,17 @@ export function AddTaskForm() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="why">Why is this task important? (Simon Sinek's Golden Circle)</Label>
+            <Textarea
+              id="why"
+              placeholder="Understanding your 'why' increases motivation..."
+              value={why}
+              onChange={(e) => setWhy(e.target.value)}
+              className="min-h-[100px]"
+            />
           </div>
 
           <div className="flex justify-end gap-2">

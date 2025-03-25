@@ -42,7 +42,10 @@ export function usePomodoroTimer() {
 
     if (isActive && timeLeft > 0) {
       if (isMobileApp() && !timerRef.current) {
-        startPomodoroTimer(currentTimerConfig[mode] / 60)
+        startPomodoroTimer({
+          duration: currentTimerConfig[mode] / 60,
+          mode: mode
+        })
       }
 
       timerRef.current = setInterval(() => {
@@ -50,7 +53,7 @@ export function usePomodoroTimer() {
           if (prev === Math.floor(currentTimerConfig[mode] / 2) && !halfwayNotificationSent.current) {
             halfwayNotificationSent.current = true
 
-            if (settings.notificationsEnabled) {
+            if (settings.notificationsEnabled && !isMobileApp()) {
               const minutesLeft = Math.floor(prev / 60)
               sendNotification(`${mode === "focus" ? "Pomodoro" : "Break"} Halfway Point`, {
                 body: `${minutesLeft} minutes remaining in your ${mode === "focus" ? "focus session" : "break"}`,
@@ -69,7 +72,7 @@ export function usePomodoroTimer() {
         stopPomodoroTimer()
       }
 
-      if (settings.notificationsEnabled) {
+      if (settings.notificationsEnabled && !isMobileApp()) {
         if (mode === "focus") {
           sendNotification("Pomodoro Completed!", {
             body: "Great job! Time to take a break.",
@@ -92,7 +95,7 @@ export function usePomodoroTimer() {
           setMode("shortBreak")
         }
 
-        if (settings.soundEnabled) {
+        if (settings.soundEnabled && !isMobileApp()) {
           const audio = new Audio("/notification.mp3")
           audio.play().catch((e) => console.error("Error playing sound:", e))
         }
