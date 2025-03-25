@@ -178,7 +178,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       >
         <div className="flex h-16 items-center justify-between border-b px-4">
           <Link href="/" className="flex items-center gap-2 font-semibold">
-            <span className="text-primary text-xl">Smart Todos</span>
+            <span className="text-primary text-xl">Menu</span>
           </Link>
           <Button variant="ghost" size="icon" className="md:hidden" onClick={onClose}>
             <ChevronLeft className="h-5 w-5" />

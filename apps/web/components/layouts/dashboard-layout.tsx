@@ -14,11 +14,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen">
-      <Header onMenuClick={() => setSidebarOpen(true)} />
-      <div className="flex">
+    <div className="flex h-screen overflow-hidden">
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="flex-1 px-8 md:px-12">{children}</main>
+      <div className="flex flex-col flex-1 overflow-y-auto">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <main className="flex-1 pb-8 px-8">{children}</main>
       </div>
     </div>
   )
