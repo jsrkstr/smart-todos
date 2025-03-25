@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  bio       String?
+  principles String[]
+  inspirations String[]
+  tasks     Task[]
+  settings  Settings?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  date        DateTime
+  time        String?
+  deadline    DateTime?
+  dateAdded   DateTime  @default(now())
+  completed   Boolean   @default(false)
+  priority    String    // "low" | "medium" | "high"
+  location    String?
+  why         String?
+  reminderTime DateTime?
+  subTasks    SubTask[]
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model SubTask {
+  id        String   @id @default(cuid())
+  title     String
+  completed Boolean  @default(false)
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Settings {
+  id                   String  @id @default(cuid())
+  theme                String  @default("system") // "light" | "dark" | "system"
+  pomodoroDuration     String  @default("25")
+  shortBreakDuration   String  @default("5")
+  longBreakDuration    String  @default("15")
+  soundEnabled         Boolean @default(true)
+  notificationsEnabled Boolean @default(true)
+  emailNotifications   Boolean @default(false)
+  reminderTime         String  @default("30")
+  user                 User    @relation(fields: [userId], references: [id])
+  userId               String  @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}

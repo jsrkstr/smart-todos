@@ -1,15 +1,16 @@
 "use client"
 
+import { type FC } from "react"
 import { Quote } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useProfile } from "@/hooks/use-profile"
 
-export function QuoteCard() {
+export const QuoteCard: FC = () => {
   const { profile } = useProfile()
 
   // Get a random principle to display
   const getRandomPrinciple = () => {
-    if (profile.principles.length === 0) {
+    if (!profile || !profile.principles || profile.principles.length === 0) {
       return "Add principles in your profile to see motivational quotes here!"
     }
     const randomIndex = Math.floor(Math.random() * profile.principles.length)

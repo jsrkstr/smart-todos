@@ -18,41 +18,79 @@ const initialProfile: UserProfile = {
 }
 
 export function useProfile() {
-  const [profile, setProfile] = useState<UserProfile>(() => {
-    // Load from localStorage if available
-    if (typeof window !== "undefined") {
-      const savedProfile = localStorage.getItem("smartTodos-profile")
-      return savedProfile ? JSON.parse(savedProfile) : initialProfile
-    }
-    return initialProfile
-  })
+  const [profile, setProfile] = useState<UserProfile | null>(null)
 
-  // Save to localStorage whenever profile changes
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("smartTodos-profile", JSON.stringify(profile))
+    // Load profile from API
+    async function loadProfile() {
+      try {
+        const response = await fetch('/api/profile')
+        if (!response.ok) {
+          throw new Error('Failed to load profile')
+        }
+        const data = await response.json()
+        setProfile(data)
+      } catch (error) {
+        console.error("Failed to load profile:", error)
+        // Fallback to initial profile if API call fails
+        setProfile(initialProfile)
+      }
     }
-  }, [profile])
+    loadProfile()
+  }, [])
 
   // Update profile
-  const updateProfile = (updates: Partial<UserProfile>) => {
-    setProfile((prev) => ({ ...prev, ...updates }))
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to update profile')
+      }
+      const data = await response.json()
+      setProfile(data)
+    } catch (error) {
+      console.error("Failed to update profile:", error)
+    }
   }
 
   // Add a principle
-  const addPrinciple = (principle: string) => {
-    setProfile((prev) => ({
-      ...prev,
-      principles: [...prev.principles, principle],
-    }))
+  const addPrinciple = async (principle: string) => {
+    try {
+      const response = await fetch('/api/profile/principles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ principle }),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to add principle')
+      }
+      const data = await response.json()
+      setProfile(prev => prev ? { ...prev, principles: data.principles } : null)
+    } catch (error) {
+      console.error("Failed to add principle:", error)
+    }
   }
 
   // Remove a principle
-  const removePrinciple = (index: number) => {
-    setProfile((prev) => ({
-      ...prev,
-      principles: prev.principles.filter((_, i) => i !== index),
-    }))
+  const removePrinciple = async (index: number) => {
+    try {
+      const response = await fetch('/api/profile/principles', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ index }),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to remove principle')
+      }
+      const data = await response.json()
+      setProfile(prev => prev ? { ...prev, principles: data.principles } : null)
+    } catch (error) {
+      console.error("Failed to remove principle:", error)
+    }
   }
 
   return {

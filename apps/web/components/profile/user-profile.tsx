@@ -35,14 +35,18 @@ export function UserProfile() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" value={profile.name} onChange={(e) => updateProfile({ name: e.target.value })} />
+                <Input 
+                  id="name" 
+                  value={profile?.name || ''} 
+                  onChange={(e) => updateProfile({ name: e.target.value })} 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  value={profile.email}
+                  value={profile?.email || ''}
                   onChange={(e) => updateProfile({ email: e.target.value })}
                 />
               </div>
@@ -52,7 +56,7 @@ export function UserProfile() {
               <Label htmlFor="bio">Bio</Label>
               <Textarea
                 id="bio"
-                value={profile.bio}
+                value={profile?.bio || ''}
                 onChange={(e) => updateProfile({ bio: e.target.value })}
                 placeholder="Tell us a bit about yourself"
               />
@@ -94,7 +98,7 @@ export function UserProfile() {
                 </Button>
               </div>
 
-              <PrinciplesList principles={profile.principles} />
+              <PrinciplesList principles={profile?.principles || []} />
             </CardContent>
           </Card>
         </TabsContent>

@@ -102,7 +102,7 @@ export function useNotifications() {
 
     setTimeout(() => {
       sendNotification(`Task Reminder: ${task.title}`, {
-        body: `Your task is scheduled for ${taskDate.toLocaleString()}`,
+        body: `This task is scheduled for ${taskDate.toLocaleString()}`,
         icon: "/favicon.ico",
         tag: `task-reminder-${task.id}`,
       })

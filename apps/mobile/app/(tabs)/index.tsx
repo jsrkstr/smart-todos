@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKGROUND_FETCH_TASK = 'POMODORO_TIMER';
 const TASK_NOTIFICATION_TASK = 'TASK_NOTIFICATIONS';
+const webviewUri = 'https://e64c-2a02-8429-91a1-4601-c189-e576-bbf3-b7f7.ngrok-free.app';
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -19,33 +20,32 @@ Notifications.setNotificationHandler({
 });
 
 // Define background task for pomodoro timer
-TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
-  const timerEnd = await AsyncStorage.getItem('pomodoroEndTime');
-  const timerMode = await AsyncStorage.getItem('pomodoroMode');
-  
-  if (timerEnd && new Date().getTime() >= parseInt(timerEnd)) {
-    const notificationTitle = timerMode === 'focus' 
-      ? 'Focus Session Complete!'
-      : timerMode === 'shortBreak'
-        ? 'Short Break Complete!'
-        : 'Long Break Complete!';
-        
-    const notificationBody = timerMode === 'focus'
-      ? 'Great job! Time to take a break.'
-      : 'Break time is over. Ready to focus again?';
+// ... existing code ...
+TaskManager.defineTask(TASK_NOTIFICATION_TASK, async () => {
+  const tasks = JSON.parse(await AsyncStorage.getItem('tasks') || '[]');
+  const now = new Date().getTime();
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: notificationTitle,
-        body: notificationBody,
-        sound: true,
-        badge: 1,
-      },
-      trigger: null,
-    });
-    
-    await AsyncStorage.removeItem('pomodoroEndTime');
-    await AsyncStorage.removeItem('pomodoroMode');
+  for (const task of tasks) {
+    if (task.completed) continue;
+
+    // Assuming task.date is a date string and task.time is a time string
+    const taskDateTime = new Date(`${task.date}T${task.time}`).getTime();
+    const reminderTimeInMs = (task.reminderTime || 0) * 60 * 1000; // Convert minutes to milliseconds
+
+    // Calculate the notification time
+    const notificationTime = taskDateTime - reminderTimeInMs;
+
+    if (notificationTime && now >= notificationTime) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `Reminder: ${task.title}`,
+          body: `This task is scheduled for ${new Date(taskDateTime).toLocaleString()}`,
+          sound: true,
+          badge: 1,
+        },
+        trigger: null,
+      });
+    }
   }
   return BackgroundFetch.Result.NewData;
 });
@@ -180,7 +180,7 @@ export default function HomeScreen() {
       {/* <Text>hello</Text> */}
       <WebView
         ref={webViewRef}
-        source={{ uri: 'https://9f9e-2a02-8429-91a1-4601-c189-e576-bbf3-b7f7.ngrok-free.app' }} // Change this to your production URL
+        source={{ uri: webviewUri }} // Change this to your production URL
         style={styles.webview}
         javaScriptEnabled={true}
         domStorageEnabled={true}

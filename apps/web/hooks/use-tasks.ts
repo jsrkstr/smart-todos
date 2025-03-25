@@ -1,113 +1,60 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useCallback, useRef } from "react"
 import { useNotifications } from "@/hooks/use-notifications"
+import { useTaskStore } from "@/lib/store/useTaskStore"
 import type { Task } from "@/types/task"
-
-// Sample initial tasks
-const initialTasks: Task[] = [
-  {
-    id: "1",
-    title: "Complete project proposal",
-    deadline: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-    time: "14:00",
-    dateAdded: new Date().toISOString(),
-    completed: false,
-    priority: "high",
-    location: "Office",
-    why: "This will help advance my career and demonstrate my skills",
-    subTasks: [
-      { title: "Research competitors", completed: true },
-      { title: "Create outline", completed: true },
-      { title: "Write first draft", completed: false },
-      { title: "Review with team", completed: false },
-    ],
-  },
-  {
-    id: "2",
-    title: "Go for a 30-minute run",
-    deadline: new Date().toISOString(), // Today
-    time: "08:00",
-    dateAdded: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-    completed: false,
-    priority: "medium",
-    location: "Park",
-    why: "Maintaining my health is essential for long-term productivity",
-    subTasks: [
-      { title: "Prepare running clothes", completed: true },
-      { title: "Fill water bottle", completed: false },
-    ],
-  },
-  {
-    id: "3",
-    title: "Read 20 pages of book",
-    deadline: new Date().toISOString(), // Today
-    time: "20:00",
-    dateAdded: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-    completed: true,
-    priority: "low",
-    why: "Reading helps me learn and grow",
-  },
-]
 
 export function useTasks() {
   const { scheduleTaskReminder } = useNotifications()
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    // Load from localStorage if available
-    if (typeof window !== "undefined") {
-      const savedTasks = localStorage.getItem("smartTodos-tasks")
-      return savedTasks ? JSON.parse(savedTasks) : initialTasks
-    }
-    return initialTasks
-  })
-
-  // Save to localStorage whenever tasks change
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("smartTodos-tasks", JSON.stringify(tasks))
-    }
-  }, [tasks])
-
-  // Schedule reminders for all active tasks
-  useEffect(() => {
-    tasks.forEach((task) => {
+  const { 
+    tasks, 
+    setNotificationHandler,
+    addTask: storeAddTask, 
+    toggleTaskCompletion, 
+    deleteTask, 
+    updateTask: storeUpdateTask 
+  } = useTaskStore()
+  
+  // Use a ref to track if we've already set up the notification handler
+  const handlerSetupRef = useRef(false)
+  
+  // Create a memoized notification setup function
+  const setupNotifications = useCallback((tasks: Task[]) => {
+    tasks.forEach((task: Task) => {
       if (!task.completed) {
         scheduleTaskReminder(task)
       }
     })
-  }, [tasks, scheduleTaskReminder])
+  }, [scheduleTaskReminder])
+  
+  // Set up notification handler only once
+  useEffect(() => {
+    if (!handlerSetupRef.current) {
+      handlerSetupRef.current = true
+      setNotificationHandler(setupNotifications)
+    }
+  }, [setNotificationHandler, setupNotifications]);
 
   // Get completed tasks
   const completedTasks = tasks.filter((task) => task.completed)
 
-  // Add a new task
-  const addTask = (task: Task) => {
-    setTasks((prev) => [task, ...prev])
-    scheduleTaskReminder(task)
+  // Add a new task with notification scheduling
+  const addTask = async (task: Task) => {
+    const newTask = await storeAddTask(task)
+    if (newTask) {
+      scheduleTaskReminder(newTask)
+    }
+    return newTask
   }
 
-  // Toggle task completion
-  const toggleTaskCompletion = (taskId: string) => {
-    setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, completed: !task.completed } : task)))
-  }
-
-  // Delete a task
-  const deleteTask = (taskId: string) => {
-    setTasks((prev) => prev.filter((task) => task.id !== taskId))
-  }
-
-  // Update a task
-  const updateTask = (taskId: string, updates: Partial<Task>) => {
-    setTasks((prev) =>
-      prev.map((task) => {
-        if (task.id === taskId) {
-          const updatedTask = { ...task, ...updates }
-          scheduleTaskReminder(updatedTask)
-          return updatedTask
-        }
-        return task
-      }),
-    )
+  // Update a task with notification rescheduling
+  const updateTask = async (taskId: string, updates: Partial<Task>) => {
+    const updatedTask = await storeUpdateTask(taskId, updates)
+    if (updatedTask && !updatedTask.completed) {
+      scheduleTaskReminder(updatedTask)
+    }
+    return updatedTask
   }
 
   return {
