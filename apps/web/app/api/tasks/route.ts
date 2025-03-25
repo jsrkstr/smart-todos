@@ -20,10 +20,11 @@ export async function GET() {
       date: task.date.toISOString(),
       deadline: task.deadline?.toISOString() || null,
       dateAdded: task.dateAdded.toISOString(),
-      reminderTime: task.reminderTime?.toISOString() || null,
     })))
   } catch (error) {
-    console.error('Failed to get tasks:', error)
+    // Safe error handling
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to get tasks:', errorMessage);
     return NextResponse.json({ error: 'Failed to get tasks' }, { status: 500 })
   }
 }
@@ -31,83 +32,158 @@ export async function GET() {
 // POST /api/tasks
 export async function POST(request: Request) {
   try {
-    const taskData = await request.json()
-    const user = await prisma.user.findFirst()
+    // Wrap in a try/catch to handle potential JSON parsing errors
+    let taskData;
+    try {
+      taskData = await request.json();
+    } catch (jsonError) {
+      const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown error';
+      console.error('Invalid JSON in request body:', errorMessage);
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
+    
+    // Check if taskData is valid
+    if (!taskData || !taskData.title) {
+      console.error('Invalid task data received:', taskData);
+      return NextResponse.json({ error: 'Invalid task data' }, { status: 400 });
+    }
+    
+    const user = await prisma.user.findFirst();
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const { subTasks, ...taskWithoutSubTasks } = taskData
+    console.log("Received task data:", JSON.stringify(taskData, null, 2));
+
+    // Make sure reminderTime is a valid enum value
+    if (taskData.reminderTime && typeof taskData.reminderTime === 'string') {
+      // Verify it's a valid enum value
+      const validReminderTimes = [
+        "at_time", "5_minutes", "10_minutes", "15_minutes", 
+        "30_minutes", "1_hour", "2_hours", "1_day"
+      ];
+      
+      if (!validReminderTimes.includes(taskData.reminderTime)) {
+        taskData.reminderTime = "at_time";
+      }
+    }
+
+    const { subTasks, ...taskWithoutSubTasks } = taskData;
     const newTask = await prisma.task.create({
       data: {
         ...taskWithoutSubTasks,
         date: new Date(taskData.date),
         deadline: taskData.deadline ? new Date(taskData.deadline) : null,
         dateAdded: new Date(taskData.dateAdded),
-        reminderTime: taskData.reminderTime ? new Date(taskData.reminderTime) : null,
         userId: user.id,
         subTasks: {
           create: subTasks || []
         }
       },
       include: { subTasks: true }
-    })
+    });
 
     return NextResponse.json({
       ...newTask,
       date: newTask.date.toISOString(),
       deadline: newTask.deadline?.toISOString() || null,
       dateAdded: newTask.dateAdded.toISOString(),
-      reminderTime: newTask.reminderTime?.toISOString() || null,
-    })
+    });
   } catch (error) {
-    console.error('Failed to create task:', error)
-    return NextResponse.json({ error: 'Failed to create task' }, { status: 500 })
+    // Safe error handling
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to create task:', errorMessage);
+    
+    return NextResponse.json({ 
+      error: 'Failed to create task', 
+      details: errorMessage
+    }, { status: 500 });
   }
 }
 
 // PUT /api/tasks
 export async function PUT(request: Request) {
   try {
-    const { id, ...updates } = await request.json()
+    let payload;
+    try {
+      payload = await request.json();
+    } catch (jsonError) {
+      const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown error';
+      console.error('Invalid JSON in request body:', errorMessage);
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
+    
+    if (!payload || !payload.id) {
+      return NextResponse.json({ error: 'Missing task ID' }, { status: 400 });
+    }
+
+    // Make sure reminderTime is a valid enum value
+    if (payload.reminderTime && typeof payload.reminderTime === 'string') {
+      // Verify it's a valid enum value
+      const validReminderTimes = [
+        "at_time", "5_minutes", "10_minutes", "15_minutes", 
+        "30_minutes", "1_hour", "2_hours", "1_day"
+      ];
+      
+      if (!validReminderTimes.includes(payload.reminderTime)) {
+        payload.reminderTime = "at_time";
+      }
+    }
+    
+    const { id, ...updates } = payload;
     const task = await prisma.task.update({
       where: { id },
       data: {
         ...updates,
         date: updates.date ? new Date(updates.date) : undefined,
         deadline: updates.deadline ? new Date(updates.deadline) : undefined,
-        reminderTime: updates.reminderTime ? new Date(updates.reminderTime) : undefined,
         subTasks: updates.subTasks ? {
           deleteMany: {},
           create: updates.subTasks
         } : undefined
       },
       include: { subTasks: true }
-    })
+    });
 
     return NextResponse.json({
       ...task,
       date: task.date.toISOString(),
       deadline: task.deadline?.toISOString() || null,
       dateAdded: task.dateAdded.toISOString(),
-      reminderTime: task.reminderTime?.toISOString() || null,
-    })
+    });
   } catch (error) {
-    console.error('Failed to update task:', error)
-    return NextResponse.json({ error: 'Failed to update task' }, { status: 500 })
+    // Safe error handling
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to update task:', errorMessage);
+    return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
   }
 }
 
 // DELETE /api/tasks
 export async function DELETE(request: Request) {
   try {
-    const { id } = await request.json()
+    let payload;
+    try {
+      payload = await request.json();
+    } catch (jsonError) {
+      const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown error';
+      console.error('Invalid JSON in request body:', errorMessage);
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
+    
+    if (!payload || !payload.id) {
+      return NextResponse.json({ error: 'Missing task ID' }, { status: 400 });
+    }
+    
+    const { id } = payload;
     await prisma.task.delete({
       where: { id }
-    })
-    return NextResponse.json({ success: true })
+    });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Failed to delete task:', error)
-    return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 })
+    // Safe error handling
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to delete task:', errorMessage);
+    return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 });
   }
 } 

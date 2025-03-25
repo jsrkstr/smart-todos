@@ -24,7 +24,7 @@ export async function GET() {
           soundEnabled: true,
           notificationsEnabled: true,
           emailNotifications: false,
-          reminderTime: '30',
+          reminderTime: 'at_time',
         },
       })
     }
@@ -40,7 +40,9 @@ export async function GET() {
       reminderTime: userSettings.reminderTime,
     })
   } catch (error) {
-    console.error('Failed to get settings:', error)
+    // Safe error handling
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to get settings:', errorMessage);
     return NextResponse.json({ error: 'Failed to get settings' }, { status: 500 })
   }
 }
@@ -48,11 +50,38 @@ export async function GET() {
 // PUT /api/settings
 export async function PUT(request: Request) {
   try {
-    const updates = await request.json()
+    let updates;
+    try {
+      updates = await request.json();
+    } catch (jsonError) {
+      const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown error';
+      console.error('Invalid JSON in request body:', errorMessage);
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
+    
+    if (!updates) {
+      return NextResponse.json({ error: 'Missing settings data' }, { status: 400 });
+    }
+    
+    // Make sure reminderTime is a valid enum value if it's being updated
+    if (updates.reminderTime && typeof updates.reminderTime === 'string') {
+      // Verify it's a valid enum value
+      const validReminderTimes = [
+        "at_time", "5_minutes", "10_minutes", "15_minutes", 
+        "30_minutes", "1_hour", "2_hours", "1_day"
+      ];
+      
+      if (!validReminderTimes.includes(updates.reminderTime)) {
+        updates.reminderTime = "at_time";
+      }
+    }
+    
     const user = await prisma.user.findFirst()
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+
+    console.log("Updating settings with:", JSON.stringify(updates, null, 2));
 
     const updatedSettings = await prisma.settings.update({
       where: { userId: user.id },
@@ -70,7 +99,9 @@ export async function PUT(request: Request) {
       reminderTime: updatedSettings.reminderTime,
     })
   } catch (error) {
-    console.error('Failed to update settings:', error)
+    // Safe error handling
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to update settings:', errorMessage);
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
   }
 } 

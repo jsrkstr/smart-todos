@@ -3,6 +3,16 @@ export interface SubTask {
   completed: boolean
 }
 
+export type ReminderTimeOption = 
+  | "at_time" 
+  | "5_minutes" 
+  | "10_minutes" 
+  | "15_minutes" 
+  | "30_minutes" 
+  | "1_hour" 
+  | "2_hours" 
+  | "1_day";
+
 export interface Task {
   id: string
   title: string
@@ -15,6 +25,6 @@ export interface Task {
   location?: string
   why?: string
   subTasks?: SubTask[]
-  reminderTime?: string // Custom reminder time for the task
+  reminderTime?: ReminderTimeOption // Changed to use the enum type
 }
 

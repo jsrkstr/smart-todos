@@ -61,21 +61,50 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
   addTask: async (task: Task) => {
     try {
+      // Validate task data before sending
+      if (!task || !task.title) {
+        console.error("Invalid task data:", task);
+        throw new Error('Invalid task data');
+      }
+      
+      // Ensure the data structure is valid and the reminderTime is an enum value
+      const validatedTask = {
+        ...task,
+        id: task.id,
+        title: task.title,
+        date: task.date,
+        time: task.time || undefined,
+        deadline: task.deadline || undefined,
+        dateAdded: task.dateAdded,
+        completed: task.completed,
+        priority: task.priority,
+        location: task.location || undefined,
+        why: task.why || undefined,
+        subTasks: task.subTasks || [],
+        // Make sure reminderTime is a valid enum value
+        reminderTime: task.reminderTime || "at_time"
+      };
+
+      console.log("Sending task to server:", JSON.stringify(validatedTask, null, 2));
+
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(task),
-      })
+        body: JSON.stringify(validatedTask),
+      });
+      
       if (!response.ok) {
-        throw new Error('Failed to add task')
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add task');
       }
-      const newTask = await response.json()
-      set(state => ({ tasks: [newTask, ...state.tasks] }))
-      return newTask
+      
+      const newTask = await response.json();
+      set(state => ({ tasks: [newTask, ...state.tasks] }));
+      return newTask;
     } catch (error) {
-      console.error("Failed to add task:", error)
-      set({ error: error instanceof Error ? error.message : 'Failed to add task' })
-      return null
+      console.error("Failed to add task:", error);
+      set({ error: error instanceof Error ? error.message : 'Failed to add task' });
+      return null;
     }
   },
 
