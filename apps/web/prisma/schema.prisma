@@ -8,45 +8,171 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  name         String
-  email        String    @unique
-  bio          String?
-  principles   String[]
-  inspirations String[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  settings     Settings?
-  tasks        Task[]
+  id             String        @id @default(cuid())
+  name           String
+  email          String        @unique
+  bio            String?
+  gender         String?
+  age            Int?
+  principles     String[]
+  inspirations   String[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  settings       Settings?
+  tasks          Task[]
+  userInsights   UserInsight[]
+  logs           Log[]
+  notifications  Notification[]
 }
 
 model Task {
-  id           String              @id @default(cuid())
-  title        String
-  date         DateTime
-  time         String?
-  deadline     DateTime?
-  dateAdded    DateTime            @default(now())
-  completed    Boolean             @default(false)
-  priority     String
-  location     String?
-  why          String?
-  userId       String
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  reminderTime ReminderTimeOption? @default(at_time)
-  subTasks     SubTask[]
-  user         User                @relation(fields: [userId], references: [id])
+  id                   String              @id @default(cuid())
+  title                String
+  date                 DateTime
+  time                 String?
+  deadline             DateTime?
+  dateAdded            DateTime            @default(now())
+  status               TaskStatus          @default(new)
+  priority             String
+  position             Int?
+  tags                 Tag[]               @relation("TaskTags")
+  estimatedTimeMinutes Int?
+  repeats              String?
+  reminderTime         ReminderTimeOption? @default(at_time)
+  location             String?
+  why                  String?
+  userId               String
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  subTasks             SubTask[]
+  events               Event[]
+  notifications        Notification[]
+  pomodoros            Pomodoro[]
+  user                 User                @relation(fields: [userId], references: [id])
 }
 
 model SubTask {
+  id                   String     @id @default(cuid())
+  title                String
+  status               Boolean    @default(false)
+  taskId               String
+  position             Int?
+  estimatedTimeMinutes Int?
+  date                 DateTime?
+  rank                 Int?       @default(0)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  events               Event[]
+  notifications        Notification[]
+  task                 Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Tag {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  color       String?
+  category    TagCategory @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  tasks       Task[]      @relation("TaskTags")
+}
+
+model TagCategory {
   id        String   @id @default(cuid())
-  title     String
-  completed Boolean  @default(false)
-  taskId    String
+  name      String   @unique
+  type      String   // e.g., "Needs", "Difficulty", "HolisticLifeGoal"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tags      Tag[]
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  subtitle  String?
+  metadata  Json?
+  mode      NotificationMode
+  type      NotificationType
+  status    String
+  trigger   TriggerType
+  triggerAt DateTime?
+  location  String?
+  userId    String
+  taskId    String?
+  subtaskId String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id])
+  task      Task?            @relation(fields: [taskId], references: [id])
+  subtask   SubTask?         @relation(fields: [subtaskId], references: [id])
+}
+
+model Event {
+  id          String       @id @default(cuid())
+  summary     String
+  description String?
+  start       DateTime
+  end         DateTime
+  recurrence  String[]
+  taskId      String?
+  subtaskId   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  task        Task?        @relation(fields: [taskId], references: [id])
+  subtask     SubTask?     @relation(fields: [subtaskId], references: [id])
+}
+
+model PrincipleSource {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  type        String      // e.g., "book", "famous personality"
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  principles  Principle[]
+}
+
+model Principle {
+  id          String          @id @default(cuid())
+  content     String
+  strategyType String         // e.g., "breakdown", "prioritisation", "motivation"
+  sourceId    String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  source      PrincipleSource @relation(fields: [sourceId], references: [id])
+}
+
+model Pomodoro {
+  id        String        @id @default(cuid())
+  type      PomodoroType
+  taskId    String?
+  status    PomodoroStatus
+  startTime DateTime
+  endTime   DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  task      Task?         @relation(fields: [taskId], references: [id])
+}
+
+model UserInsight {
+  id        String   @id @default(cuid())
+  content   String
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id])
+}
+
+model Log {
+  id        String   @id @default(cuid())
+  userId    String
+  taskId    String?
+  metadata  Json?
+  createdBy String   // e.g., "App", "Bot", "User"
+  type      String   // e.g., "PomodoroFinished", "TaskCreated", etc.
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Settings {
@@ -74,4 +200,40 @@ enum ReminderTimeOption {
   one_hour        @map("1_hour")
   two_hours       @map("2_hours")
   one_day         @map("1_day")
+}
+
+enum TaskStatus {
+  new
+  planned
+  completed
+}
+
+enum PomodoroType {
+  focus
+  short_break
+  long_break
+}
+
+enum PomodoroStatus {
+  active
+  finished
+  cancelled
+}
+
+enum NotificationMode {
+  phone_call
+  chat_message
+  alarm
+  push_notification
+}
+
+enum NotificationType {
+  info
+  question
+  reminder
+}
+
+enum TriggerType {
+  location
+  time
 }

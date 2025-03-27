@@ -22,7 +22,9 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
   const { toggleTaskCompletion, deleteTask, updateTask } = useTasks()
   const [expanded, setExpanded] = useState<boolean>(false)
 
-  const subTasksCompleted: number = task.subTasks?.filter((st: SubTask) => st.completed).length || 0
+  const isCompleted = task.status === "completed"
+  
+  const subTasksCompleted: number = task.subTasks?.filter((st: SubTask) => st.status).length || 0
   const subTasksTotal: number = task.subTasks?.length || 0
   const subTaskProgress: number = subTasksTotal > 0 ? Math.round((subTasksCompleted / subTasksTotal) * 100) : 0
 
@@ -50,16 +52,16 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
     <div
       className={cn(
         "rounded-lg border bg-card text-card-foreground shadow-sm transition-all",
-        task.completed && "opacity-70",
+        isCompleted && "opacity-70",
       )}
     >
       <div className="p-4">
         <div className="flex items-start gap-3">
-          <Checkbox checked={task.completed} onCheckedChange={() => toggleTaskCompletion(task.id)} className="mt-1" />
+          <Checkbox checked={isCompleted} onCheckedChange={() => toggleTaskCompletion(task.id)} className="mt-1" />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <h3 className={cn("font-medium text-lg", task.completed && "line-through text-muted-foreground")}>
+              <h3 className={cn("font-medium text-lg", isCompleted && "line-through text-muted-foreground")}>
                 {task.title}
               </h3>
 
@@ -141,15 +143,15 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
                 {task.subTasks.map((subTask: SubTask, index: number) => (
                   <div key={index} className="flex items-start gap-2">
                     <Checkbox
-                      checked={subTask.completed}
+                      checked={subTask.status}
                       className="mt-0.5"
                       onCheckedChange={(checked) => {
                         const updatedSubTasks: SubTask[] = [...task.subTasks!]
-                        updatedSubTasks[index].completed = !!checked
+                        updatedSubTasks[index].status = !!checked
                         updateTask(task.id, { subTasks: updatedSubTasks })
                       }}
                     />
-                    <span className={cn("text-sm", subTask.completed && "line-through text-muted-foreground")}>
+                    <span className={cn("text-sm", subTask.status && "line-through text-muted-foreground")}>
                       {subTask.title}
                     </span>
                   </div>

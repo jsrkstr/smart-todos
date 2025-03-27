@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import type { Task } from '@/types/task'
+import type { Task, TaskStatus } from '@/types/task'
 
 interface TaskPayload {
   id: string;
@@ -9,11 +9,21 @@ interface TaskPayload {
   time?: string;
   deadline?: string | null;
   dateAdded: string;
-  completed: boolean;
+  status: TaskStatus;
   priority: "low" | "medium" | "high";
+  position?: number;
   location?: string;
   why?: string;
-  subTasks?: { title: string; completed: boolean }[];
+  estimatedTimeMinutes?: number;
+  repeats?: string;
+  subTasks?: { 
+    title: string; 
+    status: boolean;
+    position?: number;
+    estimatedTimeMinutes?: number;
+    date?: string;
+    rank?: number;
+  }[];
   reminderTime?: string;
 }
 

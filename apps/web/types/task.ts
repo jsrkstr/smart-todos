@@ -1,6 +1,14 @@
 export interface SubTask {
+  id?: string
   title: string
-  completed: boolean
+  status: boolean
+  taskId?: string
+  position?: number
+  estimatedTimeMinutes?: number
+  date?: string
+  rank?: number
+  events?: Event[]
+  notifications?: Notification[]
 }
 
 export type ReminderTimeOption = 
@@ -13,6 +21,37 @@ export type ReminderTimeOption =
   | "2_hours" 
   | "1_day";
 
+export type TaskStatus = "new" | "planned" | "completed";
+
+export interface Tag {
+  id?: string
+  name: string
+  color?: string
+  categoryId?: string
+}
+
+export interface Event {
+  id?: string
+  summary: string
+  description?: string
+  start: string
+  end: string
+  recurrence?: string[]
+}
+
+export interface Notification {
+  id?: string
+  title: string
+  subtitle?: string
+  metadata?: any
+  mode: "phone_call" | "chat_message" | "alarm" | "push_notification"
+  type: "info" | "question" | "reminder"
+  status: string
+  trigger: "location" | "time"
+  triggerAt?: string
+  location?: string
+}
+
 export interface Task {
   id: string
   title: string
@@ -20,11 +59,17 @@ export interface Task {
   time?: string // Time for the task
   deadline?: string // Optional deadline
   dateAdded: string
-  completed: boolean
+  status: TaskStatus
   priority: "low" | "medium" | "high"
+  position?: number
+  tags?: Tag[]
+  estimatedTimeMinutes?: number
+  repeats?: string
   location?: string
   why?: string
+  reminderTime?: ReminderTimeOption
   subTasks?: SubTask[]
-  reminderTime?: ReminderTimeOption // Changed to use the enum type
+  events?: Event[]
+  notifications?: Notification[]
 }
 

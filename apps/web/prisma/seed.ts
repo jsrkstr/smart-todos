@@ -9,15 +9,15 @@ const sampleTasks = [
     time: "14:00",
     deadline: new Date(Date.now() + 86400000), // Tomorrow
     dateAdded: new Date(),
-    completed: false,
+    status: "planned",
     priority: "high",
     location: "Office",
     why: "This will help advance my career and demonstrate my skills",
     subTasks: [
-      { title: "Research competitors", completed: true },
-      { title: "Create outline", completed: true },
-      { title: "Write first draft", completed: false },
-      { title: "Review with team", completed: false },
+      { title: "Research competitors", status: true },
+      { title: "Create outline", status: true },
+      { title: "Write first draft", status: false },
+      { title: "Review with team", status: false },
     ],
   },
   {
@@ -26,13 +26,13 @@ const sampleTasks = [
     time: "08:00",
     deadline: new Date(),
     dateAdded: new Date(Date.now() - 86400000), // Yesterday
-    completed: false,
+    status: "new",
     priority: "medium",
     location: "Park",
     why: "Maintaining my health is essential for long-term productivity",
     subTasks: [
-      { title: "Prepare running clothes", completed: true },
-      { title: "Fill water bottle", completed: false },
+      { title: "Prepare running clothes", status: true },
+      { title: "Fill water bottle", status: false },
     ],
   },
   {
@@ -41,7 +41,7 @@ const sampleTasks = [
     time: "20:00",
     deadline: new Date(),
     dateAdded: new Date(Date.now() - 172800000), // 2 days ago
-    completed: true,
+    status: "completed",
     priority: "low",
     why: "Reading helps me learn and grow",
   },
@@ -80,7 +80,7 @@ async function main() {
             soundEnabled: true,
             notificationsEnabled: true,
             emailNotifications: false,
-            reminderTime: "30",
+            reminderTime: "thirty_minutes",
           }
         },
         // Create tasks for the user

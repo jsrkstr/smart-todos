@@ -112,13 +112,15 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     const task: Task | undefined = get().tasks.find(t => t.id === taskId)
     if (!task) return
 
+    const newStatus = task.status === "completed" ? "planned" : "completed"
+
     try {
       const response: Response = await fetch('/api/tasks', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: taskId,
-          completed: !task.completed
+          status: newStatus
         }),
       })
       if (!response.ok) {

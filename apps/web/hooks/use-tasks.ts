@@ -22,7 +22,7 @@ export function useTasks() {
   // Create a memoized notification setup function
   const setupNotifications = useCallback((tasks: Task[]): void => {
     tasks.forEach((task: Task) => {
-      if (!task.completed) {
+      if (task.status !== "completed") {
         scheduleTaskReminder(task)
       }
     })
@@ -37,7 +37,7 @@ export function useTasks() {
   }, [setNotificationHandler, setupNotifications]);
 
   // Get completed tasks
-  const completedTasks: Task[] = tasks.filter((task: Task) => task.completed)
+  const completedTasks: Task[] = tasks.filter((task: Task) => task.status === "completed")
 
   // Add a new task with notification scheduling
   const addTask = async (task: Task): Promise<Task | null> => {
@@ -51,7 +51,7 @@ export function useTasks() {
   // Update a task with notification rescheduling
   const updateTask = async (taskId: string, updates: Partial<Task>): Promise<Task | null> => {
     const updatedTask: Task | null = await storeUpdateTask(taskId, updates)
-    if (updatedTask && !updatedTask.completed) {
+    if (updatedTask && updatedTask.status !== "completed") {
       scheduleTaskReminder(updatedTask)
     }
     return updatedTask
