@@ -36,11 +36,6 @@ interface OnboardingQuestion {
 export function UserOnboarding(): React.ReactNode {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
-  const [selectedCoach, setSelectedCoach] = useState<string>("");
-  const [customCoachName, setCustomCoachName] = useState<string>("");
-  const [selectedPrinciples, setSelectedPrinciples] = useState<string[]>([]);
-  const [customPrinciples, setCustomPrinciples] = useState<string[]>([]);
-  const [customPrincipleInput, setCustomPrincipleInput] = useState<string>("");
   const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isComplete, setIsComplete] = useState<boolean>(false);
@@ -73,29 +68,6 @@ export function UserOnboarding(): React.ReactNode {
     }
   };
   
-  const handleCoachSelect = (coach: string): void => {
-    setSelectedCoach(coach);
-  };
-  
-  const handlePrincipleToggle = (principle: string): void => {
-    if (selectedPrinciples.includes(principle)) {
-      setSelectedPrinciples(selectedPrinciples.filter(p => p !== principle));
-    } else {
-      setSelectedPrinciples([...selectedPrinciples, principle]);
-    }
-  };
-  
-  const handleCustomPrincipleAdd = (): void => {
-    if (customPrincipleInput.trim() !== "" && !customPrinciples.includes(customPrincipleInput.trim())) {
-      setCustomPrinciples([...customPrinciples, customPrincipleInput.trim()]);
-      setCustomPrincipleInput("");
-    }
-  };
-  
-  const handleCustomPrincipleRemove = (principle: string): void => {
-    setCustomPrinciples(customPrinciples.filter(p => p !== principle));
-  };
-  
   const handleIntegrationToggle = (integration: string): void => {
     if (selectedIntegrations.includes(integration)) {
       setSelectedIntegrations(selectedIntegrations.filter(i => i !== integration));
@@ -115,14 +87,11 @@ export function UserOnboarding(): React.ReactNode {
         taskApproach: answers.taskApproach || "",
         difficultyPreference: answers.difficultyPreference || "",
         reminderTiming: answers.reminderTiming || "",
-        selectedCoach: selectedCoach
+        selectedCoach: "" // This will be set by the coach selection component
       };
       
       const updateData: ProfileUpdateData = {
         preferences: answers,
-        coach: selectedCoach,
-        coachName: selectedCoach === "custom" ? customCoachName : undefined,
-        principles: [...selectedPrinciples, ...customPrinciples],
         integrations: selectedIntegrations,
         psychProfile
       };
@@ -170,18 +139,18 @@ export function UserOnboarding(): React.ReactNode {
       case 6: // Coach Selection
         return (
           <CoachSelectionStep
-            selectedCoach={selectedCoach}
-            customCoachName={customCoachName}
-            selectedPrinciples={selectedPrinciples}
-            customPrinciples={customPrinciples}
-            customPrincipleInput={customPrincipleInput}
+            selectedCoach=""
+            customCoachName=""
+            selectedPrinciples={[]}
+            customPrinciples={[]}
+            customPrincipleInput=""
             isLoading={isLoading}
-            onCoachSelect={handleCoachSelect}
-            onCustomCoachNameChange={setCustomCoachName}
-            onPrincipleToggle={handlePrincipleToggle}
-            onCustomPrincipleInputChange={setCustomPrincipleInput}
-            onCustomPrincipleAdd={handleCustomPrincipleAdd}
-            onCustomPrincipleRemove={handleCustomPrincipleRemove}
+            onCoachSelect={() => {}}
+            onCustomCoachNameChange={() => {}}
+            onPrincipleToggle={() => {}}
+            onCustomPrincipleInputChange={() => {}}
+            onCustomPrincipleAdd={() => {}}
+            onCustomPrincipleRemove={() => {}}
             onPrevious={handlePrevious}
             onNext={handleNext}
           />

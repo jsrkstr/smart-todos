@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
 import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
 
 interface OAuthLoginProps {
   onLogin?: () => void
@@ -18,6 +20,12 @@ export function OAuthLogin({ onLogin }: OAuthLoginProps) {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { login, loginWithProvider } = useAuth()
+  
+  // Get the redirect URL if it exists
+  const redirectUrl = searchParams.get('redirect') || '/dashboard'
 
   const handleCredentialsLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,13 +40,16 @@ export function OAuthLogin({ onLogin }: OAuthLoginProps) {
 
     setIsLoading(true)
     try {
-      // In a real app, this would call an authentication API
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Use auth context instead of directly setting cookies
+      await login(email, password)
       
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in"
       })
+      
+      // Redirect to the requested page or dashboard
+      router.push(redirectUrl)
       
       if (onLogin) onLogin()
     } catch (error) {
@@ -55,13 +66,18 @@ export function OAuthLogin({ onLogin }: OAuthLoginProps) {
   const handleOAuthLogin = async (provider: string) => {
     setIsLoading(true)
     try {
-      if (provider === "Google") {
-        // Redirect to Google OAuth endpoint
-        window.location.href = "/api/auth/google"
-      } else if (provider === "Telegram") {
-        // Redirect to Telegram OAuth endpoint
-        window.location.href = "/api/auth/telegram"
-      }
+      // Use auth context instead of directly setting cookies
+      await loginWithProvider(provider)
+      
+      toast({
+        title: `Logged in with ${provider}!`,
+        description: "You have successfully logged in"
+      })
+      
+      // Redirect to the requested page or dashboard
+      router.push(redirectUrl)
+      
+      if (onLogin) onLogin()
     } catch (error) {
       toast({
         title: "Login failed",

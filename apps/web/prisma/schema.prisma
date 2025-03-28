@@ -38,6 +38,27 @@ model User {
   accountabilityPartnerships AccountabilityPartnership[] @relation("AccountabilityPartner")
 }
 
+model Coach {
+  id                String   @id @default(cuid())
+  name              String
+  title             String?
+  image             String?  @default("/placeholder.svg?height=100&width=100")
+  description       String?
+  style             String?
+  type              String   @default("system") // system, custom
+  matchScore        Int?
+  sampleQuotes      String[] @default([])
+  principles        String[] @default([])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  users             PsychProfile[]
+  directness        Int?     @default(50) // 0-100 scale
+  encouragementLevel Int?    @default(70) // 0-100 scale
+  coachingStyle     String?  @default("balanced") // analytical, motivational, balanced, reflective
+  isActive          Boolean  @default(true)
+  createdBy         String?  // userId of creator for custom coaches
+}
+
 model PsychProfile {
   id                  String   @id @default(cuid())
   userId              String   @unique
@@ -45,7 +66,10 @@ model PsychProfile {
   communicationPref   String   // minimal, moderate, frequent
   taskApproach       String   // sequential, parallel, varied
   difficultyPreference String // first, alternate, end
+  reminderTiming      String?  // just_in_time, 15min, 30min, 1hour
   selectedCoach      String?
+  coachId            String?
+  coach              Coach?    @relation(fields: [coachId], references: [id])
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   user               User     @relation(fields: [userId], references: [id])

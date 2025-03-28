@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2, ChevronRight, ChevronLeft, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Service integrations data
 const serviceIntegrations = [
@@ -46,34 +45,6 @@ const serviceIntegrations = [
   },
 ];
 
-// Device permissions data
-const devicePermissions = [
-  {
-    id: "notifications",
-    title: "Push Notifications",
-    description: "Allow SmartTodos to send you notifications about tasks and reminders",
-    essential: true,
-  },
-  {
-    id: "location",
-    title: "Location Access",
-    description: "Enable location-based reminders and task suggestions",
-    essential: false,
-  },
-  {
-    id: "calendar",
-    title: "Calendar Access",
-    description: "Allow SmartTodos to read and create calendar events",
-    essential: false,
-  },
-  {
-    id: "contacts",
-    title: "Contacts Access",
-    description: "Allow SmartTodos to suggest collaborators from your contacts",
-    essential: false,
-  },
-];
-
 interface IntegrationsStepProps {
   selectedIntegrations: string[];
   isLoading: boolean;
@@ -92,10 +63,6 @@ export function IntegrationsStep({
   // Track connected services and their permissions
   const [connectedServices, setConnectedServices] = React.useState<Record<string, boolean>>({});
   const [servicePermissions, setServicePermissions] = React.useState<Record<string, string[]>>({});
-  const [grantedPermissions, setGrantedPermissions] = React.useState<Record<string, boolean>>({
-    // Default essential permissions to true
-    notifications: true,
-  });
 
   const handleServiceToggle = (serviceId: string) => {
     const newServices = { ...connectedServices, [serviceId]: !connectedServices[serviceId] };
@@ -160,19 +127,11 @@ export function IntegrationsStep({
     });
   };
 
-  const handleDevicePermissionToggle = (permissionId: string) => {
-    const newPermissions = { ...grantedPermissions, [permissionId]: !grantedPermissions[permissionId] };
-    setGrantedPermissions(newPermissions);
-    
-    // Update the user's selected integrations
-    onIntegrationToggle(`device_${permissionId}`);
-  };
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Connect Your Services</CardTitle>
-        <CardDescription>Connect SmartTodos with your favorite apps and grant necessary permissions.</CardDescription>
+        <CardDescription>Connect SmartTodos with your favorite apps to enhance your productivity.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-5">
@@ -224,35 +183,6 @@ export function IntegrationsStep({
                   ))}
                 </div>
               )}
-            </div>
-          ))}
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="font-medium">App Permissions</h3>
-          <Alert>
-            <AlertDescription className="text-sm">
-              These permissions enhance your experience but you can change them later in settings.
-            </AlertDescription>
-          </Alert>
-          {devicePermissions.map((permission) => (
-            <div key={permission.id} className="flex items-center justify-between py-2">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="font-medium text-sm">{permission.title}</h4>
-                  {permission.essential && (
-                    <Badge variant="outline" className="text-xs">
-                      Essential
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">{permission.description}</p>
-              </div>
-              <Switch
-                checked={!!grantedPermissions[permission.id]}
-                onCheckedChange={() => handleDevicePermissionToggle(permission.id)}
-                disabled={permission.essential}
-              />
             </div>
           ))}
         </div>
