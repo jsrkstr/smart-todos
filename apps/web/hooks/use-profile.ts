@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import type { UserProfile } from "@/types/profile"
 
 // Initial profile data
@@ -19,19 +19,25 @@ const initialProfile: UserProfile = {
 
 interface ProfileHookReturn {
   profile: UserProfile | null;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  coachId: string | null;
+  updateProfile: (updates: Partial<UserProfile> | any) => Promise<void>;
+  updateCoach: (coachId: string) => Promise<void>;
   addPrinciple: (principle: string) => Promise<void>;
   removePrinciple: (index: number) => Promise<void>;
 }
 
 export function useProfile(): ProfileHookReturn {
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [coachId, setCoachId] = useState<string | null>(null)
 
-  useEffect((): void => {
+  useEffect(() => {
+    let isMounted = true;
     // Load profile from API
     async function loadProfile(): Promise<void> {
       try {
-        const response: Response = await fetch('/api/profile')
+        const response = await fetch('/api/profile')
+        if (!isMounted) return;
+        
         if (!response.ok) {
           console.warn('Failed to load profile, using default profile')
           setProfile(initialProfile)
@@ -39,19 +45,27 @@ export function useProfile(): ProfileHookReturn {
         }
         const data: UserProfile = await response.json()
         setProfile(data)
+        // Set coachId from psychProfile if it exists
+        if (data.psychProfile?.coachId) {
+          setCoachId(data.psychProfile.coachId)
+        }
       } catch (error) {
+        if (!isMounted) return;
         console.error("Failed to load profile:", error)
         // Fallback to initial profile if API call fails
         setProfile(initialProfile)
       }
     }
     loadProfile()
+    return () => {
+      isMounted = false;
+    }
   }, [])
 
   // Update profile
-  const updateProfile = async (updates: Partial<UserProfile>): Promise<void> => {
+  const updateProfile = useCallback(async (updates: Partial<UserProfile> | any): Promise<void> => {
     try {
-      const response: Response = await fetch('/api/profile', {
+      const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
@@ -61,15 +75,24 @@ export function useProfile(): ProfileHookReturn {
       }
       const data: UserProfile = await response.json()
       setProfile(data)
+      // Update coachId if it changed
+      if (data.psychProfile?.coachId) {
+        setCoachId(data.psychProfile.coachId)
+      }
     } catch (error) {
       console.error("Failed to update profile:", error)
     }
-  }
+  }, [])
+
+  // Dedicated coach update function
+  const updateCoach = useCallback(async (newCoachId: string): Promise<void> => {
+    await updateProfile({ coach: newCoachId })
+  }, [updateProfile])
 
   // Add a principle
   const addPrinciple = async (principle: string): Promise<void> => {
     try {
-      const response: Response = await fetch('/api/profile/principles', {
+      const response = await fetch('/api/profile/principles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ principle }),
@@ -87,7 +110,7 @@ export function useProfile(): ProfileHookReturn {
   // Remove a principle
   const removePrinciple = async (index: number): Promise<void> => {
     try {
-      const response: Response = await fetch('/api/profile/principles', {
+      const response = await fetch('/api/profile/principles', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ index }),
@@ -104,7 +127,9 @@ export function useProfile(): ProfileHookReturn {
 
   return {
     profile,
+    coachId,
     updateProfile,
+    updateCoach,
     addPrinciple,
     removePrinciple,
   }

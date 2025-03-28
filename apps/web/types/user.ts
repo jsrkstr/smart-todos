@@ -36,7 +36,8 @@ export interface PsychProfile {
   taskApproach: string  // sequential, parallel, varied
   difficultyPreference: string  // first, alternate, end
   reminderTiming: string  // just_in_time, 15min, 30min, 1hour
-  selectedCoach: string
+  selectedCoach?: string
+  coachId?: string
 }
 
 export interface OnboardingAnswers {

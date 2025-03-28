@@ -153,7 +153,8 @@ export function CoachSelection({
                             variant="ghost" 
                             size="sm" 
                             onClick={(e) => {
-                              e.stopPropagation();
+                              e.stopPropagation(); // Prevent selection
+                              e.preventDefault(); // Ensure coach doesn't get selected
                               setPreviewCoach(coach.id);
                             }}
                           >

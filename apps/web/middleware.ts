@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { JWTPayload } from '@/types/auth'
+import { JWT } from '@/lib/jwt'
 
 // Public routes that don't require authentication
 const publicRoutes = [
@@ -17,7 +19,7 @@ const publicRoutes = [
 // Login route needs special handling
 const loginRoute = '/login';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Get the pathname from the URL
   const { pathname } = request.nextUrl
   
@@ -37,11 +39,23 @@ export function middleware(request: NextRequest) {
   }
   
   // Check for authentication token in cookies
-  const token = request.cookies.get('token');
+  const token = request.cookies.get('token')?.value;
+  let isValidToken = false;
+  let payload: JWTPayload | null = null;
+  
+  // Verify token validity using JWT utility
+  if (token) {
+    try {
+      payload = await JWT.verify<JWTPayload>(token);
+      isValidToken = !!payload;
+    } catch (error) {
+      console.error('Token verification failed:', error);
+    }
+  }
   
   // Special case for login page - redirect to dashboard if already logged in
   if (pathname === loginRoute || pathname.startsWith(`${loginRoute}/`)) {
-    if (token) {
+    if (isValidToken) {
       // User is already logged in - redirect to dashboard
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
@@ -49,15 +63,22 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // For other protected routes, if there's no token, redirect to login
-  if (!token) {
-    const url = new URL('/login', request.url);
-    // Save the original URL so we can redirect back after login
-    url.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(url);
+  // Special case for root path - redirect based on auth status
+  if (pathname === '/') {
+    if (isValidToken) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    } else {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
   }
   
-  // If token exists, allow the request
+  // For protected routes, check token validity
+  if (!isValidToken) {
+    // User is not authenticated - redirect to login
+    return NextResponse.redirect(new URL(`${loginRoute}?redirect=${encodeURIComponent(pathname)}`, request.url));
+  }
+  
+  // If token exists and is valid, allow the request
   return NextResponse.next();
 }
 
@@ -65,6 +86,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Match all routes except for static assets, api routes, etc
-    '/((?!_next/static|_next/image|_next/scripts|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
-}; 
+};

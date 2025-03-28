@@ -82,20 +82,20 @@ export function UserOnboarding(): React.ReactNode {
       // Create psychological profile
       const psychProfile: PsychProfile = {
         userId: "", // Will be set by the API
-        productivityTime: answers.productivityTime || "",
-        communicationPref: answers.communicationPref || "",
-        taskApproach: answers.taskApproach || "",
-        difficultyPreference: answers.difficultyPreference || "",
-        reminderTiming: answers.reminderTiming || "",
-        selectedCoach: "" // This will be set by the coach selection component
+        productivityTime: answers.productivityTime || "morning",
+        communicationPref: answers.communicationPref || "moderate",
+        taskApproach: answers.taskApproach || "varied",
+        difficultyPreference: answers.difficultyPreference || "alternate",
+        reminderTiming: answers.reminderTiming || "just_in_time"
       };
       
-      const updateData: ProfileUpdateData = {
+      const updateData = {
         preferences: answers,
         integrations: selectedIntegrations,
         psychProfile
       };
       
+      // Use the profile update function instead of a separate API endpoint
       await updateProfile(updateData);
       
       setIsComplete(true);
