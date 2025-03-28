@@ -33,7 +33,9 @@ export function useProfile(): ProfileHookReturn {
       try {
         const response: Response = await fetch('/api/profile')
         if (!response.ok) {
-          throw new Error('Failed to load profile')
+          console.warn('Failed to load profile, using default profile')
+          setProfile(initialProfile)
+          return
         }
         const data: UserProfile = await response.json()
         setProfile(data)

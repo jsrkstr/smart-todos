@@ -39,7 +39,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     try {
       const response: Response = await fetch('/api/tasks')
       if (!response.ok) {
-        throw new Error('Failed to load tasks')
+        console.warn('Failed to load tasks, using empty task list')
+        set({ 
+          tasks: [],
+          loading: false,
+          error: 'Failed to load tasks'
+        })
+        return
       }
       const data: Task[] = await response.json()
       set({ tasks: data, loading: false })

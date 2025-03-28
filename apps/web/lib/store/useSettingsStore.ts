@@ -47,13 +47,22 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     try {
       const response: Response = await fetch('/api/settings')
       if (!response.ok) {
-        throw new Error('Failed to load settings')
+        console.warn('Failed to load settings, using defaults')
+        set({ 
+          settings: defaultSettings, 
+          loading: false, 
+          loaded: true,
+          error: null 
+        })
+        return
       }
       const data: Settings = await response.json()
       set({ settings: data, loading: false, loaded: true })
     } catch (error) {
       console.error("Failed to load settings:", error)
+      // Fall back to default settings instead of showing an error
       set({ 
+        settings: defaultSettings,
         error: error instanceof Error ? error.message : 'Failed to load settings', 
         loading: false,
         loaded: true // Mark as loaded even on error to prevent repeated attempts
