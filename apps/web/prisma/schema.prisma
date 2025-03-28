@@ -128,7 +128,7 @@ model SubTask {
   id          String     @id @default(cuid())
   title       String
   status      TaskStatus @default(new)
-  position    Int
+  position    Int?
   taskId      String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt

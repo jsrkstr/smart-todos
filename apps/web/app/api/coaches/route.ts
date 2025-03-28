@@ -32,10 +32,36 @@ export async function POST(req: NextRequest) {
   try {
     // In a real app, this would verify the session
     const userId = MOCK_USER_ID;
+    
+    // Parse and validate the request body
     const data = await req.json();
-
+    
+    // Validate required fields
+    if (!data || typeof data !== 'object') {
+      return NextResponse.json(
+        { error: "Invalid request data" },
+        { status: 400 }
+      );
+    }
+    
+    if (!data.name) {
+      return NextResponse.json(
+        { error: "Coach name is required" },
+        { status: 400 }
+      );
+    }
+    
+    // Ensure arrays are properly initialized
+    data.sampleQuotes = Array.isArray(data.sampleQuotes) ? data.sampleQuotes : [];
+    data.principles = Array.isArray(data.principles) ? data.principles : [];
+    
+    // Ensure numerical fields have default values if not provided
+    data.directness = data.directness ?? 50;
+    data.encouragementLevel = data.encouragementLevel ?? 50;
+    
     // Add the user ID to the coach data
     data.createdBy = userId;
+    data.type = 'custom'; // Ensure type is set correctly
     
     const coach = await createCustomCoach(data);
     

@@ -13,13 +13,11 @@ export interface SubTask {
 
 export type ReminderTimeOption = 
   | "at_time" 
-  | "5_minutes" 
-  | "10_minutes" 
-  | "15_minutes" 
-  | "30_minutes" 
-  | "1_hour" 
-  | "2_hours" 
-  | "1_day";
+  | 'five_min_before'
+  | 'fifteen_min_before'
+  | 'thirty_min_before'
+  | 'one_hour_before'
+  | 'one_day_before';
 
 export type TaskStatus = "new" | "planned" | "completed";
 

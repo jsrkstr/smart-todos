@@ -83,7 +83,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     }
   }, [isEditing, taskId, tasks])
 
-  const handleSubmit = (e: React.FormEvent): void => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
 
     if (!title.trim()) {
@@ -97,22 +97,33 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
 
     if (isEditing && taskId && task) {
       // Update existing task
-      updateTask(taskId, {
-        title,
-        date: date ? date.toISOString() : new Date().toISOString(),
-        time,
-        deadline: deadline ? deadline.toISOString() : undefined,
-        priority: priority as "low" | "medium" | "high",
-        location: location || undefined,
-        why: why || undefined,
-        subTasks,
-        reminderTime,
-      })
+      try {
+        updateTask(taskId, {
+          title,
+          date: date ? date.toISOString() : new Date().toISOString(),
+          time,
+          deadline: deadline ? deadline.toISOString() : undefined,
+          priority: priority as "low" | "medium" | "high",
+          location: location || undefined,
+          why: why || undefined,
+          subTasks,
+          reminderTime,
+        })
 
-      toast({
-        title: "Success",
-        description: "Task updated successfully",
-      })
+        toast({
+          title: "Success",
+          description: "Task updated successfully",
+        })
+        
+        router.push("/tasks")
+      } catch (error) {
+        console.error('Failed to update task:', error)
+        toast({
+          title: "Error",
+          description: "Failed to update task. Please try again.",
+          variant: "destructive",
+        })
+      }
     } else {
       // Add new task
       try {
@@ -145,10 +156,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           variant: "destructive",
         })
       }
-      return
     }
-
-    router.push("/tasks")
   }
 
   const handleAddSubTask = (): void => {
@@ -173,25 +181,56 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   }
 
   const generateSubtasks = async (): Promise<void> => {
-    if (!title) return
+    if (!title) {
+      toast({
+        title: "Error",
+        description: "Please enter a task title first",
+        variant: "destructive",
+      })
+      return
+    }
 
     setIsGeneratingSubtasks(true)
     
     try {
-      // Make API call here to generate subtasks with AI
-      // For demonstration purposes, let's create some dummy subtasks
-      const dummySubtasks: SubTask[] = [
-        { title: `Research for "${title}"`, completed: false },
-        { title: `Draft initial "${title}" plan`, completed: false },
-        { title: `Review "${title}" progress`, completed: false },
-      ]
+      // Call the generate-subtasks API endpoint
+      const response = await fetch('/api/generate-subtasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          description: why // Pass the why field as additional context
+        }),
+      })
       
-      setSuggestedSubTasks(dummySubtasks)
+      if (!response.ok) {
+        throw new Error('Failed to generate subtasks')
+      }
+      
+      const data = await response.json()
+      
+      if (data.subtasks && Array.isArray(data.subtasks)) {
+        const generatedSubtasks: SubTask[] = data.subtasks.map((text: string) => ({
+          title: text,
+          completed: false
+        }))
+        
+        setSuggestedSubTasks(generatedSubtasks)
+        
+        toast({
+          title: "Success",
+          description: `Generated ${generatedSubtasks.length} subtasks`,
+        })
+      } else {
+        throw new Error('Invalid response format')
+      }
     } catch (error) {
       console.error("Failed to generate subtasks:", error)
       toast({
         title: "Error",
-        description: "Failed to generate subtasks",
+        description: "Failed to generate subtasks. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -317,13 +356,11 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="at_time">At time of task</SelectItem>
-                  <SelectItem value="5_minutes">5 minutes before</SelectItem>
-                  <SelectItem value="10_minutes">10 minutes before</SelectItem>
-                  <SelectItem value="15_minutes">15 minutes before</SelectItem>
-                  <SelectItem value="30_minutes">30 minutes before</SelectItem>
-                  <SelectItem value="1_hour">1 hour before</SelectItem>
-                  <SelectItem value="2_hours">2 hours before</SelectItem>
-                  <SelectItem value="1_day">1 day before</SelectItem>
+                  <SelectItem value="five_min_before">5 minutes before</SelectItem>
+                  <SelectItem value="fifteen_min_before">15 minutes before</SelectItem>
+                  <SelectItem value="thirty_min_before">30 minutes before</SelectItem>
+                  <SelectItem value="one_hour_before">1 hour before</SelectItem>
+                  <SelectItem value="one_day_before">1 day before</SelectItem>
                 </SelectContent>
               </Select>
             </div>

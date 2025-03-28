@@ -120,15 +120,15 @@ type SeedResult = { success: boolean; coaches?: Coach[]; error?: any };
 
 export async function seedSystemCoaches(): Promise<SeedResult> {
   try {
-    // Use simpler query for checking if coaches exist
-    const existingCoaches = await prisma.$queryRaw`
-      SELECT COUNT(*) as count FROM "Coach" WHERE type = 'system'
-    `;
+    // Check if system coaches already exist
+    const existingCoachCount = await prisma.coach.count({
+      where: {
+        type: 'system'
+      }
+    });
 
     // Check if we already have system coaches
-    const count = Number((existingCoaches as any[])[0]?.count || 0);
-    
-    if (count > 0) {
+    if (existingCoachCount > 0) {
       console.log("System coaches already seeded.");
       return { success: true };
     }
@@ -137,62 +137,47 @@ export async function seedSystemCoaches(): Promise<SeedResult> {
     
     const createdCoaches: Coach[] = [];
     
-    // Use parameterized queries for each coach insertion
+    // Use Prisma's createMany to insert all coaches at once
     for (const coach of INITIAL_COACHES) {
-      // First insert the coach with basic fields
-      await prisma.$executeRaw`
-        INSERT INTO "Coach" (
-          name, title, description, style, type, "matchScore",
-          directness, "encouragementLevel", "coachingStyle", "isActive", 
-          "createdAt", "updatedAt"
-        ) VALUES (
-          ${coach.name}, 
-          ${coach.title}, 
-          ${coach.description}, 
-          ${coach.style}, 
-          ${coach.type}, 
-          ${coach.matchScore}, 
-          ${coach.directness}, 
-          ${coach.encouragementLevel}, 
-          ${coach.coachingStyle}, 
-          TRUE,
-          CURRENT_TIMESTAMP, 
-          CURRENT_TIMESTAMP
-        )
-      `;
+      // Create a coach with all fields at once
+      const newCoach = await prisma.coach.create({
+        data: {
+          name: coach.name,
+          title: coach.title,
+          description: coach.description,
+          style: coach.style,
+          type: coach.type,
+          matchScore: coach.matchScore,
+          directness: coach.directness,
+          encouragementLevel: coach.encouragementLevel,
+          coachingStyle: coach.coachingStyle,
+          isActive: true,
+          sampleQuotes: coach.sampleQuotes,
+          principles: coach.principles || []
+        }
+      });
       
-      // Then fetch the created coach to add to our result
-      const newCoaches = await prisma.$queryRaw`
-        SELECT * FROM "Coach" WHERE name = ${coach.name} AND type = 'system'
-      `;
-      
-      if ((newCoaches as any[]).length > 0) {
-        createdCoaches.push((newCoaches as any[])[0] as Coach);
-      }
-      
-      // Now update the coach with JSON fields in a separate query
-      if ((newCoaches as any[]).length > 0) {
-        const coachId = (newCoaches as any[])[0].id;
-        await prisma.$executeRaw`
-          UPDATE "Coach" SET
-          "sampleQuotes" = ${JSON.stringify(coach.sampleQuotes)}::jsonb,
-          "principles" = ${JSON.stringify(coach.principles)}::jsonb
-          WHERE id = ${coachId}
-        `;
-      }
+      createdCoaches.push(newCoach as Coach);
     }
     
     console.log(`Created ${createdCoaches.length} system coaches`);
     return { success: true, coaches: createdCoaches };
   } catch (error) {
-    console.error("Error seeding system coaches:", error);
+    console.error("Error seeding system coaches:", error instanceof Error ? error.message : 'Unknown error');
     return { success: false, error };
   }
 }
 
 export async function getAllCoaches() {
   try {
-    const result = await prisma.$queryRaw`SELECT * FROM "Coach" WHERE "isActive" = true ORDER BY "createdAt" ASC`;
+    const result = await prisma.coach.findMany({
+      where: {
+        isActive: true
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    });
     return result as Coach[];
   } catch (error) {
     console.error("Error getting all coaches:", error);
@@ -202,8 +187,12 @@ export async function getAllCoaches() {
 
 export async function getCoachById(id: string) {
   try {
-    const coaches = await prisma.$queryRaw`SELECT * FROM "Coach" WHERE id = ${id}`;
-    return (coaches as any[])[0] as Coach || null;
+    const coach = await prisma.coach.findUnique({
+      where: {
+        id: id
+      }
+    });
+    return coach as Coach || null;
   } catch (error) {
     console.error("Error getting coach by ID:", error);
     return null;
@@ -212,12 +201,22 @@ export async function getCoachById(id: string) {
 
 export async function getUserCoaches(userId: string) {
   try {
-    const result = await prisma.$queryRaw`
-      SELECT * FROM "Coach" 
-      WHERE (type = 'system' OR "createdBy" = ${userId})
-      AND "isActive" = true
-      ORDER BY "createdAt" ASC
-    `;
+    const result = await prisma.coach.findMany({
+      where: {
+        AND: [
+          {
+            OR: [
+              { type: 'system' },
+              { createdBy: userId }
+            ]
+          },
+          { isActive: true }
+        ]
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    });
     return result as Coach[];
   } catch (error) {
     console.error("Error getting user coaches:", error);
@@ -227,33 +226,29 @@ export async function getUserCoaches(userId: string) {
 
 export async function createCustomCoach(data: Omit<Coach, 'id' | 'createdAt' | 'updatedAt'>) {
   try {
-    // Extract the keys and values
-    const { name, title, description, style, directness, encouragementLevel, 
-            coachingStyle, sampleQuotes = [], principles = [] } = data;
+    // Ensure we have valid values and defaults for optional fields
+    const coachData = {
+      name: data.name,
+      title: data.title || null,
+      description: data.description || null,
+      style: data.style || null,
+      type: 'custom',
+      matchScore: null,
+      sampleQuotes: Array.isArray(data.sampleQuotes) ? data.sampleQuotes : [],
+      principles: Array.isArray(data.principles) ? data.principles : [],
+      directness: data.directness || 50,
+      encouragementLevel: data.encouragementLevel || 50,
+      coachingStyle: data.coachingStyle || 'balanced',
+      isActive: true,
+      createdBy: data.createdBy || null
+    };
     
-    // Use direct parameters instead of dynamic construction
-    const result = await prisma.$executeRaw`
-      INSERT INTO "Coach" (
-        name, title, description, style, type, 
-        directness, "encouragementLevel", "coachingStyle", 
-        "sampleQuotes", principles, "isActive", "createdAt", "updatedAt", "createdBy"
-      ) 
-      VALUES (
-        ${name}, ${title}, ${description}, ${style}, 'custom',
-        ${directness}, ${encouragementLevel}, ${coachingStyle},
-        ${JSON.stringify(sampleQuotes)}::jsonb, ${JSON.stringify(principles)}::jsonb,
-        TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ${data.createdBy}
-      )
-      RETURNING *
-    `;
+    // Use Prisma's create method instead of raw SQL
+    const coach = await prisma.coach.create({
+      data: coachData
+    });
     
-    // Fetch the newly created coach
-    const coaches = await prisma.$queryRaw`
-      SELECT * FROM "Coach" WHERE name = ${name} AND "createdBy" = ${data.createdBy}
-      ORDER BY "createdAt" DESC LIMIT 1
-    `;
-    
-    return (coaches as any[])[0] as Coach;
+    return coach as Coach;
   } catch (error) {
     console.error("Error creating custom coach:", error);
     throw error;
@@ -263,35 +258,43 @@ export async function createCustomCoach(data: Omit<Coach, 'id' | 'createdAt' | '
 export async function updateUserCoach(userId: string, coachId: string) {
   try {
     // Check if profile exists
-    const profiles = await prisma.$queryRaw`
-      SELECT * FROM "PsychProfile" WHERE "userId" = ${userId}
-    `;
+    const profile = await prisma.psychProfile.findUnique({
+      where: {
+        userId: userId
+      }
+    });
     
-    const profileExists = (profiles as any[]).length > 0;
-
-    if (profileExists) {
-      await prisma.$executeRaw`
-        UPDATE "PsychProfile"
-        SET "coachId" = ${coachId}, "selectedCoach" = ${coachId}, "updatedAt" = CURRENT_TIMESTAMP
-        WHERE "userId" = ${userId}
-      `;
+    let updatedProfile;
+    
+    if (profile) {
+      // Update existing profile
+      updatedProfile = await prisma.psychProfile.update({
+        where: {
+          userId: userId
+        },
+        data: {
+          coachId: coachId,
+          selectedCoach: coachId,
+          updatedAt: new Date()
+        }
+      });
     } else {
-      await prisma.$executeRaw`
-        INSERT INTO "PsychProfile" 
-        ("userId", "coachId", "selectedCoach", "productivityTime", "communicationPref", 
-         "taskApproach", "difficultyPreference", "reminderTiming", "createdAt", "updatedAt")
-        VALUES 
-        (${userId}, ${coachId}, ${coachId}, 'morning', 'moderate', 
-         'varied', 'alternate', 'just_in_time', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      `;
+      // Create new profile
+      updatedProfile = await prisma.psychProfile.create({
+        data: {
+          userId: userId,
+          coachId: coachId,
+          selectedCoach: coachId,
+          productivityTime: 'morning',
+          communicationPref: 'moderate',
+          taskApproach: 'varied',
+          difficultyPreference: 'alternate',
+          reminderTiming: 'just_in_time'
+        }
+      });
     }
     
-    // Return updated profile
-    const updatedProfiles = await prisma.$queryRaw`
-      SELECT * FROM "PsychProfile" WHERE "userId" = ${userId}
-    `;
-    
-    return (updatedProfiles as any[])[0];
+    return updatedProfile;
   } catch (error) {
     console.error("Error updating user coach:", error);
     throw error;
@@ -300,13 +303,28 @@ export async function updateUserCoach(userId: string, coachId: string) {
 
 export async function getUserCurrentCoach(userId: string) {
   try {
-    const results = await prisma.$queryRaw`
-      SELECT c.* FROM "Coach" c
-      JOIN "PsychProfile" p ON c.id = p."coachId"
-      WHERE p."userId" = ${userId}
-    `;
+    // First get the user's profile to find their coach ID
+    const profile = await prisma.psychProfile.findUnique({
+      where: {
+        userId: userId
+      },
+      select: {
+        coachId: true
+      }
+    });
     
-    return (results as any[])[0] as Coach || null;
+    if (!profile || !profile.coachId) {
+      return null;
+    }
+    
+    // Then fetch the coach by ID
+    const coach = await prisma.coach.findUnique({
+      where: {
+        id: profile.coachId
+      }
+    });
+    
+    return coach as Coach || null;
   } catch (error) {
     console.error("Error getting user current coach:", error);
     return null;

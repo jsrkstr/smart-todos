@@ -16,7 +16,7 @@ export async function GET() {
       inspirations: user.inspirations,
     })
   } catch (error) {
-    console.error('Failed to get profile:', error)
+    console.error('Failed to get profile:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ error: 'Failed to get profile' }, { status: 500 })
   }
 }
@@ -43,7 +43,7 @@ export async function PUT(request: Request) {
       inspirations: updatedUser.inspirations,
     })
   } catch (error) {
-    console.error('Failed to update profile:', error)
+    console.error('Failed to update profile:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
   }
 }
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       principles: updatedUser.principles,
     })
   } catch (error) {
-    console.error('Failed to add principle:', error)
+    console.error('Failed to add principle:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ error: 'Failed to add principle' }, { status: 500 })
   }
 }
@@ -94,7 +94,7 @@ export async function DELETE(request: Request) {
       principles: updatedUser.principles,
     })
   } catch (error) {
-    console.error('Failed to remove principle:', error)
+    console.error('Failed to remove principle:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ error: 'Failed to remove principle' }, { status: 500 })
   }
 } 

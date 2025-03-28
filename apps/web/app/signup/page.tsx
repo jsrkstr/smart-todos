@@ -43,14 +43,35 @@ export default function SignupPage() {
       return
     }
     
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive"
+      })
+      return
+    }
+    
     setIsLoading(true)
     try {
-      // In a real app, this would call a signup API endpoint
-      // For demo, we'll use the login function after a delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Call the register API endpoint
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      })
       
-      // After successful signup, log the user in
-      await login(email, password)
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed')
+      }
       
       toast({
         title: "Account created!",
@@ -59,10 +80,10 @@ export default function SignupPage() {
       
       // Redirect to dashboard
       router.push("/dashboard")
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Sign up failed",
-        description: "There was an error creating your account",
+        description: error.message || "There was an error creating your account",
         variant: "destructive"
       })
     } finally {
