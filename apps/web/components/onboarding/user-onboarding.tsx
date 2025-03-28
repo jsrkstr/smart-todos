@@ -11,6 +11,8 @@ import { useProfile } from "@/hooks/use-profile"
 import { PrincipleSource } from "@/types/principle"
 import { Loader2 } from "lucide-react"
 import { PsychProfile } from "@/types/user"
+import { Progress } from "@/components/ui/progress"
+import { ChevronRight, Sun, Moon, Zap } from "lucide-react"
 
 const ONBOARDING_QUESTIONS = [
   {
@@ -70,6 +72,16 @@ const PRINCIPLE_SOURCES: PrincipleSource[] = [
   { id: "5", name: "David Allen (GTD)", description: "Getting Things Done methodology", type: "methodology" }
 ]
 
+const steps = [
+  "Welcome",
+  "Productivity Profile",
+  "Communication",
+  "Task Approach",
+  "Task Timing",
+  "Coach Selection",
+  "Complete",
+]
+
 export function UserOnboarding() {
   const [currentStep, setCurrentStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -79,11 +91,11 @@ export function UserOnboarding() {
   const [isComplete, setIsComplete] = useState(false)
   const { updateProfile } = useProfile()
   
-  const totalSteps = ONBOARDING_QUESTIONS.length + 1 // +1 for coach selection
-  const currentQuestion = ONBOARDING_QUESTIONS[currentStep]
+  const progress = (currentStep / (steps.length - 1)) * 100
+  const currentQuestion = currentStep < ONBOARDING_QUESTIONS.length ? ONBOARDING_QUESTIONS[currentStep] : null
   
   const handleNext = () => {
-    if (currentStep < totalSteps - 1) {
+    if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1)
     } else {
       completeOnboarding()
@@ -149,60 +161,125 @@ export function UserOnboarding() {
   // Show success screen after onboarding is complete
   if (isComplete) {
     return (
-      <Card className="w-full max-w-md mx-auto">
+      <Card>
         <CardHeader>
           <CardTitle>Welcome to SmartTodos!</CardTitle>
           <CardDescription>
             Your profile has been set up successfully
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-center py-6">
-          <div className="mb-4 text-4xl">🎉</div>
-          <h3 className="text-lg font-medium mb-2">You're all set!</h3>
-          <p className="text-muted-foreground">
-            We've personalized your experience based on your preferences.
-            You can always update these settings later.
-          </p>
+        <CardContent className="space-y-4">
+          <p>You're ready to start using SmartTodos! We've customized the app based on your:</p>
+          <ul className="list-disc pl-5 space-y-2">
+            <li>Psychological profile and work preferences</li>
+            <li>Selected coaching style and motivation type</li>
+            <li>Task management approach and timing preferences</li>
+            <li>Communication preferences</li>
+          </ul>
+          <p>You can always adjust these settings later in your profile preferences.</p>
         </CardContent>
-        <CardFooter>
-          <Button className="w-full" onClick={() => window.location.href = "/"}>
-            Get Started
-          </Button>
+        <CardFooter className="flex justify-end">
+          <Button onClick={() => window.location.href = "/"}>Go to Dashboard</Button>
         </CardFooter>
       </Card>
     )
   }
   
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Welcome to SmartTodos!</CardTitle>
-        <CardDescription>
-          Let's personalize your experience ({currentStep + 1}/{totalSteps})
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {currentStep < ONBOARDING_QUESTIONS.length ? (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">{currentQuestion.question}</h3>
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold mb-2">{steps[currentStep]}</h2>
+        <Progress value={progress} className="h-2" />
+        <div className="flex justify-between mt-2 text-sm text-muted-foreground">
+          <span>Step {currentStep + 1} of {steps.length}</span>
+          <span>{Math.round(progress)}% Complete</span>
+        </div>
+      </div>
+
+      {currentStep === 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Welcome to SmartTodos</CardTitle>
+            <CardDescription>
+              Let's set up your personalized experience to help you complete tasks effectively.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p>
+              During this onboarding process, we'll ask you some questions to understand your preferences, work habits,
+              and psychological profile. This will help us tailor the app to your unique needs.
+            </p>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="flex flex-col items-center p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                <Sun className="h-8 w-8 mb-2 text-yellow-500" />
+                <h3 className="font-medium">Personalized Experience</h3>
+                <p className="text-sm text-center text-muted-foreground">Tailored to your unique work style</p>
+              </div>
+              <div className="flex flex-col items-center p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                <Moon className="h-8 w-8 mb-2 text-blue-500" />
+                <h3 className="font-medium">Psychological Profile</h3>
+                <p className="text-sm text-center text-muted-foreground">Adaptive to your behavioral patterns</p>
+              </div>
+              <div className="flex flex-col items-center p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                <Zap className="h-8 w-8 mb-2 text-amber-500" />
+                <h3 className="font-medium">Motivational Coaching</h3>
+                <p className="text-sm text-center text-muted-foreground">Customized encouragement and support</p>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <div></div>
+            <Button onClick={() => setCurrentStep(currentStep + 1)}>
+              Continue <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </CardFooter>
+        </Card>
+      ) : currentQuestion ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{currentQuestion.question}</CardTitle>
+            <CardDescription>
+              Choose the option that best matches your preference
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <RadioGroup 
               value={answers[currentQuestion.id] || ""} 
               onValueChange={handleAnswerChange}
+              className="space-y-3"
             >
               {currentQuestion.options.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
+                <div key={option.value} className="flex items-center space-x-3 p-3 rounded-lg border">
                   <RadioGroupItem value={option.value} id={option.value} />
-                  <Label htmlFor={option.value}>{option.label}</Label>
+                  <Label htmlFor={option.value} className="flex-1">{option.label}</Label>
                 </div>
               ))}
             </RadioGroup>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Choose your coach</h3>
-            <p className="text-sm text-muted-foreground">
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button
+              variant="outline"
+              onClick={handlePrevious}
+            >
+              Back
+            </Button>
+            <Button
+              onClick={handleNext}
+              disabled={!answers[currentQuestion.id]}
+            >
+              Continue <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </CardFooter>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Choose your coach</CardTitle>
+            <CardDescription>
               Select a coach whose principles will guide your task management
-            </p>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
             <Select value={selectedCoach} onValueChange={handleCoachSelect}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a coach" />
@@ -210,19 +287,19 @@ export function UserOnboarding() {
               <SelectContent>
                 {PRINCIPLE_SOURCES.map((source) => (
                   <SelectItem key={source.id} value={source.id}>
-                    {source.name}
+                    {source.name} - {source.description}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             
             {selectedCoach && (
-              <div className="mt-4">
-                <h4 className="text-md font-medium mb-2">Select principles you'd like to follow:</h4>
-                <div className="space-y-2">
+              <div className="space-y-4">
+                <h4 className="font-medium">Select principles you'd like to follow:</h4>
+                <div className="space-y-3">
                   {PRINCIPLE_SOURCES.find(source => source.id === selectedCoach)?.name === "Steve Jobs" && (
                     <>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border">
                         <Checkbox 
                           id="focus" 
                           checked={selectedPrinciples.includes("focus")}
@@ -230,7 +307,7 @@ export function UserOnboarding() {
                         />
                         <Label htmlFor="focus">Focus on what truly matters</Label>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border">
                         <Checkbox 
                           id="simplicity" 
                           checked={selectedPrinciples.includes("simplicity")}
@@ -243,7 +320,7 @@ export function UserOnboarding() {
                   
                   {PRINCIPLE_SOURCES.find(source => source.id === selectedCoach)?.name === "Elon Musk" && (
                     <>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border">
                         <Checkbox 
                           id="first_principles" 
                           checked={selectedPrinciples.includes("first_principles")}
@@ -251,7 +328,7 @@ export function UserOnboarding() {
                         />
                         <Label htmlFor="first_principles">First principles thinking</Label>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border">
                         <Checkbox 
                           id="ambitious_goals" 
                           checked={selectedPrinciples.includes("ambitious_goals")}
@@ -264,7 +341,7 @@ export function UserOnboarding() {
                   
                   {PRINCIPLE_SOURCES.find(source => source.id === selectedCoach)?.name === "Marie Kondo" && (
                     <>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border">
                         <Checkbox 
                           id="joy" 
                           checked={selectedPrinciples.includes("joy")}
@@ -272,7 +349,7 @@ export function UserOnboarding() {
                         />
                         <Label htmlFor="joy">Choose tasks that spark joy</Label>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border">
                         <Checkbox 
                           id="declutter" 
                           checked={selectedPrinciples.includes("declutter")}
@@ -285,7 +362,7 @@ export function UserOnboarding() {
                   
                   {PRINCIPLE_SOURCES.find(source => source.id === selectedCoach)?.name === "Naval Ravikant" && (
                     <>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border">
                         <Checkbox 
                           id="leverage" 
                           checked={selectedPrinciples.includes("leverage")}
@@ -293,7 +370,7 @@ export function UserOnboarding() {
                         />
                         <Label htmlFor="leverage">Seek leverage in your tasks</Label>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border">
                         <Checkbox 
                           id="specific_knowledge" 
                           checked={selectedPrinciples.includes("specific_knowledge")}
@@ -306,7 +383,7 @@ export function UserOnboarding() {
                   
                   {PRINCIPLE_SOURCES.find(source => source.id === selectedCoach)?.name === "David Allen (GTD)" && (
                     <>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border">
                         <Checkbox 
                           id="capture" 
                           checked={selectedPrinciples.includes("capture")}
@@ -314,7 +391,7 @@ export function UserOnboarding() {
                         />
                         <Label htmlFor="capture">Capture everything</Label>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg border">
                         <Checkbox 
                           id="next_action" 
                           checked={selectedPrinciples.includes("next_action")}
@@ -327,33 +404,32 @@ export function UserOnboarding() {
                 </div>
               </div>
             )}
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={handlePrevious} disabled={currentStep === 0 || isLoading}>
-          Previous
-        </Button>
-        <Button 
-          onClick={handleNext} 
-          disabled={
-            (currentStep < ONBOARDING_QUESTIONS.length && !answers[currentQuestion?.id || ""]) ||
-            (currentStep === ONBOARDING_QUESTIONS.length && !selectedCoach) ||
-            isLoading
-          }
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : currentStep === totalSteps - 1 ? (
-            "Complete"
-          ) : (
-            "Next"
-          )}
-        </Button>
-      </CardFooter>
-    </Card>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button
+              variant="outline"
+              onClick={handlePrevious}
+            >
+              Back
+            </Button>
+            <Button
+              onClick={handleNext}
+              disabled={!selectedCoach}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  Complete <ChevronRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+    </div>
   )
 } 

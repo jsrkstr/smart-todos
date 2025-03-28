@@ -5,9 +5,11 @@ import React from "react"
 
 export default function OnboardingPage(): React.ReactNode {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-      <div className="w-full max-w-3xl">
-        <UserOnboarding />
+    <div className="min-h-screen bg-muted/30">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-3xl mx-auto">
+          <UserOnboarding />
+        </div>
       </div>
     </div>
   )
