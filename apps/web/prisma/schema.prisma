@@ -36,6 +36,7 @@ model User {
   competitions   Competition[]  @relation("CompetitionParticipants")
   ownedCompetitions Competition[] @relation("CompetitionOwner")
   accountabilityPartnerships AccountabilityPartnership[] @relation("AccountabilityPartner")
+  pomodoros      Pomodoro[]
 }
 
 model Coach {
@@ -111,6 +112,7 @@ model Task {
   events               Event[]
   notifications        Notification[]
   pomodoros           Pomodoro[]
+  pomodoroTasks       PomodoroTask[]
   user                 User                @relation(fields: [userId], references: [id])
   reward               Reward?
   points               Int                 @default(0)
@@ -119,6 +121,7 @@ model Task {
   flashcards          Flashcard[]         @relation("TaskFlashcards")
   quiz                 Quiz?
   status               TaskStatus          @default(new)
+  estimatedPomodoros   Int                 @default(1)
 }
 
 model SubTask {
@@ -181,12 +184,34 @@ model UserInsight {
 }
 
 model Pomodoro {
-  id        String   @id @default(cuid())
-  startTime DateTime
-  endTime   DateTime?
-  taskId    String
-  createdAt DateTime @default(now())
-  task      Task     @relation(fields: [taskId], references: [id])
+  id          String         @id @default(cuid())
+  type        String         // focus, short_break, long_break
+  status      String         @default("active") // active, finished, cancelled
+  startTime   DateTime
+  endTime     DateTime?
+  taskId      String?
+  taskMode    String?        @default("single") // single, multi, free
+  settings    Json?          // Store user settings at the time of creation
+  userId      String
+  createdAt   DateTime       @default(now())
+  task        Task?          @relation(fields: [taskId], references: [id])
+  user        User           @relation(fields: [userId], references: [id])
+  pomodoroTasks PomodoroTask[] // Link to multiple tasks
+}
+
+model PomodoroTask {
+  id          String   @id @default(cuid())
+  pomodoroId  String
+  taskId      String
+  position    Int      @default(0) // Position in the queue
+  completed   Boolean  @default(false)
+  pomodoro    Pomodoro @relation(fields: [pomodoroId], references: [id], onDelete: Cascade)
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([pomodoroId, taskId])
+  @@index([pomodoroId])
+  @@index([taskId])
 }
 
 model Reward {
