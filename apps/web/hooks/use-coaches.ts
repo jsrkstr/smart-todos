@@ -57,8 +57,6 @@ export function useCoaches() {
     }
   };
 
-  const fetchCurrentCoach = async () => {
-    setLoading(true);
   const createCustomCoach = async (coachData: CustomCoachParams) => {
     setLoading(true);
     setError(null);
