@@ -37,6 +37,14 @@ export async function POST(request: Request) {
         message: 'Invalid email or password'
       }, { status: 401 })
     }
+
+    await prisma.log.create({
+      data: {
+        type: 'user_login',
+        userId: user?.id,
+        author: 'User',
+      }
+    });
     
     // Generate JWT
     const token = await JWT.sign({ userId: user.id })

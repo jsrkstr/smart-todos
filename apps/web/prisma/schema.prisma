@@ -119,6 +119,7 @@ model Task {
   excuses             Excuse[]
   moods               Mood[]
   flashcards          Flashcard[]         @relation("TaskFlashcards")
+  logs          Log[]         @relation("TaskLogs")
   quiz                 Quiz?
   status               TaskStatus          @default(new)
   estimatedPomodoros   Int                 @default(1)
@@ -167,11 +168,14 @@ model Notification {
 
 model Log {
   id        String   @id @default(cuid())
-  type      String
-  data      Json
-  userId    String
+  type      LogType
+  data      Json?
+  userId    String?
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+  taskId    String?
+  task      Task?    @relation("TaskLogs", fields: [taskId], references: [id])
+  author    LogAuthor
 }
 
 model UserInsight {
@@ -361,4 +365,43 @@ enum StreakType {
   daily_completion
   weekly_completion
   monthly_completion
+}
+
+enum LogType {
+  task_created
+  task_updated 
+  task_deleted
+  task_completed
+  task_reactivated
+  
+  query_asked
+  query_answered
+  ai_prompted
+  
+  reminder_created
+  reminder_triggered
+  reminder_dismissed
+  
+  app_opened
+  app_closed
+  
+  pomodoro_started
+  pomodoro_paused
+  pomodoro_resumed
+  pomodoro_cancelled
+  pomodoro_completed
+  
+  settings_updated
+  profile_updated
+
+  user_login
+  user_logout
+  user_register
+}
+
+enum LogAuthor {
+    User
+    Bot
+    Model
+    App
 }

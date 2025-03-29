@@ -69,6 +69,14 @@ export async function POST(request: Request) {
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7 // 1 week
     })
+
+    await prisma.log.create({
+      data: {
+        type: 'user_register',
+        userId: user.id,
+        author: 'User',
+      }
+    });
     
     // Return user data
     return NextResponse.json({
