@@ -11,7 +11,11 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        psychProfile: true
+        psychProfile: {
+          include: {
+            coach: true
+          }
+        }
       }
     })
     
@@ -64,7 +68,9 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest) => {
         },
         include: {
           psychProfile: {
-            coach: true,
+            include: {
+              coach: true,
+            }
           },
         }
       })

@@ -28,9 +28,10 @@ export function CoachSelectionStep({
   onNext
 }: CoachSelectionProps): React.ReactNode {
   // Handle coach selection within the onboarding flow
-  const handleCoachSelection = () => {
+  const handleCoachSelection = (coachId: string) => {
     // The coach selection is handled by the CoachSelection component
     // which updates in the database. This function is called when selection is complete.
+    onCoachSelect(coachId);
     onNext();
   };
 

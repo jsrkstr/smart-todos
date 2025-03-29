@@ -51,7 +51,6 @@ export function usePomodoroSync() {
 
   // Fetch active pomodoro from the API on initial load
   useEffect(() => {
-    debugger;
     const fetchActivePomodoroFromAPI = async () => {
       setLoading(true)
       try {
@@ -74,7 +73,6 @@ export function usePomodoroSync() {
             taskMode: data.taskMode as TaskMode,
             tasks: data.tasks || []
           }
-          debugger;
           setSyncState(pomodoroState)
         }
       } catch (err) {
@@ -85,7 +83,6 @@ export function usePomodoroSync() {
         const storedState = window.sessionStorage.getItem("pomodoro-state")
         if (storedState) {
           try {
-            debugger;
             setSyncState(JSON.parse(storedState))
           } catch (parseErr) {
             console.error("Error parsing stored pomodoro state", parseErr)
@@ -152,7 +149,6 @@ export function usePomodoroSync() {
         
         // Update local state with the ID from server if successful
         if (result.success) {
-          debugger;
           setSyncState(prev => ({
             ...prev,
             id: result.id
@@ -227,7 +223,6 @@ export function usePomodoroSync() {
    */
   const updateRemainingTime = useCallback(
     (remainingTime: number) => {
-      debugger;
       setSyncState(prev => ({
         ...prev,
         remainingTime
@@ -244,7 +239,6 @@ export function usePomodoroSync() {
   const completeTask = useCallback(
     async (taskId: string) => {
       // Update local state
-      debugger;
       setSyncState(prev => ({
         ...prev,
         tasks: prev.tasks.map(task => 
@@ -306,7 +300,6 @@ export function usePomodoroSync() {
         const newSyncJSON = JSON.stringify(parsedState)
         
         if (currentSyncJSON !== newSyncJSON) {
-          debugger;
           setSyncState(parsedState)
         }
       } catch (err) {
