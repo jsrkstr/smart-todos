@@ -103,7 +103,7 @@ const sampleTasks = [
     priority: "medium",
     location: "Park",
     estimatedTimeMinutes: 30,
-    reminderTime: ReminderTimeOption.thirty_minutes,
+    reminderTime: ReminderTimeOption.thirty_min_before,
     why: "Maintaining my health is essential for long-term productivity",
     subTasks: [
       { title: "Prepare running clothes", status: TaskStatus.completed, position: 0 },
@@ -128,6 +128,7 @@ async function main() {
   try {
     // Clean existing data
     console.log('Cleaning existing data...')
+    await prisma.pomodoro.deleteMany()
     await prisma.subTask.deleteMany()
     await prisma.task.deleteMany()
     await prisma.settings.deleteMany()
