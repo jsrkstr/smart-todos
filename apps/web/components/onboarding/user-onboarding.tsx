@@ -92,7 +92,7 @@ export function UserOnboarding(): React.ReactNode {
       };
       
       const updateData = {
-        preferences: answers,
+        // preferences: answers,
         integrations: selectedIntegrations,
         psychProfile
       };

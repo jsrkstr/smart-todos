@@ -161,7 +161,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: "/pomodoro", label: "Pomodoro", icon: Clock },
     { href: "/progress", label: "Progress", icon: LineChart },
     { href: "/rewards", label: "Rewards", icon: Award },
-    { href: "/dashboard/my-coach", label: "My Coach", icon: HeartHandshake },
+    { href: "/my-coach", label: "My Coach", icon: HeartHandshake },
     { href: "/profile", label: "Profile", icon: User },
     { href: "/settings", label: "Settings", icon: Settings },
   ]

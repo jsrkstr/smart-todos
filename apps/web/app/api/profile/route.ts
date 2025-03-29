@@ -59,11 +59,13 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest) => {
         where: { id: userId },
         data: {
           ...userUpdates,
-          ...(preferences && { preferences: preferences }),
-          ...(integrations && { integrations: integrations }),
+          // ...(preferences && { preferences: preferences }),
+          // ...(integrations && { integrations: integrations }),
         },
         include: {
-          psychProfile: true
+          psychProfile: {
+            coach: true,
+          },
         }
       })
       
@@ -82,7 +84,7 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest) => {
               reminderTiming: psychProfile.reminderTiming || profile.reminderTiming,
               coachId: psychProfile.coachId,
               updatedAt: new Date(),
-            }
+            },
           })
         } else {
           // Create new profile

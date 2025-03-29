@@ -33,8 +33,8 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isChecking, setIsChecking] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!window.localStorage.getItem('isAuthenticated'));
+  const [isChecking, setIsChecking] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   
@@ -81,6 +81,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       const data = await response.json();
       setIsAuthenticated(true);
+      localStorage.setItem('isAuthenticated', 'true');
       setUser(data.user);
     } catch (error) {
       console.error('Login error:', error);
