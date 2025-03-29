@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { PomodoroStatus, PomodoroType } from "@/types/pomodoro"
+import { AuthenticatedApiRequest, withAuth } from '@/lib/api-middleware'
 import { z } from "zod"
 
 // Validation schema for creating/updating a pomodoro
@@ -18,19 +19,12 @@ const pomodoroSchema = z.object({
  * GET /api/pomodoro
  * Get the current active pomodoro session
  */
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
   try {
-    // For development/testing: Get the first user since auth is not set up
-    const user = await prisma.user.findFirst()
-    
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
     // Find active pomodoro session
     const activePomodoro = await prisma.pomodoro.findFirst({
       where: {
-        userId: user.id,
+        userId: req.user.id,
         status: "active",
       },
       include: {
@@ -91,34 +85,27 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching pomodoro:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-}
+})
 
 /**
  * POST /api/pomodoro
  * Create or update a pomodoro session
  */
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
   try {
-    // For development/testing: Get the first user since auth is not set up
-    const user = await prisma.user.findFirst()
-    
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
     // Parse request body
     const body = await req.json()
     const validatedData = pomodoroSchema.parse(body)
 
     // Get user settings
     const userSettings = await prisma.settings.findUnique({
-      where: { userId: user.id }
+      where: { userId: req.user.id }
     })
 
     // Close any existing active sessions
     await prisma.pomodoro.updateMany({
       where: {
-        userId: user.id,
+        userId: req.user.id,
         status: "active"
       },
       data: {
@@ -137,7 +124,7 @@ export async function POST(req: NextRequest) {
           startTime: validatedData.startTime ? new Date(validatedData.startTime) : new Date(),
           taskMode: validatedData.taskMode,
           settings: userSettings || undefined,
-          userId: user.id,
+          userId: req.user.id,
         }
       })
 
@@ -155,6 +142,20 @@ export async function POST(req: NextRequest) {
         }))
       }
 
+      // Log pomodoro creation
+      await prisma.log.create({
+        data: {
+          type: 'pomodoro_started',
+          userId: req.user.id,
+          data: {
+            pomodoroId: pomodoro.id,
+            type: validatedData.type,
+            taskMode: validatedData.taskMode,
+            taskCount: validatedData.taskIds?.length || 0
+          }
+        }
+      })
+
       return NextResponse.json({
         success: true,
         id: pomodoro.id
@@ -163,7 +164,7 @@ export async function POST(req: NextRequest) {
       // Update the status of the most recent pomodoro
       const recentPomodoro = await prisma.pomodoro.findFirst({
         where: {
-          userId: user.id,
+          userId: req.user.id,
         },
         orderBy: {
           startTime: "desc"
@@ -178,6 +179,21 @@ export async function POST(req: NextRequest) {
           data: {
             status: validatedData.status,
             endTime: validatedData.endTime ? new Date(validatedData.endTime) : new Date()
+          }
+        })
+
+        // Log pomodoro status change
+        await prisma.log.create({
+          data: {
+            type: validatedData.status === 'completed' ? 'pomodoro_completed' : 
+                  validatedData.status === 'cancelled' ? 'pomodoro_cancelled' : 
+                  'pomodoro_updated',
+            userId: req.user.id,
+            data: {
+              pomodoroId: recentPomodoro.id,
+              status: validatedData.status,
+              type: recentPomodoro.type
+            }
           }
         })
 
@@ -201,4 +217,4 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-}
+})
