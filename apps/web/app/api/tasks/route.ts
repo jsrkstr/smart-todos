@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import type { Task, TaskStatus } from '@/types/task'
+import { TaskStatus } from '@prisma/client'
+import { AuthenticatedApiRequest, withAuth } from '@/lib/api-middleware'
+
+type ReminderTimeOption = 
+  | "at_time"
+  | "five_min_before"
+  | "fifteen_min_before"
+  | "thirty_min_before"
+  | "one_hour_before"
+  | "one_day_before"
 
 interface TaskPayload {
   id: string;
@@ -18,13 +27,13 @@ interface TaskPayload {
   repeats?: string;
   subTasks?: { 
     title: string; 
-    status: boolean;
+    status: TaskStatus;
     position?: number;
     estimatedTimeMinutes?: number;
     date?: string;
     rank?: number;
   }[];
-  reminderTime?: string;
+  reminderTime?: ReminderTimeOption;
 }
 
 interface TaskUpdatePayload {
@@ -37,15 +46,10 @@ interface DeleteTaskPayload {
 }
 
 // GET /api/tasks
-export async function GET(): Promise<NextResponse> {
+export const GET = withAuth(async (req: AuthenticatedApiRequest): Promise<NextResponse> => {
   try {
-    const user = await prisma.user.findFirst()
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
     const tasks = await prisma.task.findMany({
-      where: { userId: user.id },
+      where: { userId: req.user.id },
       include: { subTasks: true },
       orderBy: { dateAdded: 'desc' }
     })
@@ -62,15 +66,15 @@ export async function GET(): Promise<NextResponse> {
     console.error('Failed to get tasks:', errorMessage);
     return NextResponse.json({ error: 'Failed to get tasks' }, { status: 500 })
   }
-}
+})
 
 // POST /api/tasks
-export async function POST(request: Request): Promise<NextResponse> {
+export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextResponse> => {
   try {
     // Wrap in a try/catch to handle potential JSON parsing errors
     let taskData: TaskPayload;
     try {
-      taskData = await request.json();
+      taskData = await req.json();
     } catch (jsonError) {
       const errorMessage: string = jsonError instanceof Error ? jsonError.message : 'Unknown error';
       console.error('Invalid JSON in request body:', errorMessage);
@@ -81,11 +85,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (!taskData || !taskData.title) {
       console.error('Invalid task data received:', taskData);
       return NextResponse.json({ error: 'Invalid task data' }, { status: 400 });
-    }
-    
-    const user = await prisma.user.findFirst();
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     console.log("Received task data:", JSON.stringify(taskData, null, 2));
@@ -110,12 +109,21 @@ export async function POST(request: Request): Promise<NextResponse> {
         date: new Date(taskData.date),
         deadline: taskData.deadline ? new Date(taskData.deadline) : null,
         dateAdded: new Date(taskData.dateAdded),
-        userId: user.id,
+        userId: req.user.id,
         subTasks: {
           create: subTasks || []
         }
       },
       include: { subTasks: true }
+    });
+
+    // Log task creation
+    await prisma.log.create({
+      data: {
+        type: 'task_created',
+        userId: req.user.id,
+        taskId: newTask.id,
+      }
     });
 
     return NextResponse.json({
@@ -134,14 +142,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       details: errorMessage
     }, { status: 500 });
   }
-}
+})
 
 // PUT /api/tasks
-export async function PUT(request: Request): Promise<NextResponse> {
+export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextResponse> => {
   try {
     let payload: TaskUpdatePayload;
     try {
-      payload = await request.json();
+      payload = await req.json();
     } catch (jsonError) {
       const errorMessage: string = jsonError instanceof Error ? jsonError.message : 'Unknown error';
       console.error('Invalid JSON in request body:', errorMessage);
@@ -167,7 +175,10 @@ export async function PUT(request: Request): Promise<NextResponse> {
     
     const { id, ...updates } = payload;
     const task = await prisma.task.update({
-      where: { id },
+      where: { 
+        id,
+        userId: req.user.id // Ensure user can only update their own tasks
+      },
       data: {
         ...updates,
         date: updates.date ? new Date(updates.date) : undefined,
@@ -178,6 +189,19 @@ export async function PUT(request: Request): Promise<NextResponse> {
         } : undefined
       },
       include: { subTasks: true }
+    });
+
+    // Log task update
+    await prisma.log.create({
+      data: {
+        type: 'task_updated',
+        userId: req.user.id,
+        data: {
+          taskId: task.id,
+          taskTitle: task.title,
+          updates: Object.keys(updates).join(', ')
+        }
+      }
     });
 
     return NextResponse.json({
@@ -192,14 +216,14 @@ export async function PUT(request: Request): Promise<NextResponse> {
     console.error('Failed to update task:', errorMessage);
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
   }
-}
+})
 
 // DELETE /api/tasks
-export async function DELETE(request: Request): Promise<NextResponse> {
+export const DELETE = withAuth(async (req: AuthenticatedApiRequest): Promise<NextResponse> => {
   try {
     let payload: DeleteTaskPayload;
     try {
-      payload = await request.json();
+      payload = await req.json();
     } catch (jsonError) {
       const errorMessage: string = jsonError instanceof Error ? jsonError.message : 'Unknown error';
       console.error('Invalid JSON in request body:', errorMessage);
@@ -211,9 +235,25 @@ export async function DELETE(request: Request): Promise<NextResponse> {
     }
     
     const { id } = payload;
-    await prisma.task.delete({
-      where: { id }
+    const task = await prisma.task.delete({
+      where: { 
+        id,
+        userId: req.user.id // Ensure user can only delete their own tasks
+      }
     });
+
+    // Log task deletion
+    await prisma.log.create({
+      data: {
+        type: 'task_deleted',
+        userId: req.user.id,
+        data: {
+          taskId: task.id,
+          taskTitle: task.title
+        }
+      }
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     // Safe error handling
@@ -221,4 +261,4 @@ export async function DELETE(request: Request): Promise<NextResponse> {
     console.error('Failed to delete task:', errorMessage);
     return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 });
   }
-} 
+}) 

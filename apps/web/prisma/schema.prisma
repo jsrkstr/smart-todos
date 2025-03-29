@@ -67,8 +67,6 @@ model PsychProfile {
   communicationPref   String   // minimal, moderate, frequent
   taskApproach       String   // sequential, parallel, varied
   difficultyPreference String // first, alternate, end
-  reminderTiming      String?  // just_in_time, 15min, 30min, 1hour
-  selectedCoach      String?
   coachId            String?
   coach              Coach?    @relation(fields: [coachId], references: [id])
   createdAt          DateTime @default(now())
@@ -87,6 +85,12 @@ model Settings {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   user              User     @relation(fields: [userId], references: [id])
+  pomodoroDuration     Int      @default(25)
+  shortBreakDuration   Int      @default(5)
+  longBreakDuration    Int      @default(15)
+  soundEnabled         Boolean  @default(true)
+  notificationsEnabled Boolean  @default(true)
+  defaultReminderTime  ReminderTimeOption? @default(at_time)
 }
 
 model Task {

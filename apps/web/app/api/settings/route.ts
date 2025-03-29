@@ -1,43 +1,56 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { AuthenticatedApiRequest, withAuth } from '@/lib/api-middleware'
 
 // GET /api/settings
-export async function GET() {
+export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
   try {
-    const user = await prisma.user.findFirst()
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
     let userSettings = await prisma.settings.findUnique({
-      where: { userId: user.id },
+      where: { userId: req.user.id },
     })
 
     if (!userSettings) {
       userSettings = await prisma.settings.create({
         data: {
-          userId: user.id,
+          userId: req.user.id,
           theme: 'system',
           pomodoroDuration: '25',
           shortBreakDuration: '5',
           longBreakDuration: '15',
+          emailNotifications: false,
+          timezone: 'UTC',
+          language: 'en',
+          pomodoroDuration: 25,
+          shortBreakDuration: 5,
+          longBreakDuration: 15,
           soundEnabled: true,
           notificationsEnabled: true,
           emailNotifications: false,
-          reminderTime: 'at_time',
+          defaultReminderTime: 'at_time'
         },
+      })
+
+      // Log settings creation
+      await prisma.log.create({
+        data: {
+          type: 'settings_updated',
+          userId: req.user.id,
+        }
       })
     }
 
     return NextResponse.json({
       theme: userSettings.theme,
+      notifications: userSettings.notifications, 
+      emailNotifications: userSettings.emailNotifications,
+      timezone: userSettings.timezone,
+      language: userSettings.language,
       pomodoroDuration: userSettings.pomodoroDuration,
       shortBreakDuration: userSettings.shortBreakDuration,
       longBreakDuration: userSettings.longBreakDuration,
       soundEnabled: userSettings.soundEnabled,
       notificationsEnabled: userSettings.notificationsEnabled,
-      emailNotifications: userSettings.emailNotifications,
-      reminderTime: userSettings.reminderTime,
+      defaultReminderTime: userSettings.defaultReminderTime
     })
   } catch (error) {
     // Safe error handling
@@ -45,14 +58,14 @@ export async function GET() {
     console.error('Failed to get settings:', errorMessage);
     return NextResponse.json({ error: 'Failed to get settings' }, { status: 500 })
   }
-}
+})
 
 // PUT /api/settings
-export async function PUT(request: Request) {
+export const PUT = withAuth(async (req: AuthenticatedApiRequest) => {
   try {
     let updates;
     try {
-      updates = await request.json();
+      updates = await req.json();
     } catch (jsonError) {
       const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown error';
       console.error('Invalid JSON in request body:', errorMessage);
@@ -62,41 +75,50 @@ export async function PUT(request: Request) {
     if (!updates) {
       return NextResponse.json({ error: 'Missing settings data' }, { status: 400 });
     }
-    
-    // Make sure reminderTime is a valid enum value if it's being updated
-    if (updates.reminderTime && typeof updates.reminderTime === 'string') {
-      // Verify it's a valid enum value
-      const validReminderTimes = [
-        "at_time", "5_minutes", "10_minutes", "15_minutes", 
-        "30_minutes", "1_hour", "2_hours", "1_day"
-      ];
-      
-      if (!validReminderTimes.includes(updates.reminderTime)) {
-        updates.reminderTime = "at_time";
-      }
-    }
-    
-    const user = await prisma.user.findFirst()
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     console.log("Updating settings with:", JSON.stringify(updates, null, 2));
 
     const updatedSettings = await prisma.settings.update({
-      where: { userId: user.id },
+      where: { userId: req.user.id },
       data: updates,
     })
 
+    // Log settings update
+    await prisma.log.create({
+      data: {
+        type: 'settings_updated',
+        userId: req.user.id,
+        data: {
+          action: 'updated',
+          updates: Object.keys(updates).join(', '),
+          settings: {
+            theme: updatedSettings.theme,
+            notifications: updatedSettings.notifications, 
+            emailNotifications: updatedSettings.emailNotifications,
+            timezone: updatedSettings.timezone,
+            language: updatedSettings.language,
+            pomodoroDuration: updatedSettings.pomodoroDuration,
+            shortBreakDuration: updatedSettings.shortBreakDuration,
+            longBreakDuration: updatedSettings.longBreakDuration,
+            soundEnabled: updatedSettings.soundEnabled,
+            notificationsEnabled: updatedSettings.notificationsEnabled,
+            defaultReminderTime: updatedSettings.defaultReminderTime
+          }
+        }
+      }
+    })
     return NextResponse.json({
       theme: updatedSettings.theme,
+      notifications: updatedSettings.notifications,
+      emailNotifications: updatedSettings.emailNotifications,
+      timezone: updatedSettings.timezone,
+      language: updatedSettings.language,
       pomodoroDuration: updatedSettings.pomodoroDuration,
       shortBreakDuration: updatedSettings.shortBreakDuration,
       longBreakDuration: updatedSettings.longBreakDuration,
       soundEnabled: updatedSettings.soundEnabled,
       notificationsEnabled: updatedSettings.notificationsEnabled,
-      emailNotifications: updatedSettings.emailNotifications,
-      reminderTime: updatedSettings.reminderTime,
+      defaultReminderTime: updatedSettings.defaultReminderTime
     })
   } catch (error) {
     // Safe error handling
@@ -104,4 +126,4 @@ export async function PUT(request: Request) {
     console.error('Failed to update settings:', errorMessage);
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
   }
-} 
+}) 
