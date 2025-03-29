@@ -14,9 +14,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
         data: {
           userId: req.user.id,
           theme: 'system',
-          pomodoroDuration: '25',
-          shortBreakDuration: '5',
-          longBreakDuration: '15',
+          notifications: true,
           emailNotifications: false,
           timezone: 'UTC',
           language: 'en',
