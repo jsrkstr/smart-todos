@@ -3,20 +3,6 @@
 import { useState, useEffect, useCallback } from "react"
 import type { UserProfile } from "@/types/profile"
 
-// Initial profile data
-const initialProfile: UserProfile = {
-  name: "John Doe",
-  email: "john@example.com",
-  bio: "I'm focused on improving my productivity and completing my goals.",
-  principles: [
-    "The best way to predict the future is to create it.",
-    "Small actions compound into remarkable results.",
-    "Focus on systems, not goals.",
-    "What gets measured gets managed.",
-  ],
-  inspirations: [],
-}
-
 interface ProfileHookReturn {
   profile: UserProfile | null;
   updateProfile: (updates: Partial<UserProfile> | any) => Promise<void>;
@@ -34,15 +20,12 @@ export function useProfile(): ProfileHookReturn {
         const response = await fetch('/api/profile')
         if (!response.ok) {
           console.warn('Failed to load profile, using default profile')
-          setProfile(initialProfile)
           return
         }
         const data: UserProfile = await response.json()
         setProfile(data)
       } catch (error) {
         console.error("Failed to load profile:", error)
-        // Fallback to initial profile if API call fails
-        setProfile(initialProfile)
       }
     }
     loadProfile()
