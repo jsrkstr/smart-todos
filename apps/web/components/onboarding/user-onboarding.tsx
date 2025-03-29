@@ -35,6 +35,7 @@ interface OnboardingQuestion {
 // Main UserOnboarding Component
 export function UserOnboarding(): React.ReactNode {
   const [currentStep, setCurrentStep] = useState<number>(0);
+  const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
   const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -81,12 +82,13 @@ export function UserOnboarding(): React.ReactNode {
     try {
       // Create psychological profile
       const psychProfile: PsychProfile = {
-        userId: "", // Will be set by the API
+        userId: '',
         productivityTime: answers.productivityTime || "morning",
         communicationPref: answers.communicationPref || "moderate",
         taskApproach: answers.taskApproach || "varied",
         difficultyPreference: answers.difficultyPreference || "alternate",
-        reminderTiming: answers.reminderTiming || "just_in_time"
+        reminderTiming: answers.reminderTiming || "just_in_time",
+        ...(selectedCoachId ? { coachId: selectedCoachId } : {}),
       };
       
       const updateData = {
@@ -145,7 +147,7 @@ export function UserOnboarding(): React.ReactNode {
             customPrinciples={[]}
             customPrincipleInput=""
             isLoading={isLoading}
-            onCoachSelect={() => {}}
+            onCoachSelect={(coachId: string) => { setSelectedCoachId(coachId) }}
             onCustomCoachNameChange={() => {}}
             onPrincipleToggle={() => {}}
             onCustomPrincipleInputChange={() => {}}

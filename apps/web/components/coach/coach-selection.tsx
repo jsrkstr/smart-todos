@@ -20,9 +20,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useProfile } from "@/hooks/use-profile";
 
 interface CoachSelectionProps {
-  onComplete?: () => void;
+  onComplete?: (coachId: string) => void;
   showBackButton?: boolean;
   onBack?: () => void;
   title?: string;
@@ -38,11 +39,11 @@ export function CoachSelection({
 }: CoachSelectionProps) {
   const {
     coaches,
-    currentCoach,
     loading,
     createCustomCoach,
-    selectCoach
   } = useCoaches();
+
+  const { profile } = useProfile();
   
   const [activeTab, setActiveTab] = useState<string>("featured");
   const [previewCoach, setPreviewCoach] = useState<string | null>(null);
@@ -55,15 +56,8 @@ export function CoachSelection({
   const [saving, setSaving] = useState(false);
 
   const handleCoachSelect = async (id: string) => {
-    if (currentCoach?.id === id) return;
-    
-    setSaving(true);
-    try {
-      await selectCoach(id);
-      if (onComplete) onComplete();
-    } finally {
-      setSaving(false);
-    }
+    if (profile?.psychProfile?.coachId === id) return;
+    if (onComplete) onComplete(id);
   };
 
   const handleCustomCoachCreate = async () => {
@@ -84,10 +78,9 @@ export function CoachSelection({
       });
       
       if (newCoach) {
-        await selectCoach(newCoach.id);
         setActiveTab("featured");
         setCustomCoachName("");
-        if (onComplete) onComplete();
+        if (onComplete) onComplete(newCoach.id);
       }
     } finally {
       setSaving(false);
@@ -120,7 +113,7 @@ export function CoachSelection({
                   <div
                     key={coach.id}
                     className={`rounded-lg border p-4 cursor-pointer transition-all ${
-                      currentCoach?.id === coach.id ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
+                      profile?.psychProfile?.coachId === coach.id ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
                     }`}
                     onClick={() => handleCoachSelect(coach.id)}
                   >
@@ -153,9 +146,9 @@ export function CoachSelection({
                             variant="ghost" 
                             size="sm" 
                             onClick={(e) => {
+                              setPreviewCoach(coach.id);
                               e.stopPropagation(); // Prevent selection
                               e.preventDefault(); // Ensure coach doesn't get selected
-                              setPreviewCoach(coach.id);
                             }}
                           >
                             <MessageSquare className="h-4 w-4 mr-2" />
@@ -198,7 +191,7 @@ export function CoachSelection({
                   <div
                     key={coach.id}
                     className={`rounded-lg border p-4 cursor-pointer transition-all ${
-                      currentCoach?.id === coach.id ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
+                      profile?.psychProfile?.coachId === coach.id ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
                     }`}
                     onClick={() => handleCoachSelect(coach.id)}
                   >
@@ -219,7 +212,7 @@ export function CoachSelection({
                       <Badge variant="secondary" className="text-xs">
                         Custom
                       </Badge>
-                      {currentCoach?.id === coach.id && (
+                      {profile?.psychProfile?.coachId === coach.id && (
                         <span className="text-sm text-primary">Selected</span>
                       )}
                     </div>
@@ -320,14 +313,6 @@ export function CoachSelection({
               onClick={onBack}
             >
               Back
-            </Button>
-          )}
-          {onComplete && (
-            <Button
-              onClick={onComplete}
-              className="ml-auto"
-            >
-              Continue
             </Button>
           )}
         </div>

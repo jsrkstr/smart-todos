@@ -80,6 +80,7 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest) => {
               taskApproach: psychProfile.taskApproach || profile.taskApproach,
               difficultyPreference: psychProfile.difficultyPreference || profile.difficultyPreference,
               reminderTiming: psychProfile.reminderTiming || profile.reminderTiming,
+              coachId: psychProfile.coachId,
               updatedAt: new Date(),
             }
           })

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  isChecking: boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   loginWithProvider: (provider: string) => Promise<void>;
@@ -20,6 +21,7 @@ interface User {
 
 const AuthContext = createContext<AuthContextType>({ 
   isAuthenticated: false,
+  isChecking: true,
   user: null,
   login: async () => { throw new Error('AuthContext not initialized') },
   loginWithProvider: async () => { throw new Error('AuthContext not initialized') },
@@ -32,6 +34,7 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isChecking, setIsChecking] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   
@@ -39,6 +42,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        setIsChecking(true);
         const response = await fetch('/api/auth/session');
         if (response.ok) {
           const data = await response.json();
@@ -52,6 +56,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.error('Failed to check authentication:', error);
         setIsAuthenticated(false);
         setUser(null);
+      } finally {
+        setIsChecking(false);
       }
     };
     
@@ -119,6 +125,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   
   const contextValue = {
     isAuthenticated,
+    isChecking,
     user,
     login,
     loginWithProvider,

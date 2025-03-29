@@ -9,19 +9,20 @@ interface ProtectedLayoutProps {
 }
 
 export function ProtectedLayout({ children }: ProtectedLayoutProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isChecking } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     // Check if user is authenticated
-    if (!isAuthenticated) {
+    console.log('auth', isAuthenticated, isChecking);
+    if (!isChecking && !isAuthenticated) {
       // Get the current path to redirect back after login
       const currentPath = window.location.pathname;
       
       // Redirect to login with the current path as redirect parameter
       router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isChecking, router]);
 
   // If not authenticated, show nothing while redirecting
   if (!isAuthenticated) {

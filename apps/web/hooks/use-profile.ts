@@ -19,25 +19,19 @@ const initialProfile: UserProfile = {
 
 interface ProfileHookReturn {
   profile: UserProfile | null;
-  coachId: string | null;
   updateProfile: (updates: Partial<UserProfile> | any) => Promise<void>;
-  updateCoach: (coachId: string) => Promise<void>;
   addPrinciple: (principle: string) => Promise<void>;
   removePrinciple: (index: number) => Promise<void>;
 }
 
 export function useProfile(): ProfileHookReturn {
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [coachId, setCoachId] = useState<string | null>(null)
 
   useEffect(() => {
-    let isMounted = true;
     // Load profile from API
     async function loadProfile(): Promise<void> {
       try {
         const response = await fetch('/api/profile')
-        if (!isMounted) return;
-        
         if (!response.ok) {
           console.warn('Failed to load profile, using default profile')
           setProfile(initialProfile)
@@ -45,21 +39,13 @@ export function useProfile(): ProfileHookReturn {
         }
         const data: UserProfile = await response.json()
         setProfile(data)
-        // Set coachId from psychProfile if it exists
-        if (data.psychProfile?.coachId) {
-          setCoachId(data.psychProfile.coachId)
-        }
       } catch (error) {
-        if (!isMounted) return;
         console.error("Failed to load profile:", error)
         // Fallback to initial profile if API call fails
         setProfile(initialProfile)
       }
     }
     loadProfile()
-    return () => {
-      isMounted = false;
-    }
   }, [])
 
   // Update profile
@@ -75,19 +61,10 @@ export function useProfile(): ProfileHookReturn {
       }
       const data: UserProfile = await response.json()
       setProfile(data)
-      // Update coachId if it changed
-      if (data.psychProfile?.coachId) {
-        setCoachId(data.psychProfile.coachId)
-      }
     } catch (error) {
       console.error("Failed to update profile:", error)
     }
   }, [])
-
-  // Dedicated coach update function
-  const updateCoach = useCallback(async (newCoachId: string): Promise<void> => {
-    await updateProfile({ coach: newCoachId })
-  }, [updateProfile])
 
   // Add a principle
   const addPrinciple = async (principle: string): Promise<void> => {
@@ -127,9 +104,7 @@ export function useProfile(): ProfileHookReturn {
 
   return {
     profile,
-    coachId,
     updateProfile,
-    updateCoach,
     addPrinciple,
     removePrinciple,
   }

@@ -1,26 +1,6 @@
+import { Coach } from "@prisma/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-
-// Define Coach interface matching our implementation
-interface Coach {
-  id: string;
-  name: string;
-  title?: string | null;
-  image?: string | null;
-  description?: string | null;
-  style?: string | null;
-  type: string;
-  matchScore?: number | null;
-  sampleQuotes: string[];
-  principles: string[];
-  createdAt: Date;
-  updatedAt: Date;
-  directness?: number | null;
-  encouragementLevel?: number | null;
-  coachingStyle?: string | null;
-  isActive: boolean;
-  createdBy?: string | null;
-}
 
 type CustomCoachParams = {
   name: string;

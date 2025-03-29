@@ -1,3 +1,5 @@
+import { Coach } from "@prisma/client"
+
 export interface UserProfile {
   id?: string
   name: string
@@ -6,7 +8,6 @@ export interface UserProfile {
   principles: string[]
   inspirations: string[]
   psychProfile?: PsychProfile
-  coach?: string  // Used for coach selection updates
 }
 
 export interface PsychProfile {
@@ -19,6 +20,7 @@ export interface PsychProfile {
   reminderTiming?: string
   selectedCoach?: string
   coachId?: string
+  coach?: Coach
   createdAt?: Date
   updatedAt?: Date
 }
