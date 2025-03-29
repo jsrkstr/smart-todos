@@ -33,6 +33,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
         data: {
           type: 'settings_updated',
           userId: req.user.id,
+          author: 'User'
         }
       })
     }
@@ -86,23 +87,7 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest) => {
       data: {
         type: 'settings_updated',
         userId: req.user.id,
-        data: {
-          action: 'updated',
-          updates: Object.keys(updates).join(', '),
-          settings: {
-            theme: updatedSettings.theme,
-            notifications: updatedSettings.notifications, 
-            emailNotifications: updatedSettings.emailNotifications,
-            timezone: updatedSettings.timezone,
-            language: updatedSettings.language,
-            pomodoroDuration: updatedSettings.pomodoroDuration,
-            shortBreakDuration: updatedSettings.shortBreakDuration,
-            longBreakDuration: updatedSettings.longBreakDuration,
-            soundEnabled: updatedSettings.soundEnabled,
-            notificationsEnabled: updatedSettings.notificationsEnabled,
-            defaultReminderTime: updatedSettings.defaultReminderTime
-          }
-        }
+        author: 'User'
       }
     })
     return NextResponse.json({

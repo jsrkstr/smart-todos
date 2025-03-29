@@ -152,7 +152,8 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
             type: validatedData.type,
             taskMode: validatedData.taskMode,
             taskCount: validatedData.taskIds?.length || 0
-          }
+          },
+          author: 'User'
         }
       })
 
@@ -193,7 +194,8 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
               pomodoroId: recentPomodoro.id,
               status: validatedData.status,
               type: recentPomodoro.type
-            }
+            },
+            author: 'User'
           }
         })
 

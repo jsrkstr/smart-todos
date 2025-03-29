@@ -123,6 +123,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextR
         type: 'task_created',
         userId: req.user.id,
         taskId: newTask.id,
+        author: 'User'
       }
     });
 
@@ -196,11 +197,7 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
       data: {
         type: 'task_updated',
         userId: req.user.id,
-        data: {
-          taskId: task.id,
-          taskTitle: task.title,
-          updates: Object.keys(updates).join(', ')
-        }
+        author: 'User'
       }
     });
 
@@ -247,10 +244,7 @@ export const DELETE = withAuth(async (req: AuthenticatedApiRequest): Promise<Nex
       data: {
         type: 'task_deleted',
         userId: req.user.id,
-        data: {
-          taskId: task.id,
-          taskTitle: task.title
-        }
+        author: 'User'
       }
     });
 
