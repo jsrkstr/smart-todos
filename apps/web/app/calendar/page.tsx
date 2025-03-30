@@ -1,3 +1,5 @@
+"use client"
+
 import { AppLayout } from "@/components/layouts/app-layout"
 import { TaskCalendar } from "@/components/calendar/task-calendar"
 
