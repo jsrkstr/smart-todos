@@ -81,7 +81,7 @@ const sampleTasks = [
     time: "14:00",
     deadline: new Date(Date.now() + 86400000), // Tomorrow
     dateAdded: new Date(),
-    status: TaskStatus.planned,
+    completed: false,
     priority: "high",
     location: "Office",
     estimatedTimeMinutes: 120,
@@ -99,7 +99,7 @@ const sampleTasks = [
     time: "08:00",
     deadline: new Date(),
     dateAdded: new Date(Date.now() - 86400000), // Yesterday
-    status: TaskStatus.new,
+    completed: false,
     priority: "medium",
     location: "Park",
     estimatedTimeMinutes: 30,
@@ -116,7 +116,7 @@ const sampleTasks = [
     time: "20:00",
     deadline: new Date(),
     dateAdded: new Date(Date.now() - 172800000), // 2 days ago
-    status: TaskStatus.completed,
+    completed: true,
     priority: "low",
     estimatedTimeMinutes: 30,
     why: "Reading helps me learn and grow",

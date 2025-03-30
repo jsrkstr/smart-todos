@@ -1,7 +1,7 @@
 export interface SubTask {
   id?: string
   title: string
-  status: boolean
+  status: TaskStatus
   taskId?: string
   position?: number
   estimatedTimeMinutes?: number
@@ -20,6 +20,8 @@ export type ReminderTimeOption =
   | 'one_day_before';
 
 export type TaskStatus = "new" | "planned" | "completed";
+
+export type TaskPriority = "low" | "medium" | "high";
 
 export interface Tag {
   id?: string
@@ -58,7 +60,7 @@ export interface Task {
   deadline?: string // Optional deadline
   dateAdded: string
   status: TaskStatus
-  priority: "low" | "medium" | "high"
+  priority: TaskPriority
   position?: number
   tags?: Tag[]
   estimatedTimeMinutes?: number

@@ -24,7 +24,7 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
 
   const isCompleted = task.status === "completed"
   
-  const subTasksCompleted: number = task.subTasks?.filter((st: SubTask) => st.status).length || 0
+  const subTasksCompleted: number = task.subTasks?.filter((st: SubTask) => st.status === "completed").length || 0
   const subTasksTotal: number = task.subTasks?.length || 0
   const subTaskProgress: number = subTasksTotal > 0 ? Math.round((subTasksCompleted / subTasksTotal) * 100) : 0
 
@@ -143,15 +143,15 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
                 {task.subTasks.map((subTask: SubTask, index: number) => (
                   <div key={index} className="flex items-start gap-2">
                     <Checkbox
-                      checked={subTask.status}
+                      checked={subTask.status === "completed"}
                       className="mt-0.5"
                       onCheckedChange={(checked) => {
                         const updatedSubTasks: SubTask[] = [...task.subTasks!]
-                        updatedSubTasks[index].status = !!checked
+                        updatedSubTasks[index].status = checked ? "completed" : "new"
                         updateTask(task.id, { subTasks: updatedSubTasks })
                       }}
                     />
-                    <span className={cn("text-sm", subTask.status && "line-through text-muted-foreground")}>
+                    <span className={cn("text-sm", subTask.status === "completed" && "line-through text-muted-foreground")}>
                       {subTask.title}
                     </span>
                   </div>

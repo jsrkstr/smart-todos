@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Task } from '@/types/task'
+import type { Task, TaskPriority, TaskStatus } from '@/types/task'
 
 type SetupNotificationsFunction = (tasks: Task[]) => void
 
@@ -82,8 +82,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         time: task.time || undefined,
         deadline: task.deadline || undefined,
         dateAdded: task.dateAdded,
-        completed: task.completed,
-        priority: task.priority,
+        status: task.status || "new",
+        priority: task.priority as TaskPriority,
         location: task.location || undefined,
         why: task.why || undefined,
         subTasks: task.subTasks || [],
@@ -118,7 +118,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     const task: Task | undefined = get().tasks.find(t => t.id === taskId)
     if (!task) return
 
-    const newStatus = task.status === "completed" ? "planned" : "completed"
+    const newStatus: TaskStatus = task.status === "completed" ? "planned" : "completed"
 
     try {
       const response: Response = await fetch('/api/tasks', {

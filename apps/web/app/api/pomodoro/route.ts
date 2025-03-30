@@ -28,14 +28,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
         status: "active",
       },
       include: {
-        pomodoroTasks: {
-          include: {
-            task: true,
-          },
-          orderBy: {
-            position: "asc",
-          },
-        },
+        task: true // Include the single task
       },
     })
 
@@ -61,13 +54,12 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
     // Calculate remaining time (don't go below 0)
     const remainingTime = Math.max(0, duration - elapsedSeconds)
     
-    // Format tasks for response
-    const tasks = activePomodoro.pomodoroTasks.map((pt: any) => ({
-      id: pt.task.id,
-      title: pt.task.title,
-      completed: pt.completed,
-      position: pt.position
-    }))
+    // Format task for response
+    const task = activePomodoro.task ? {
+      id: activePomodoro.task.id,
+      title: activePomodoro.task.title,
+      status: activePomodoro.task.status
+    } : null
 
     return NextResponse.json({
       active: true,
@@ -78,7 +70,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
       endTime: activePomodoro.endTime,
       status: activePomodoro.status,
       remainingTime,
-      tasks,
+      task,
       settings: activePomodoro.settings,
     })
   } catch (error) {
@@ -116,7 +108,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
 
     // If status is active, create a new pomodoro
     if (validatedData.status === "active") {
-      // Create the pomodoro
+      // Create the pomodoro with task connection
       const pomodoro = await prisma.pomodoro.create({
         data: {
           type: validatedData.type,
@@ -125,22 +117,11 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
           taskMode: validatedData.taskMode,
           settings: userSettings || undefined,
           userId: req.user.id,
+          taskId: validatedData.taskIds && validatedData.taskIds.length > 0 
+            ? validatedData.taskIds[0] // Use the first task ID for now
+            : null
         }
       })
-
-      // Add task associations if provided
-      if (validatedData.taskIds && validatedData.taskIds.length > 0) {
-        // Create pomodoro task entries
-        await Promise.all(validatedData.taskIds.map(async (taskId, index) => {
-          await prisma.pomodoroTask.create({
-            data: {
-              pomodoroId: pomodoro.id,
-              taskId,
-              position: index
-            }
-          })
-        }))
-      }
 
       // Log pomodoro creation
       await prisma.log.create({
@@ -151,9 +132,8 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
             pomodoroId: pomodoro.id,
             type: validatedData.type,
             taskMode: validatedData.taskMode,
-            taskCount: validatedData.taskIds?.length || 0
-          },
-          author: 'User'
+            taskId: pomodoro.taskId
+          }
         }
       })
 
@@ -186,7 +166,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
         // Log pomodoro status change
         await prisma.log.create({
           data: {
-            type: validatedData.status === 'completed' ? 'pomodoro_completed' : 
+            type: validatedData.status === 'finished' ? 'pomodoro_completed' : 
                   validatedData.status === 'cancelled' ? 'pomodoro_cancelled' : 
                   'pomodoro_updated',
             userId: req.user.id,
@@ -194,8 +174,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
               pomodoroId: recentPomodoro.id,
               status: validatedData.status,
               type: recentPomodoro.type
-            },
-            author: 'User'
+            }
           }
         })
 

@@ -12,7 +12,7 @@ import { useTasks } from "@/hooks/use-tasks"
 import type { Task } from "@/types/task"
 
 export function TasksList() {
-  const { tasks, completedTasks, deleteTask } = useTasks()
+  const { tasks, deleteTask } = useTasks()
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false)
@@ -32,6 +32,9 @@ export function TasksList() {
       deleteTask(taskId)
     }
   }
+
+  const activeTasks = tasks.filter(task => task.status !== "completed")
+  const completedTasks = tasks.filter(task => task.status === "completed")
 
   return (
     <div>
@@ -82,10 +85,10 @@ export function TasksList() {
         </TabsContent>
 
         <TabsContent value="active" className="space-y-4">
-          {filterTasks(tasks.filter((task: Task) => !task.completed)).length === 0 ? (
+          {filterTasks(activeTasks).length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No active tasks. All done for now!</p>
           ) : (
-            filterTasks(tasks.filter((task: Task) => !task.completed)).map((task: Task) => (
+            filterTasks(activeTasks).map((task: Task) => (
               <TaskItem
                 key={task.id}
                 task={task}

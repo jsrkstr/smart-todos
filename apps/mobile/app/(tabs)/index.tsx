@@ -26,7 +26,7 @@ TaskManager.defineTask(TASK_NOTIFICATION_TASK, async () => {
   const now = new Date().getTime();
 
   for (const task of tasks) {
-    if (task.completed) continue;
+    if (task.status === "completed") continue;
 
     // Assuming task.date is a date string and task.time is a time string
     const taskDateTime = new Date(`${task.date}T${task.time}`).getTime();
@@ -56,7 +56,7 @@ TaskManager.defineTask(TASK_NOTIFICATION_TASK, async () => {
   const now = new Date().getTime();
 
   for (const task of tasks) {
-    if (task.completed) continue;
+    if (task.status === "completed") continue;
 
     const taskDate = new Date(task.date).getTime();
     const reminderTime = task.reminderTime ? new Date(task.reminderTime).getTime() : null;

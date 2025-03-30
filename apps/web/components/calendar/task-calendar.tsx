@@ -236,7 +236,7 @@ export function TaskCalendar() {
                           <div
                             key={task.id}
                             className={`text-xs truncate p-1 rounded ${
-                              task.completed
+                              task.status === "completed"
                                 ? "line-through text-muted-foreground bg-muted/30"
                                 : task.priority === "high"
                                   ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
@@ -267,10 +267,10 @@ export function TaskCalendar() {
                           {dayTasks.map((task) => (
                             <div
                               key={task.id}
-                              className={`p-2 rounded-md border ${task.completed ? "opacity-60" : ""}`}
+                              className={`p-2 rounded-md border ${task.status === "completed" ? "opacity-60" : ""}`}
                             >
                               <div className="flex items-center justify-between">
-                                <span className={`font-medium ${task.completed ? "line-through" : ""}`}>
+                                <span className={`font-medium ${task.status === "completed" ? "line-through" : ""}`}>
                                   {task.title}
                                 </span>
                                 <span
@@ -334,7 +334,7 @@ export function TaskCalendar() {
                             <div
                               key={task.id}
                               className={`text-xs p-1.5 rounded ${
-                                task.completed
+                                task.status === "completed"
                                   ? "line-through text-muted-foreground bg-muted/30"
                                   : task.priority === "high"
                                     ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
@@ -357,7 +357,7 @@ export function TaskCalendar() {
                             <div
                               key={task.id}
                               className={`text-xs p-1.5 rounded ${
-                                task.completed
+                                task.status === "completed"
                                   ? "line-through text-muted-foreground bg-muted/30"
                                   : task.priority === "high"
                                     ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
@@ -380,7 +380,7 @@ export function TaskCalendar() {
                             <div
                               key={task.id}
                               className={`text-xs p-1.5 rounded ${
-                                task.completed
+                                task.status === "completed"
                                   ? "line-through text-muted-foreground bg-muted/30"
                                   : task.priority === "high"
                                     ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"

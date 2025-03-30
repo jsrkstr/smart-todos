@@ -49,7 +49,7 @@ export function TaskBreakdown({ task, onComplete }: TaskBreakdownProps) {
     
     const newSubTaskObj: SubTask = {
       title: newSubTask.trim(),
-      status: false,
+      status: "new",
       position: subTasks.length
     }
     
@@ -59,7 +59,7 @@ export function TaskBreakdown({ task, onComplete }: TaskBreakdownProps) {
 
   const handleToggleSubTask = (index: number, checked: boolean) => {
     const updatedSubTasks = [...subTasks]
-    updatedSubTasks[index].status = checked
+    updatedSubTasks[index].status = checked ? "completed" : "new"
     setSubTasks(updatedSubTasks)
   }
 
@@ -217,7 +217,7 @@ export function TaskBreakdown({ task, onComplete }: TaskBreakdownProps) {
         // Add any new AI-generated subtasks
         const newSubTasksList = data.subtasks.map((st: any, i: number) => ({
           title: st.title,
-          status: false,
+          status: "new",
           position: subTasks.length + i,
           estimatedTimeMinutes: st.estimatedTimeMinutes || null
         }))
@@ -225,7 +225,7 @@ export function TaskBreakdown({ task, onComplete }: TaskBreakdownProps) {
         setSubTasks([...subTasks, ...newSubTasksList])
       }
     } catch (err) {
-      setError("Failed to generate subtasks. Please try manually or try again later.")
+      setError("Failed to generate subtasks. Please manually or try again later.")
     } finally {
       setIsLoading(false)
     }
@@ -262,7 +262,7 @@ export function TaskBreakdown({ task, onComplete }: TaskBreakdownProps) {
   }
 
   const getCompletedSubtasksCount = () => {
-    return subTasks.filter(subtask => subtask.status).length
+    return subTasks.filter(subtask => subtask.status === "completed").length
   }
 
   const getProgressPercentage = () => {
@@ -375,7 +375,7 @@ export function TaskBreakdown({ task, onComplete }: TaskBreakdownProps) {
                   <div key={index} className="flex flex-col border rounded-md p-3">
                     <div className="flex items-start space-x-2">
                       <Checkbox
-                        checked={subtask.status}
+                        checked={subtask.status === "completed"}
                         onCheckedChange={(checked) => handleToggleSubTask(index, !!checked)}
                         className="mt-1"
                       />

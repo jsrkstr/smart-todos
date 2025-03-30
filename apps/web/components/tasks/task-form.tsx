@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useTasks } from "@/hooks/use-tasks"
 import { useToast } from "@/hooks/use-toast"
-import type { SubTask, Task, ReminderTimeOption } from "@/types/task"
+import type { SubTask, Task, ReminderTimeOption, TaskPriority, TaskStatus } from "@/types/task"
 import { useSettings } from "@/hooks/use-settings"
 
 interface TaskFormProps {
@@ -36,7 +36,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const [time, setTime] = useState<string>("09:00")
   const [deadline, setDeadline] = useState<Date | undefined>(undefined)
   const [location, setLocation] = useState<string>("")
-  const [priority, setPriority] = useState<string>("medium")
+  const [priority, setPriority] = useState<TaskPriority>("medium")
   const [why, setWhy] = useState<string>("")
   const [subTasks, setSubTasks] = useState<SubTask[]>([])
   const [newSubTask, setNewSubTask] = useState<string>("")
@@ -103,7 +103,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           date: date ? date.toISOString() : new Date().toISOString(),
           time,
           deadline: deadline ? deadline.toISOString() : undefined,
-          priority: priority as "low" | "medium" | "high",
+          priority,
           location: location || undefined,
           why: why || undefined,
           subTasks,
@@ -133,13 +133,13 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           date: date ? date.toISOString() : new Date().toISOString(),
           time,
           deadline: deadline ? deadline.toISOString() : undefined,
-          priority: priority as "low" | "medium" | "high",
+          priority,
           location: location || undefined,
           why: why || undefined,
           subTasks,
           reminderTime,
           dateAdded: new Date().toISOString(),
-          completed: false
+          status: "new"
         })
 
         toast({
@@ -161,7 +161,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
 
   const handleAddSubTask = (): void => {
     if (newSubTask.trim()) {
-      setSubTasks([...subTasks, { title: newSubTask, completed: false }])
+      setSubTasks([...subTasks, { title: newSubTask, status: "new" }])
       setNewSubTask("")
     }
   }
@@ -214,7 +214,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
       if (data.subtasks && Array.isArray(data.subtasks)) {
         const generatedSubtasks: SubTask[] = data.subtasks.map((text: string) => ({
           title: text,
-          completed: false
+          status: "new"
         }))
         
         setSuggestedSubTasks(generatedSubtasks)
@@ -369,7 +369,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
-              <Select value={priority} onValueChange={(value) => setPriority(value)}>
+              <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>

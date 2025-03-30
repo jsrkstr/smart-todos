@@ -1,15 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { TaskStatus } from '@prisma/client'
+import { TaskStatus, ReminderTimeOption } from '@prisma/client'
 import { AuthenticatedApiRequest, withAuth } from '@/lib/api-middleware'
-
-type ReminderTimeOption = 
-  | "at_time"
-  | "five_min_before"
-  | "fifteen_min_before"
-  | "thirty_min_before"
-  | "one_hour_before"
-  | "one_day_before"
 
 interface TaskPayload {
   id: string;
@@ -18,7 +10,7 @@ interface TaskPayload {
   time?: string;
   deadline?: string | null;
   dateAdded: string;
-  status: TaskStatus;
+  completed: boolean;
   priority: "low" | "medium" | "high";
   position?: number;
   location?: string;
@@ -93,13 +85,18 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextR
     if (taskData.reminderTime && typeof taskData.reminderTime === 'string') {
       // Verify it's a valid enum value
       const validReminderTimes: string[] = [
-        "at_time", "5_minutes", "10_minutes", "15_minutes", 
-        "30_minutes", "1_hour", "2_hours", "1_day"
+        "at_time", "five_min_before", "fifteen_min_before", 
+        "thirty_min_before", "one_hour_before", "one_day_before"
       ];
       
       if (!validReminderTimes.includes(taskData.reminderTime)) {
         taskData.reminderTime = "at_time";
       }
+    }
+
+    // Ensure priority is a valid value
+    if (!taskData.priority || !["low", "medium", "high"].includes(taskData.priority)) {
+      taskData.priority = "medium";
     }
 
     const { subTasks, ...taskWithoutSubTasks } = taskData;
@@ -111,20 +108,13 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextR
         dateAdded: new Date(taskData.dateAdded),
         userId: req.user.id,
         subTasks: {
-          create: subTasks || []
+          create: subTasks?.map(st => ({
+            ...st,
+            status: st.status || "new"
+          })) || []
         }
       },
       include: { subTasks: true }
-    });
-
-    // Log task creation
-    await prisma.log.create({
-      data: {
-        type: 'task_created',
-        userId: req.user.id,
-        taskId: newTask.id,
-        author: 'User'
-      }
     });
 
     return NextResponse.json({
@@ -165,8 +155,8 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
     if (payload.reminderTime && typeof payload.reminderTime === 'string') {
       // Verify it's a valid enum value
       const validReminderTimes: string[] = [
-        "at_time", "5_minutes", "10_minutes", "15_minutes", 
-        "30_minutes", "1_hour", "2_hours", "1_day"
+        "at_time", "five_min_before", "fifteen_min_before", 
+        "thirty_min_before", "one_hour_before", "one_day_before"
       ];
       
       if (!validReminderTimes.includes(payload.reminderTime)) {
@@ -190,15 +180,6 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
         } : undefined
       },
       include: { subTasks: true }
-    });
-
-    // Log task update
-    await prisma.log.create({
-      data: {
-        type: 'task_updated',
-        userId: req.user.id,
-        author: 'User'
-      }
     });
 
     return NextResponse.json({
@@ -230,21 +211,11 @@ export const DELETE = withAuth(async (req: AuthenticatedApiRequest): Promise<Nex
     if (!payload || !payload.id) {
       return NextResponse.json({ error: 'Missing task ID' }, { status: 400 });
     }
-    
-    const { id } = payload;
-    const task = await prisma.task.delete({
-      where: { 
-        id,
-        userId: req.user.id // Ensure user can only delete their own tasks
-      }
-    });
 
-    // Log task deletion
-    await prisma.log.create({
-      data: {
-        type: 'task_deleted',
-        userId: req.user.id,
-        author: 'User'
+    await prisma.task.delete({
+      where: { 
+        id: payload.id,
+        userId: req.user.id // Ensure user can only delete their own tasks
       }
     });
 
