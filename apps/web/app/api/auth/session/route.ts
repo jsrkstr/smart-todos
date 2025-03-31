@@ -7,7 +7,7 @@ import { prisma } from '@/lib/db'
 export async function GET() {
   try {
     // Get token from cookies
-    const token = cookies().get('token')?.value
+    const token = (await cookies()).get('token')?.value
     
     if (!token) {
       return NextResponse.json({ 

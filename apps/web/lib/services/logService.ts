@@ -10,7 +10,7 @@ export class LogService {
     author?: LogAuthor;
   }) {
     const { type, userId, taskId, data, author = LogAuthor.App } = params
-
+    console.log('log creation', params);
     return prisma.log.create({
       data: {
         type,

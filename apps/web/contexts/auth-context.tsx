@@ -33,7 +33,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!window.localStorage.getItem('isAuthenticated'));
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const [isChecking, setIsChecking] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();

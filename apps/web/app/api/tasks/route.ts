@@ -46,7 +46,6 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextR
         estimatedTimeMinutes: payload.estimatedTimeMinutes,
         location: payload.location,
         why: payload.why,
-        status: payload.status || TaskStatus.new,
         subTasks: payload.subTasks?.map((st: SubTaskPayload) => ({
           title: st.title,
           status: st.status || TaskStatus.new,
@@ -105,7 +104,6 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
         estimatedTimeMinutes: payload.estimatedTimeMinutes,
         location: payload.location,
         why: payload.why,
-        status: payload.status,
         subTasks: payload.subTasks?.map((st: SubTaskPayload) => ({
           title: st.title,
           status: st.status || TaskStatus.new,

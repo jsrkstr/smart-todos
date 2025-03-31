@@ -9,6 +9,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTasks } from "@/hooks/use-tasks"
 import type { Task } from "@/types/task"
+import { cn } from "@/lib/utils"
 
 // Helper to get days in month
 const getDaysInMonth = (year: number, month: number) => {
@@ -68,6 +69,24 @@ const categorizeTasksByTime = (tasks: Task[]) => {
   evening.sort(sortByTime)
 
   return { morning, afternoon, evening }
+}
+
+// Helper function to get class based on stage
+function getStageClassName(stage: TaskStage): string {
+  switch (stage) {
+    case "Refinement":
+      return "stage-refinement";
+    case "Breakdown":
+      return "stage-breakdown";
+    case "Planning":
+      return "stage-planning";
+    case "Execution":
+      return "stage-execution";
+    case "Reflection":
+      return "stage-reflection";
+    default:
+      return "";
+  }
 }
 
 export function TaskCalendar() {
@@ -235,15 +254,11 @@ export function TaskCalendar() {
                         {dayTasks.slice(0, 3).map((task) => (
                           <div
                             key={task.id}
-                            className={`text-xs truncate p-1 rounded ${
-                              task.status === "completed"
-                                ? "line-through text-muted-foreground bg-muted/30"
-                                : task.priority === "high"
-                                  ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                  : task.priority === "medium"
-                                    ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                                    : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                            }`}
+                            className={cn(
+                              "text-xs truncate p-1 rounded",
+                              task.completed && "line-through text-muted-foreground bg-muted/30",
+                              getStageClassName(task.stage)
+                            )}
                           >
                             {task.time && <span className="mr-1">{task.time}</span>}
                             {task.title}
@@ -267,22 +282,19 @@ export function TaskCalendar() {
                           {dayTasks.map((task) => (
                             <div
                               key={task.id}
-                              className={`p-2 rounded-md border ${task.status === "completed" ? "opacity-60" : ""}`}
+                              className={cn(
+                                "p-2 rounded-md border",
+                                task.completed && "opacity-60"
+                              )}
                             >
                               <div className="flex items-center justify-between">
-                                <span className={`font-medium ${task.status === "completed" ? "line-through" : ""}`}>
+                                <span className={`font-medium ${task.completed ? "line-through" : ""}`}>
                                   {task.title}
                                 </span>
                                 <span
-                                  className={`text-xs px-1.5 py-0.5 rounded-full ${
-                                    task.priority === "high"
-                                      ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                      : task.priority === "medium"
-                                        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                                        : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                                  }`}
+                                  className={`text-xs px-1.5 py-0.5 rounded-full ${getStageClassName(task.stage)}`}
                                 >
-                                  {task.priority}
+                                  {task.stage}
                                 </span>
                               </div>
                               {task.time && <div className="text-sm text-muted-foreground mt-1">Time: {task.time}</div>}
@@ -333,15 +345,11 @@ export function TaskCalendar() {
                           {morning.map((task) => (
                             <div
                               key={task.id}
-                              className={`text-xs p-1.5 rounded ${
-                                task.status === "completed"
-                                  ? "line-through text-muted-foreground bg-muted/30"
-                                  : task.priority === "high"
-                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                    : task.priority === "medium"
-                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                              }`}
+                              className={cn(
+                                "text-xs p-1.5 rounded",
+                                task.completed && "line-through text-muted-foreground bg-muted/30",
+                                getStageClassName(task.stage)
+                              )}
                             >
                               <div className="font-medium">{task.time || "9:00"}</div>
                               <div>{task.title}</div>
@@ -356,15 +364,11 @@ export function TaskCalendar() {
                           {afternoon.map((task) => (
                             <div
                               key={task.id}
-                              className={`text-xs p-1.5 rounded ${
-                                task.status === "completed"
-                                  ? "line-through text-muted-foreground bg-muted/30"
-                                  : task.priority === "high"
-                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                    : task.priority === "medium"
-                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                              }`}
+                              className={cn(
+                                "text-xs p-1.5 rounded",
+                                task.completed && "line-through text-muted-foreground bg-muted/30",
+                                getStageClassName(task.stage)
+                              )}
                             >
                               <div className="font-medium">{task.time || "13:00"}</div>
                               <div>{task.title}</div>
@@ -379,15 +383,11 @@ export function TaskCalendar() {
                           {evening.map((task) => (
                             <div
                               key={task.id}
-                              className={`text-xs p-1.5 rounded ${
-                                task.status === "completed"
-                                  ? "line-through text-muted-foreground bg-muted/30"
-                                  : task.priority === "high"
-                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                    : task.priority === "medium"
-                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                              }`}
+                              className={cn(
+                                "text-xs p-1.5 rounded",
+                                task.completed && "line-through text-muted-foreground bg-muted/30",
+                                getStageClassName(task.stage)
+                              )}
                             >
                               <div className="font-medium">{task.time || "18:00"}</div>
                               <div>{task.title}</div>

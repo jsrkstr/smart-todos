@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Task, TaskPriority, TaskStatus } from '@/types/task'
+import type { Task, TaskPriority, TaskStage } from '@/types/task'
 
 type SetupNotificationsFunction = (tasks: Task[]) => void
 
@@ -16,6 +16,7 @@ interface TaskStore {
   toggleTaskCompletion: (taskId: string) => Promise<void>
   deleteTask: (taskId: string) => Promise<void>
   updateTask: (taskId: string, updates: Partial<Task>) => Promise<Task | null>
+  updateTaskStage: (taskId: string, stage: TaskStage) => Promise<void>
 }
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
@@ -65,32 +66,30 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 
-  addTask: async (task: Task): Promise<Task | null> => {
+  addTask: async (task: Partial<Task>): Promise<Task | null> => {
+    const validatedTask: Task = {
+      id: task.id || crypto.randomUUID(),
+      title: task.title || '',
+      date: task.date || new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
+      time: task.time,
+      deadline: task.deadline,
+      dateAdded: task.dateAdded || new Date().toISOString(),
+      stage: task.stage || "Planning" as TaskStage,
+      completed: task.completed || false,
+      priority: task.priority || "Medium" as TaskPriority,
+      location: task.location,
+      why: task.why,
+      reminderTime: task.reminderTime,
+      subTasks: task.subTasks || []
+    };
+
     try {
       // Validate task data before sending
-      if (!task || !task.title) {
-        console.error("Invalid task data:", task);
+      if (!validatedTask || !validatedTask.title) {
+        console.error("Invalid task data:", validatedTask);
         throw new Error('Invalid task data');
       }
       
-      // Ensure the data structure is valid and the reminderTime is an enum value
-      const validatedTask: Task = {
-        ...task,
-        id: task.id,
-        title: task.title,
-        date: task.date,
-        time: task.time || undefined,
-        deadline: task.deadline || undefined,
-        dateAdded: task.dateAdded,
-        status: task.status || "new",
-        priority: task.priority as TaskPriority,
-        location: task.location || undefined,
-        why: task.why || undefined,
-        subTasks: task.subTasks || [],
-        // Make sure reminderTime is a valid enum value
-        reminderTime: task.reminderTime || "at_time"
-      };
-
       console.log("Sending task to server:", JSON.stringify(validatedTask, null, 2));
 
       const response: Response = await fetch('/api/tasks', {
@@ -115,30 +114,22 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   toggleTaskCompletion: async (taskId: string): Promise<void> => {
-    const task: Task | undefined = get().tasks.find(t => t.id === taskId)
-    if (!task) return
+    const task = get().tasks.find(t => t.id === taskId);
+    if (!task) return;
 
-    const newStatus: TaskStatus = task.status === "completed" ? "planned" : "completed"
+    const updatedTask: Task = {
+      ...task,
+      completed: !task.completed,
+      stage: (!task.completed ? "Reflection" : "Execution") as TaskStage
+    };
 
     try {
-      const response: Response = await fetch('/api/tasks', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: taskId,
-          status: newStatus
-        }),
-      })
-      if (!response.ok) {
-        throw new Error('Failed to toggle task completion')
-      }
-      const updatedTask: Task = await response.json()
+      await get().updateTask(taskId, updatedTask);
       set(state => ({
         tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
-      }))
+      }));
     } catch (error) {
-      console.error("Failed to toggle task completion:", error)
-      set({ error: error instanceof Error ? error.message : 'Failed to toggle task' })
+      console.error('Failed to toggle task completion:', error);
     }
   },
 
@@ -180,6 +171,26 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       console.error("Failed to update task:", error)
       set({ error: error instanceof Error ? error.message : 'Failed to update task' })
       return null
+    }
+  },
+
+  updateTaskStage: async (taskId: string, stage: TaskStage): Promise<void> => {
+    const task = get().tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const updatedTask: Task = {
+      ...task,
+      stage,
+      completed: stage === "Reflection" // Auto-complete when moved to Reflection stage
+    };
+
+    try {
+      await get().updateTask(taskId, updatedTask);
+      set(state => ({
+        tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
+      }));
+    } catch (error) {
+      console.error('Failed to update task stage:', error);
     }
   },
 })) 

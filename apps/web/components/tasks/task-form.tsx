@@ -17,8 +17,9 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useTasks } from "@/hooks/use-tasks"
 import { useToast } from "@/hooks/use-toast"
-import type { SubTask, Task, ReminderTimeOption, TaskPriority, TaskStatus } from "@/types/task"
+import type { SubTask, Task, ReminderTimeOption, TaskPriority, TaskStatus, TaskStage } from "@/types/task"
 import { useSettings } from "@/hooks/use-settings"
+import { Switch } from "@/components/ui/switch"
 
 interface TaskFormProps {
   taskId?: string
@@ -47,6 +48,8 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     ((settings.reminderTime as ReminderTimeOption) || "at_time") as ReminderTimeOption
   )
   const [task, setTask] = useState<Task | null>(null)
+  const [isCompleted, setIsCompleted] = useState(task?.completed || false)
+  const [stage, setStage] = useState<TaskStage>(task?.stage || "Refinement")
 
   // Fetch task data if editing
   useEffect((): void => {
@@ -79,6 +82,9 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
         if (existingTask.reminderTime) {
           setReminderTime(existingTask.reminderTime as ReminderTimeOption)
         }
+
+        setIsCompleted(existingTask.completed)
+        setStage(existingTask.stage)
       }
     }
   }, [isEditing, taskId, tasks])
@@ -108,6 +114,8 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           why: why || undefined,
           subTasks,
           reminderTime,
+          completed: isCompleted,
+          stage,
         })
 
         toast({
@@ -139,7 +147,9 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           subTasks,
           reminderTime,
           dateAdded: new Date().toISOString(),
-          status: "new"
+          status: "new",
+          completed: isCompleted,
+          stage,
         })
 
         toast({
@@ -468,6 +478,33 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
               onChange={(e) => setWhy(e.target.value)}
               className="min-h-[100px]"
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="stage">Stage</Label>
+              <Select value={stage} onValueChange={setStage}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Refinement">Refinement</SelectItem>
+                  <SelectItem value="Breakdown">Breakdown</SelectItem>
+                  <SelectItem value="Planning">Planning</SelectItem>
+                  <SelectItem value="Execution">Execution</SelectItem>
+                  <SelectItem value="Reflection">Reflection</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="completed">Completed</Label>
+              <Switch
+                checked={isCompleted}
+                onCheckedChange={setIsCompleted}
+                aria-label="Toggle task completion"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-2">

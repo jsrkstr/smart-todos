@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import type { Task, SubTask } from "@/types/task"
 import { useTasks } from "@/hooks/use-tasks"
+import { Badge } from "@/components/ui/badge"
 
 interface TaskItemProps {
   task: Task
@@ -22,7 +23,8 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
   const { toggleTaskCompletion, deleteTask, updateTask } = useTasks()
   const [expanded, setExpanded] = useState<boolean>(false)
 
-  const isCompleted = task.status === "completed"
+  const isCompleted = task.completed
+  const currentStage = task.stage
   
   const subTasksCompleted: number = task.subTasks?.filter((st: SubTask) => st.status === "completed").length || 0
   const subTasksTotal: number = task.subTasks?.length || 0
@@ -121,6 +123,10 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
                 <strong>Why:</strong> {task.why}
               </p>
             )}
+
+            <Badge variant={isCompleted ? "success" : getStageVariant(currentStage)}>
+              {isCompleted ? "Completed" : currentStage}
+            </Badge>
           </div>
         </div>
 
@@ -163,5 +169,20 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
       </div>
     </div>
   )
+}
+
+function getStageVariant(stage: TaskStage): "default" | "secondary" | "outline" {
+  switch (stage) {
+    case "Refinement":
+      return "default";
+    case "Breakdown":
+    case "Planning":
+      return "secondary";
+    case "Execution":
+    case "Reflection":
+      return "outline";
+    default:
+      return "default";
+  }
 }
 

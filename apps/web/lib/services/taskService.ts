@@ -15,7 +15,6 @@ export interface CreateTaskInput {
   estimatedTimeMinutes?: number;
   location?: string;
   why?: string;
-  status?: TaskStatus;
   subTasks?: {
     title: string;
     status?: TaskStatus;
@@ -36,7 +35,6 @@ export interface UpdateTaskInput {
   estimatedTimeMinutes?: number;
   location?: string;
   why?: string;
-  status?: TaskStatus;
   subTasks?: {
     title: string;
     status?: TaskStatus;
@@ -49,38 +47,33 @@ export class TaskService {
     const { userId, subTasks, ...taskData } = input
 
     // Create the task with its subtasks
-    const task = await prisma.$transaction(async (tx) => {
-      const newTask = await tx.task.create({
-        data: {
-          ...taskData,
-          user: { connect: { id: userId } },
-          subTasks: subTasks ? {
-            create: subTasks.map(st => ({
-              ...st,
-              status: st.status || TaskStatus.new
-            }))
-          } : undefined
-        },
-        include: { subTasks: true }
-      })
-
-      // Create a log entry for the new task
-      await LogService.createTaskLog({
-        type: 'task_created',
-        userId,
-        taskId: newTask.id,
-        data: {
-          title: newTask.title,
-          date: newTask.date,
-          priority: newTask.priority,
-          subTasksCount: subTasks?.length || 0
-        }
-      })
-
-      return newTask
+    const newTask = await prisma.task.create({
+      data: {
+        ...taskData,
+        user: { connect: { id: userId } },
+        subTasks: subTasks ? {
+          create: subTasks.map(st => ({
+            ...st,
+          }))
+        } : undefined
+      },
+      include: { subTasks: true }
     })
 
-    return task
+    // Create a log entry for the new task
+    LogService.createTaskLog({
+      type: 'task_created',
+      userId,
+      taskId: newTask.id,
+      data: {
+        title: newTask.title,
+        date: newTask.date,
+        priority: newTask.priority,
+        subTasksCount: subTasks?.length || 0
+      }
+    })
+
+    return newTask;
   }
 
   static async updateTask(input: UpdateTaskInput): Promise<Task> {
@@ -99,7 +92,6 @@ export class TaskService {
             deleteMany: {},
             create: subTasks.map(st => ({
               ...st,
-              status: st.status || TaskStatus.new
             }))
           } : undefined
         },
@@ -177,7 +169,7 @@ export class TaskService {
           userId
         },
         data: { 
-          status: TaskStatus.completed
+          completed: true,
         },
         include: { subTasks: true }
       })
@@ -207,7 +199,7 @@ export class TaskService {
           userId
         },
         data: { 
-          status: TaskStatus.new
+          completed: false
         },
         include: { subTasks: true }
       })
