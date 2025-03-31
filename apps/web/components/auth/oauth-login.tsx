@@ -13,9 +13,10 @@ import { useAuth } from "@/contexts/auth-context"
 
 interface OAuthLoginProps {
   onLogin?: () => void
+  redirectUrl?: string
 }
 
-export function OAuthLogin({ onLogin }: OAuthLoginProps) {
+export function OAuthLogin({ onLogin, redirectUrl }: OAuthLoginProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -24,9 +25,6 @@ export function OAuthLogin({ onLogin }: OAuthLoginProps) {
   const searchParams = useSearchParams()
   const { login, loginWithProvider } = useAuth()
   
-  // Get the redirect URL if it exists
-  const redirectUrl = searchParams.get('redirect') || '/dashboard'
-
   const handleCredentialsLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email || !password) {
