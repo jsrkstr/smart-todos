@@ -37,6 +37,7 @@ model User {
   ownedCompetitions Competition[] @relation("CompetitionOwner")
   accountabilityPartnerships AccountabilityPartnership[] @relation("AccountabilityPartner")
   pomodoros      Pomodoro[]
+  calendarConnections CalendarConnection[]
 }
 
 model Coach {
@@ -122,16 +123,20 @@ model Task {
   subTasks             SubTask[]
   events               Event[]
   notifications        Notification[]
-  pomodoros           Pomodoro[]
+  pomodoros            Pomodoro[]          @relation("PomodoroTask")
+  pomodoroTasks        Pomodoro[]          @relation("PomodoroTasks")
   user                 User                @relation(fields: [userId], references: [id])
   reward               Reward?
   points               Int                 @default(0)
-  excuses             Excuse[]
-  moods               Mood[]
-  flashcards          Flashcard[]         @relation("TaskFlashcards")
-  logs                Log[]               @relation("TaskLogs")
-  quiz                Quiz?
+  excuses              Excuse[]
+  moods                Mood[]
+  flashcards           Flashcard[]         @relation("TaskFlashcards")
+  logs                 Log[]               @relation("TaskLogs")
+  quiz                 Quiz?
   estimatedPomodoros   Int                 @default(1)
+  calendarEvents       CalendarEvent[]
+  isCalendarEvent      Boolean             @default(false)
+  externalEventId      String?             // For tracking the source external event
 }
 
 model SubTask {
@@ -159,7 +164,6 @@ model Event {
   type      String
   data      Json
   taskId    String
-  createdAt DateTime @default(now())
   createdAt DateTime @default(now())
   task      Task     @relation(fields: [taskId], references: [id])
 }
@@ -208,9 +212,9 @@ model Pomodoro {
   settings    Json?          // Store user settings at the time of creation
   userId      String
   createdAt   DateTime       @default(now())
-  task        Task?          @relation(fields: [taskId], references: [id])
+  task        Task?          @relation("PomodoroTask", fields: [taskId], references: [id])
   user        User           @relation(fields: [userId], references: [id])
-  tasks       Task[]         // For multi-task pomodoros
+  tasks       Task[]         @relation("PomodoroTasks") // For multi-task pomodoros
 }
 
 model Reward {
@@ -407,4 +411,57 @@ enum TaskStage {
   Planning
   Execution
   Reflection
+}
+
+enum CalendarProvider {
+  google
+  ical
+  outlook
+  apple
+  custom
+}
+
+model CalendarConnection {
+  id                String           @id @default(cuid())
+  userId            String
+  provider          CalendarProvider
+  name              String?          // User-friendly name for this calendar
+  isActive          Boolean          @default(true)
+  accessToken       String?          @db.Text
+  refreshToken      String?          @db.Text
+  tokenExpiry       DateTime?
+  calendarId        String?          // External calendar ID
+  syncToken         String?          // For incremental sync
+  lastSynced        DateTime?
+  icalUrl           String?          // For iCalendar URL
+  syncFrequency     String           @default("daily") // "realtime", "hourly", "daily"
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calendarEvents    CalendarEvent[]
+
+  @@unique([userId, provider, calendarId])
+}
+
+model CalendarEvent {
+  id                String            @id @default(cuid())
+  externalId        String            // ID from external calendar
+  title             String
+  description       String?           @db.Text
+  location          String?
+  startTime         DateTime
+  endTime           DateTime
+  allDay            Boolean           @default(false)
+  recurrence        String?           // RRULE string format
+  status            String            @default("confirmed") // "confirmed", "tentative", "cancelled"
+  lastModified      DateTime
+  calendarConnectionId String
+  calendarConnection CalendarConnection @relation(fields: [calendarConnectionId], references: [id], onDelete: Cascade)
+  linkedTaskId      String?
+  linkedTask        Task?             @relation(fields: [linkedTaskId], references: [id])
+  externalData      Json?             // Store additional data from external calendar
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([calendarConnectionId, externalId])
 }

@@ -128,6 +128,8 @@ async function main() {
   try {
     // Clean existing data
     console.log('Cleaning existing data...')
+    await prisma.$executeRawUnsafe('DELETE FROM "CalendarEvent";')
+    await prisma.$executeRawUnsafe('DELETE FROM "CalendarConnection";')
     await prisma.pomodoro.deleteMany()
     await prisma.subTask.deleteMany()
     await prisma.task.deleteMany()
@@ -181,8 +183,6 @@ async function main() {
             communicationPref: "moderate",
             taskApproach: "sequential",
             difficultyPreference: "first",
-            reminderTiming: "thirty_minutes",
-            selectedCoach: defaultCoach.name,
             coachId: defaultCoach.id
           }
         },
@@ -201,10 +201,131 @@ async function main() {
       }
     })
 
-    console.log('Database seeded successfully!')
     console.log('Created user:', user.name)
     console.log('User ID:', user.id)
     console.log('Selected coach:', defaultCoach.name)
+
+    // Create calendar connections
+    console.log('Creating calendar connections...')
+
+    // Use direct SQL to create calendar connections
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "CalendarConnection" ("id", "userId", "provider", "name", "isActive", "calendarId", "lastSynced", "syncFrequency", "createdAt", "updatedAt")
+      VALUES 
+      ('google-cal-1', '${user.id}', 'google', 'Google Calendar', true, 'primary', NOW(), 'daily', NOW(), NOW()),
+      ('system-cal-1', '${user.id}', 'custom', 'System Calendar', true, 'system', NOW(), 'daily', NOW(), NOW());
+    `);
+
+    console.log(`Created 2 calendar connections`)
+
+    // Create dummy calendar events
+    console.log('Creating dummy calendar events...')
+    
+    const eventTitles = [
+      "Team Meeting",
+      "Doctor's Appointment",
+      "Project Deadline",
+      "Lunch with Client",
+      "Weekly Review",
+      "Gym Session",
+      "Conference Call",
+      "Birthday Party",
+      "Dentist Appointment",
+      "Family Dinner"
+    ]
+
+    const locations = [
+      "Conference Room A",
+      "Medical Center",
+      "Office",
+      "Italian Restaurant",
+      "Meeting Room B",
+      "Fitness Center",
+      "Zoom",
+      "Dave's House",
+      "Dental Clinic",
+      "Home"
+    ]
+
+    const now = new Date()
+    
+    // Create 10 tasks for calendar events
+    const calendarTasks = []
+    
+    for (let i = 0; i < 10; i++) {
+      // Calculate time (first 5 in morning, next 5 in afternoon)
+      const startTime = new Date(now.getTime() + (i + 1) * 86400000) // Starting from tomorrow
+      
+      if (i < 5) {
+        startTime.setHours(9 + i, 0, 0, 0) // 9am, 10am, etc.
+      } else {
+        startTime.setHours(13 + (i - 5), 0, 0, 0) // 1pm, 2pm, etc.
+      }
+      
+      const endTime = new Date(startTime.getTime())
+      endTime.setHours(startTime.getHours() + 1) // 1 hour events
+      
+      // Create a task for each event
+      const task = await prisma.task.create({
+        data: {
+          userId: user.id,
+          title: eventTitles[i],
+          date: startTime,
+          time: `${startTime.getHours()}:00`,
+          deadline: endTime,
+          completed: false,
+          priority: "medium",
+          estimatedTimeMinutes: 60,
+          location: locations[i]
+        }
+      })
+      
+      // Mark as calendar event
+      await prisma.$executeRawUnsafe(`
+        UPDATE "Task" SET "isCalendarEvent" = true WHERE "id" = '${task.id}'
+      `)
+      
+      calendarTasks.push({ id: task.id, index: i })
+    }
+    
+    // Insert all calendar events at once
+    for (const task of calendarTasks) {
+      const i = task.index
+      const connectionId = i < 5 ? 'google-cal-1' : 'system-cal-1'
+      const eventType = i < 5 ? 'google-event' : 'system-event'
+      const eventIndex = i < 5 ? i + 1 : i - 4
+      const eventId = `${eventType}-${eventIndex}`
+      const title = eventTitles[i].replace(/'/g, "''")
+      const description = `Description for ${title}`
+      const location = locations[i].replace(/'/g, "''")
+      
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO "CalendarEvent" (
+          "id", "externalId", "title", "description", "location", 
+          "startTime", "endTime", "allDay", "status", "lastModified", 
+          "calendarConnectionId", "linkedTaskId", "createdAt", "updatedAt"
+        ) 
+        VALUES (
+          '${eventId}', 
+          '${eventId}', 
+          '${title}', 
+          '${description}',
+          '${location}', 
+          (SELECT "date" FROM "Task" WHERE "id" = '${task.id}'), 
+          (SELECT "deadline" FROM "Task" WHERE "id" = '${task.id}'), 
+          false, 
+          'confirmed', 
+          NOW(), 
+          '${connectionId}', 
+          '${task.id}', 
+          NOW(), 
+          NOW()
+        )
+      `)
+    }
+
+    console.log(`Created 10 calendar events`)
+    console.log('Database seeded successfully!')
   } catch (error) {
     console.error('Error seeding database:', error)
   } finally {
