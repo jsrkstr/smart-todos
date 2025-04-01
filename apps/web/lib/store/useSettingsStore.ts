@@ -2,9 +2,9 @@ import { create } from 'zustand'
 
 interface Settings {
   theme: "light" | "dark" | "system"
-  pomodoroDuration: string
-  shortBreakDuration: string
-  longBreakDuration: string
+  pomodoroDuration: number
+  shortBreakDuration: number
+  longBreakDuration: number
   soundEnabled: boolean
   notificationsEnabled: boolean
   emailNotifications: boolean
@@ -13,9 +13,9 @@ interface Settings {
 
 const defaultSettings: Settings = {
   theme: "system",
-  pomodoroDuration: "25",
-  shortBreakDuration: "5",
-  longBreakDuration: "15",
+  pomodoroDuration: 25,
+  shortBreakDuration: 5,
+  longBreakDuration: 15,
   soundEnabled: true,
   notificationsEnabled: true,
   emailNotifications: false,

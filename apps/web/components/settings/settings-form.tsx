@@ -95,8 +95,8 @@ export function SettingsForm() {
             <div className="space-y-2">
               <Label htmlFor="pomodoro-duration">Pomodoro Duration (minutes)</Label>
               <Select
-                defaultValue={settings.pomodoroDuration}
-                onValueChange={(value) => updateSettings({ pomodoroDuration: value })}
+                defaultValue={settings.pomodoroDuration.toString()}
+                onValueChange={(value) => updateSettings({ pomodoroDuration: parseInt(value) })}
               >
                 <SelectTrigger id="pomodoro-duration">
                   <SelectValue placeholder="Select duration" />
@@ -115,8 +115,8 @@ export function SettingsForm() {
             <div className="space-y-2">
               <Label htmlFor="short-break">Short Break Duration (minutes)</Label>
               <Select
-                defaultValue={settings.shortBreakDuration}
-                onValueChange={(value) => updateSettings({ shortBreakDuration: value })}
+                defaultValue={settings.shortBreakDuration.toString()}
+                onValueChange={(value) => updateSettings({ shortBreakDuration: parseInt(value) })}
               >
                 <SelectTrigger id="short-break">
                   <SelectValue placeholder="Select duration" />
@@ -133,8 +133,8 @@ export function SettingsForm() {
             <div className="space-y-2">
               <Label htmlFor="long-break">Long Break Duration (minutes)</Label>
               <Select
-                defaultValue={settings.longBreakDuration}
-                onValueChange={(value) => updateSettings({ longBreakDuration: value })}
+                defaultValue={settings.longBreakDuration.toString()}
+                onValueChange={(value) => updateSettings({ longBreakDuration: parseInt(value) })}
               >
                 <SelectTrigger id="long-break">
                   <SelectValue placeholder="Select duration" />
