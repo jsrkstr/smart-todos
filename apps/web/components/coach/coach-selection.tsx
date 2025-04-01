@@ -23,6 +23,7 @@ import {
 import { useProfile } from "@/hooks/use-profile";
 
 interface CoachSelectionProps {
+  selectedCoachId?: string;
   onComplete?: (coachId: string) => void;
   showBackButton?: boolean;
   onBack?: () => void;
@@ -31,6 +32,7 @@ interface CoachSelectionProps {
 }
 
 export function CoachSelection({
+  selectedCoachId,
   onComplete,
   showBackButton = false,
   onBack,
@@ -42,8 +44,6 @@ export function CoachSelection({
     loading,
     createCustomCoach,
   } = useCoaches();
-
-  const { profile } = useProfile();
   
   const [activeTab, setActiveTab] = useState<string>("featured");
   const [previewCoach, setPreviewCoach] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export function CoachSelection({
   const [saving, setSaving] = useState(false);
 
   const handleCoachSelect = async (id: string) => {
-    if (profile?.psychProfile?.coachId === id) return;
+    if (selectedCoachId === id) return;
     if (onComplete) onComplete(id);
   };
 
@@ -113,7 +113,7 @@ export function CoachSelection({
                   <div
                     key={coach.id}
                     className={`rounded-lg border p-4 cursor-pointer transition-all ${
-                      profile?.psychProfile?.coachId === coach.id ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
+                      selectedCoachId === coach.id ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
                     }`}
                     onClick={() => handleCoachSelect(coach.id)}
                   >
@@ -191,7 +191,7 @@ export function CoachSelection({
                   <div
                     key={coach.id}
                     className={`rounded-lg border p-4 cursor-pointer transition-all ${
-                      profile?.psychProfile?.coachId === coach.id ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
+                      selectedCoachId === coach.id ? "border-primary ring-2 ring-primary" : "hover:border-primary/50"
                     }`}
                     onClick={() => handleCoachSelect(coach.id)}
                   >
@@ -212,7 +212,7 @@ export function CoachSelection({
                       <Badge variant="secondary" className="text-xs">
                         Custom
                       </Badge>
-                      {profile?.psychProfile?.coachId === coach.id && (
+                      {selectedCoachId === coach.id && (
                         <span className="text-sm text-primary">Selected</span>
                       )}
                     </div>
