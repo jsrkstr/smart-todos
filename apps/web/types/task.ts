@@ -1,14 +1,14 @@
-export interface SubTask {
-  id?: string
-  title: string
-  status: TaskStatus
-  taskId?: string
-  position?: number
-  estimatedTimeMinutes?: number
-  date?: string
-  rank?: number
-  notifications?: Notification[]
-}
+// export interface SubTask { // REMOVED
+//   id?: string
+//   title: string
+//   status: TaskStatus
+//   taskId?: string
+//   position?: number
+//   estimatedTimeMinutes?: number
+//   date?: string
+//   rank?: number
+//   notifications?: Notification[]
+// }
 
 export type ReminderTimeOption = 
   | "at_time" 
@@ -18,7 +18,7 @@ export type ReminderTimeOption =
   | 'one_hour_before'
   | 'one_day_before';
 
-export type TaskStatus = "new" | "planned" | "completed";
+// export type TaskStatus = "new" | "planned" | "completed"; // REMOVED
 
 export type TaskPriority = "low" | "medium" | "high";
 
@@ -68,7 +68,13 @@ export interface Task {
   location?: string
   why?: string
   reminderTime?: ReminderTimeOption
-  subTasks?: SubTask[]
+  // subTasks?: SubTask[] // REMOVED
   notifications?: Notification[]
+
+  // --- Added for subtask replacement ---
+  parentId?: string
+  parent?: Task
+  children?: Task[]
+  // --- End added fields ---
 }
 

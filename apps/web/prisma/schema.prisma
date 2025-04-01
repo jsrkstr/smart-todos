@@ -120,7 +120,6 @@ model Task {
   userId               String
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
-  subTasks             SubTask[]
   notifications        Notification[]
   pomodoros            Pomodoro[]          @relation("PomodoroTask")
   pomodoroTasks        Pomodoro[]          @relation("PomodoroTasks")
@@ -136,17 +135,9 @@ model Task {
   calendarEvents       CalendarEvent[]
   isCalendarEvent      Boolean             @default(false)
   externalEventId      String?             // For tracking the source external event
-}
-
-model SubTask {
-  id          String     @id @default(cuid())
-  title       String
-  status      TaskStatus @default(new)
-  position    Int?
-  taskId      String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  task        Task       @relation(fields: [taskId], references: [id])
+  parentId             String?             // Link to parent task
+  parent               Task?               @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: Cascade) // Cascade delete subtasks if parent is deleted
+  children             Task[]              @relation("TaskHierarchy") // List of subtasks
 }
 
 model Tag {
@@ -342,13 +333,6 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-enum TaskStatus {
-  new
-  in_progress
-  completed
-  cancelled
 }
 
 enum ReminderTimeOption {

@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useTaskStore } from "@/lib/store/useTaskStore"
 import { useToast } from "@/hooks/use-toast"
-import type { SubTask, Task, ReminderTimeOption, TaskPriority, TaskStatus, TaskStage, Tag } from "@/types/task"
+import type { Task, ReminderTimeOption, TaskPriority, TaskStage, Tag } from "@/types/task"
 import { useSettings } from "@/hooks/use-settings"
 import { Switch } from "@/components/ui/switch"
 import { TagSelect } from "@/components/tags/tag-select"
@@ -40,10 +40,10 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const [location, setLocation] = useState<string>("")
   const [priority, setPriority] = useState<TaskPriority>("medium")
   const [why, setWhy] = useState<string>("")
-  const [subTasks, setSubTasks] = useState<SubTask[]>([])
+  const [children, setChildren] = useState<Task[]>([])
   const [newSubTask, setNewSubTask] = useState<string>("")
   const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState<boolean>(false)
-  const [suggestedSubTasks, setSuggestedSubTasks] = useState<SubTask[]>([])
+  const [suggestedSubTasks, setSuggestedSubTasks] = useState<Task[]>([])
   const [reminderTime, setReminderTime] = useState<ReminderTimeOption>(
     // Default to "at_time" if not set in settings
     (settings.reminderTime || "at_time") as ReminderTimeOption
@@ -68,7 +68,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
         setPriority(existingTask.priority)
         setLocation(existingTask.location || "")
         setWhy(existingTask.why || "")
-        setSubTasks(existingTask.subTasks || [])
+        setChildren(existingTask.children || [])
         
         // Handle tags
         if (existingTask.tags) {
@@ -124,7 +124,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           priority,
           location: location || undefined,
           why: why || undefined,
-          subTasks,
+          children,
           reminderTime,
           completed: isCompleted,
           stage,
@@ -159,7 +159,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           priority,
           location: location || undefined,
           why: why || undefined,
-          subTasks,
+          children,
           reminderTime,
           dateAdded: new Date().toISOString(),
           completed: isCompleted,
@@ -188,22 +188,31 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
 
   const handleAddSubTask = (): void => {
     if (newSubTask.trim()) {
-      setSubTasks([...subTasks, { title: newSubTask, status: "new" }])
+      // Create a simplified Task object for the child task
+      setChildren([...children, { 
+        id: `temp-${Date.now().toString()}`, // temporary ID for UI
+        title: newSubTask,
+        date: date ? date.toISOString() : new Date().toISOString(),
+        dateAdded: new Date().toISOString(),
+        completed: false,
+        stage: stage,
+        priority: priority
+      }])
       setNewSubTask("")
     }
   }
 
   const handleRemoveSubTask = (index: number): void => {
-    setSubTasks(subTasks.filter((_, i) => i !== index))
+    setChildren(children.filter((_, i) => i !== index))
   }
 
-  const handleAcceptSubTask = (subTask: SubTask): void => {
-    setSubTasks([...subTasks, subTask])
+  const handleAcceptSubTask = (subTask: Task): void => {
+    setChildren([...children, subTask])
     setSuggestedSubTasks(suggestedSubTasks.filter(st => st.title !== subTask.title))
   }
 
   const handleAcceptAllSubTasks = (): void => {
-    setSubTasks([...subTasks, ...suggestedSubTasks])
+    setChildren([...children, ...suggestedSubTasks])
     setSuggestedSubTasks([])
   }
 
@@ -239,9 +248,15 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
       const data = await response.json()
       
       if (data.subtasks && Array.isArray(data.subtasks)) {
-        const generatedSubtasks: SubTask[] = data.subtasks.map((text: string) => ({
+        // Convert to minimal Task objects
+        const generatedSubtasks: Task[] = data.subtasks.map((text: string) => ({
+          id: `temp-${Date.now().toString()}-${Math.random().toString(36).substring(7)}`,
           title: text,
-          status: "new"
+          date: date ? date.toISOString() : new Date().toISOString(),
+          dateAdded: new Date().toISOString(),
+          completed: false,
+          stage: "Planning",
+          priority: "medium"
         }))
         
         setSuggestedSubTasks(generatedSubtasks)
@@ -453,16 +468,14 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
               </Button>
             </div>
 
-            {subTasks.length > 0 && (
+            {children.length > 0 && (
               <div className="space-y-2">
-                {subTasks.map((subTask, index) => (
-                  <div key={index} className="flex items-center gap-2 rounded-md border p-2">
-                    <span className="flex-1 text-sm">{subTask.title}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
+                {children.map((child, index) => (
+                  <div key={index} className="flex items-center justify-between gap-2">
+                    <span className="flex-1 text-sm">{child.title}</span>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
                       onClick={() => handleRemoveSubTask(index)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -483,10 +496,15 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
                 </div>
                 <div className="space-y-2">
                   {suggestedSubTasks.map((subTask, index) => (
-                    <div key={index} className="flex items-center justify-between rounded-md border p-2">
-                      <span className="text-sm">{subTask.title}</span>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => handleAcceptSubTask(subTask)}>
-                        Accept
+                    <div key={index} className="flex items-center justify-between gap-2">
+                      <span className="flex-1 text-sm">{subTask.title}</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleAcceptSubTask(subTask)}
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span className="sr-only">Accept subtask</span>
                       </Button>
                     </div>
                   ))}

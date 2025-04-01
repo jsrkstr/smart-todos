@@ -80,7 +80,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       location: task.location,
       why: task.why,
       reminderTime: task.reminderTime,
-      subTasks: task.subTasks || []
+      children: task.children || []
     };
 
     try {

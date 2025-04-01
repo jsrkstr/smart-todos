@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
-import type { Task, SubTask } from "@/types/task"
+import type { Task } from "@/types/task"
 import { useTasks } from "@/hooks/use-tasks"
 import { Badge } from "@/components/ui/badge"
 
@@ -26,9 +26,9 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
   const isCompleted = task.completed
   const currentStage = task.stage
   
-  const subTasksCompleted: number = task.subTasks?.filter((st: SubTask) => st.status === "completed").length || 0
-  const subTasksTotal: number = task.subTasks?.length || 0
-  const subTaskProgress: number = subTasksTotal > 0 ? Math.round((subTasksCompleted / subTasksTotal) * 100) : 0
+  const childrenCompleted: number = task.children?.filter(child => child.completed).length || 0
+  const childrenTotal: number = task.children?.length || 0
+  const childrenProgress: number = childrenTotal > 0 ? Math.round((childrenCompleted / childrenTotal) * 100) : 0
 
   const handleEdit = (): void => {
     router.push(`/edit-task/${task.id}`)
@@ -108,11 +108,11 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
                 </div>
               )}
 
-              {task.subTasks && task.subTasks.length > 0 && (
+              {task.children && task.children.length > 0 && (
                 <div className="flex items-center text-sm text-muted-foreground">
                   <CheckCircle className="h-3.5 w-3.5 mr-1" />
                   <span>
-                    {subTasksCompleted}/{subTasksTotal} subtasks
+                    {childrenCompleted}/{childrenTotal} subtasks
                   </span>
                 </div>
               )}
@@ -130,11 +130,11 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
           </div>
         </div>
 
-        {task.subTasks && task.subTasks.length > 0 && (
+        {task.children && task.children.length > 0 && (
           <div className="mt-3 pl-8">
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium">
-                Subtasks ({subTasksCompleted}/{subTasksTotal})
+                Subtasks ({childrenCompleted}/{childrenTotal})
               </div>
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setExpanded(!expanded)}>
                 {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -142,23 +142,23 @@ export function TaskItem({ task, onEdit, onDelete }: TaskItemProps) {
               </Button>
             </div>
 
-            <Progress value={subTaskProgress} className="h-2 mt-1" />
+            <Progress value={childrenProgress} className="h-2 mt-1" />
 
             {expanded && (
               <div className="mt-2 space-y-1">
-                {task.subTasks.map((subTask: SubTask, index: number) => (
+                {task.children.map((child, index) => (
                   <div key={index} className="flex items-start gap-2">
                     <Checkbox
-                      checked={subTask.status === "completed"}
+                      checked={child.completed}
                       className="mt-0.5"
                       onCheckedChange={(checked) => {
-                        const updatedSubTasks: SubTask[] = [...task.subTasks!]
-                        updatedSubTasks[index].status = checked ? "completed" : "new"
-                        updateTask(task.id, { subTasks: updatedSubTasks })
+                        const updatedChildren = [...task.children!]
+                        updatedChildren[index] = { ...updatedChildren[index], completed: !!checked }
+                        updateTask(task.id, { children: updatedChildren })
                       }}
                     />
-                    <span className={cn("text-sm", subTask.status === "completed" && "line-through text-muted-foreground")}>
-                      {subTask.title}
+                    <span className={cn("text-sm", child.completed && "line-through text-muted-foreground")}>
+                      {child.title}
                     </span>
                   </div>
                 ))}

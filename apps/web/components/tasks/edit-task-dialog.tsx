@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { CalendarIcon, Clock, MapPin, Trash2 } from "lucide-react"
+import { CalendarIcon, Clock, MapPin, Trash2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useTasks } from "@/hooks/use-tasks"
-import type { SubTask, Task } from "@/types/task"
+import type { Task } from "@/types/task"
 import {
   Dialog,
   DialogContent,
@@ -42,18 +42,27 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   const [location, setLocation] = useState<string>(task.location || "")
   const [priority, setPriority] = useState<"low" | "medium" | "high">(task.priority)
   const [why, setWhy] = useState<string>(task.why || "")
-  const [subTasks, setSubTasks] = useState<SubTask[]>(task.subTasks || [])
+  const [children, setChildren] = useState<Task[]>(task.children || [])
   const [newSubTask, setNewSubTask] = useState<string>("")
 
   const handleAddSubTask = (): void => {
     if (newSubTask.trim()) {
-      setSubTasks([...subTasks, { title: newSubTask, completed: false }])
+      // Create a simplified Task object for the child task
+      setChildren([...children, { 
+        id: `temp-${Date.now().toString()}`, // temporary ID for UI
+        title: newSubTask,
+        date: task.date, // Inherit date from parent
+        dateAdded: new Date().toISOString(),
+        completed: false,
+        stage: task.stage,
+        priority: priority
+      }])
       setNewSubTask("")
     }
   }
 
   const handleRemoveSubTask = (index: number): void => {
-    setSubTasks(subTasks.filter((_, i) => i !== index))
+    setChildren(children.filter((_, i) => i !== index))
   }
 
   const handleSubmit = (e: React.FormEvent): void => {
@@ -68,7 +77,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
       priority,
       location,
       why,
-      subTasks,
+      children,
     }
 
     updateTask(task.id, updatedTask)
@@ -219,11 +228,11 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                   </Button>
                 </div>
 
-                {subTasks.length > 0 && (
+                {children.length > 0 && (
                   <div className="space-y-2">
-                    {subTasks.map((subTask, index) => (
+                    {children.map((child, index) => (
                       <div key={index} className="flex items-center gap-2 rounded-md border p-2">
-                        <span className="flex-1 text-sm">{subTask.title}</span>
+                        <span className="flex-1 text-sm">{child.title}</span>
                         <Button
                           type="button"
                           variant="ghost"

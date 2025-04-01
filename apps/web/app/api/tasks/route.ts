@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
-import { TaskStatus, ReminderTimeOption } from '@prisma/client'
+import { ReminderTimeOption } from '@prisma/client'
 import { AuthenticatedApiRequest, withAuth } from '@/lib/api-middleware'
 import { TaskService } from '@/lib/services/taskService'
 import type { CreateTaskInput, UpdateTaskInput } from '@/lib/services/taskService'
 
-interface SubTaskPayload {
+// Interface for child task data coming from the client
+interface ChildTaskPayload {
   title: string
-  status?: TaskStatus
+  priority?: string
+  stage?: string
   position?: number
 }
 
@@ -46,10 +48,10 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextR
         estimatedTimeMinutes: payload.estimatedTimeMinutes,
         location: payload.location,
         why: payload.why,
-        subTasks: payload.subTasks?.map((st: SubTaskPayload) => ({
-          title: st.title,
-          status: st.status || TaskStatus.new,
-          position: st.position
+        children: payload.children?.map((child: ChildTaskPayload) => ({
+          title: child.title,
+          priority: child.priority || 'medium',
+          stage: child.stage || 'Refinement'
         }))
       }
     } catch (jsonError) {
@@ -104,10 +106,10 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
         estimatedTimeMinutes: payload.estimatedTimeMinutes,
         location: payload.location,
         why: payload.why,
-        subTasks: payload.subTasks?.map((st: SubTaskPayload) => ({
-          title: st.title,
-          status: st.status || TaskStatus.new,
-          position: st.position
+        children: payload.children?.map((child: ChildTaskPayload) => ({
+          title: child.title,
+          priority: child.priority || 'medium',
+          stage: child.stage || 'Refinement'
         }))
       }
     } catch (jsonError) {

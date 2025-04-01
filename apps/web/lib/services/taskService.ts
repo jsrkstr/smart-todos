@@ -1,4 +1,4 @@
-import { Task, Prisma, TaskStatus } from '@prisma/client'
+import { Task, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { LogService } from './logService'
 import type { TaskPriority } from '@/types/task'
@@ -16,10 +16,8 @@ export interface CreateTaskInput {
   location?: string;
   why?: string;
   tagIds?: string[];
-  subTasks?: {
+  children?: {
     title: string;
-    status?: TaskStatus;
-    position?: number;
   }[];
 }
 
@@ -37,33 +35,35 @@ export interface UpdateTaskInput {
   location?: string;
   why?: string;
   tagIds?: string[];
-  subTasks?: {
+  children?: {
     title: string;
-    status?: TaskStatus;
-    position?: number;
   }[];
 }
 
 export class TaskService {
   static async createTask(input: CreateTaskInput): Promise<Task> {
-    const { userId, subTasks, tagIds, ...taskData } = input
+    const { userId, children, tagIds, ...taskData } = input
 
-    // Create the task with its subtasks and tags
+    // Create the task with its children (subtasks) and tags
     const newTask = await prisma.task.create({
       data: {
         ...taskData,
         user: { connect: { id: userId } },
-        subTasks: subTasks ? {
-          create: subTasks.map(st => ({
-            ...st,
+        children: children ? {
+          create: children.map(child => ({
+            ...child,
+            userId: userId,
+            date: taskData.date,
+            priority: taskData.priority,
+            stage: taskData.stage
           }))
         } : undefined,
         tags: tagIds && tagIds.length > 0 ? {
           connect: tagIds.map(id => ({ id }))
         } : undefined
       },
-      include: { 
-        subTasks: true,
+      include: {
+        children: true,
         tags: {
           include: {
             category: true
@@ -81,7 +81,7 @@ export class TaskService {
         title: newTask.title,
         date: newTask.date,
         priority: newTask.priority,
-        subTasksCount: subTasks?.length || 0
+        childrenCount: children?.length || 0
       }
     })
 
@@ -89,14 +89,14 @@ export class TaskService {
   }
 
   static async updateTask(input: UpdateTaskInput): Promise<Task> {
-    const { id, userId, subTasks, tagIds, ...updates } = input
+    const { id, userId, children, tagIds, ...updates } = input
 
     // Update the task and create a log entry
     const task = await prisma.$transaction(async (tx) => {
       // If tagIds are provided, first disconnect all existing tags
       if (tagIds !== undefined) {
         await tx.task.update({
-          where: { 
+          where: {
             id,
             userId
           },
@@ -109,24 +109,27 @@ export class TaskService {
       }
 
       const updatedTask = await tx.task.update({
-        where: { 
+        where: {
           id,
-          userId // Ensure user can only update their own tasks
+          userId
         },
         data: {
           ...updates,
-          subTasks: subTasks ? {
-            deleteMany: {},
-            create: subTasks.map(st => ({
-              ...st,
+          children: children ? {
+            create: children.map(child => ({
+              ...child,
+              userId: userId,
+              date: updates.date || new Date(),
+              priority: updates.priority || 'medium',
+              stage: updates.stage || 'Refinement'
             }))
           } : undefined,
           tags: tagIds && tagIds.length > 0 ? {
             connect: tagIds.map(id => ({ id }))
           } : undefined
         },
-        include: { 
-          subTasks: true,
+        include: {
+          children: true,
           tags: {
             include: {
               category: true
@@ -142,7 +145,8 @@ export class TaskService {
         taskId: id,
         data: {
           updatedFields: Object.keys(updates),
-          newValues: updates
+          newValues: updates,
+          childrenAdded: children?.length || 0
         }
       })
 
@@ -162,9 +166,9 @@ export class TaskService {
     // Delete the task and create a log entry
     await prisma.$transaction(async (tx) => {
       await tx.task.delete({
-        where: { 
+        where: {
           id,
-          userId // Ensure user can only delete their own tasks
+          userId
         }
       })
 
@@ -182,9 +186,12 @@ export class TaskService {
 
   static async getTasks(userId: string): Promise<Task[]> {
     return prisma.task.findMany({
-      where: { userId },
-      include: { 
-        subTasks: true,
+      where: {
+        userId,
+        parentId: null
+      },
+      include: {
+        children: true,
         tags: {
           include: {
             category: true
@@ -197,12 +204,12 @@ export class TaskService {
 
   static async getTask(id: string, userId: string): Promise<Task | null> {
     return prisma.task.findFirst({
-      where: { 
+      where: {
         id,
         userId
       },
-      include: { 
-        subTasks: true,
+      include: {
+        children: true,
         tags: {
           include: {
             category: true
@@ -215,14 +222,14 @@ export class TaskService {
   static async completeTask(id: string, userId: string): Promise<Task> {
     const task = await prisma.$transaction(async (tx) => {
       const updatedTask = await tx.task.update({
-        where: { 
+        where: {
           id,
           userId
         },
-        data: { 
+        data: {
           completed: true,
         },
-        include: { subTasks: true }
+        include: { children: true }
       })
 
       // Create a log entry for task completion
@@ -245,14 +252,14 @@ export class TaskService {
   static async reactivateTask(id: string, userId: string): Promise<Task> {
     const task = await prisma.$transaction(async (tx) => {
       const updatedTask = await tx.task.update({
-        where: { 
+        where: {
           id,
           userId
         },
-        data: { 
-          completed: false
+        data: {
+          completed: false,
         },
-        include: { subTasks: true }
+        include: { children: true }
       })
 
       // Create a log entry for task reactivation
