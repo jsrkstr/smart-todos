@@ -1,6 +1,7 @@
 ---
 description: Dictates how asynchronous requests should be handled within Next.js 15, specifically concerning runtime APIs.
-globs: app/**/*
+globs: apps/web/app/**/*
+alwaysApply: false
 ---
 - Always use async versions of runtime APIs:
   typescript

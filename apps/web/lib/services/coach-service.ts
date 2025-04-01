@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
 
 // Define Coach interface matching the Prisma schema
 interface Coach {

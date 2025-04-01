@@ -1,6 +1,7 @@
 ---
 description: Defines the recommended state management strategies for Next.js 15 applications, including server and client contexts.
-globs: app/**/*
+globs: apps/web/app/**/*
+alwaysApply: false
 ---
 - Use `useActionState` instead of deprecated `useFormState`.
 - Leverage enhanced `useFormStatus` with new properties (data, method, action).

@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+
+# Architecture Decisions
+
+- Use Prisma ORM
+- Forbid raw SQL in application layer
+- Implement connection pooling
+- Enable query logging in staging

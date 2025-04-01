@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { JWT } from '@/lib/jwt'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
 // Validation schema for login

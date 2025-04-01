@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { withAuth, AuthenticatedApiRequest } from '@/lib/api-middleware'
 import { ProfileService } from '@/lib/services/profileService'
 

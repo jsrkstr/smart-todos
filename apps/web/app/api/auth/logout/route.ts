@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 import { AuthenticatedApiRequest, withAuth } from '@/lib/api-middleware';
 
 // POST /api/auth/logout - Log out user by clearing cookies

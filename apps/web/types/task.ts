@@ -7,7 +7,6 @@ export interface SubTask {
   estimatedTimeMinutes?: number
   date?: string
   rank?: number
-  events?: Event[]
   notifications?: Notification[]
 }
 
@@ -30,15 +29,6 @@ export interface Tag {
   name: string
   color?: string
   categoryId?: string
-}
-
-export interface Event {
-  id?: string
-  summary: string
-  description?: string
-  start: string
-  end: string
-  recurrence?: string[]
 }
 
 export interface Notification {
@@ -72,7 +62,6 @@ export interface Task {
   why?: string
   reminderTime?: ReminderTimeOption
   subTasks?: SubTask[]
-  events?: Event[]
   notifications?: Notification[]
 }
 

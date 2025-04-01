@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { JWT } from '@/lib/jwt'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 
 // GET /api/auth/session - Get current session information
 export async function GET() {

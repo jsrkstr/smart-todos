@@ -1,5 +1,5 @@
 import { Task, Prisma, TaskStatus } from '@prisma/client'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { LogService } from './logService'
 import type { TaskPriority } from '@/types/task'
 

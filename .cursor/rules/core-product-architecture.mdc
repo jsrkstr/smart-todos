@@ -1,0 +1,16 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Product Requirements
+[improved-prd.md](mdc:.cursor/rules/improved-prd.md)
+
+# Architectural Patterns
+- Follow clean architecture principles
+- Use domain-driven design structure
+- Implement CQRS pattern for data operations
+
+# Tech Stack
+[tech-stack.md](mdc:.cursor/rules/tech-stack.md)

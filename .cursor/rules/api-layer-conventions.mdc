@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Architectural Constraints
+- Use NestJS framework
+- Apply hexagonal architecture
+- Validate requests with Zod
+- Rate limit sensitive endpoints
+- Document with OpenAPI 3.1

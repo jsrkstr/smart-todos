@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { verify } from 'jsonwebtoken'
 import { JWTPayload } from '@/types/auth'
 import { JWT_SECRET } from '@/config'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(request: Request) {
   try {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
 import { JWT } from '@/lib/jwt'
 import crypto from 'crypto'

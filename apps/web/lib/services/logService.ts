@@ -1,5 +1,5 @@
 import { LogType, LogAuthor, Prisma } from '@prisma/client'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 
 export class LogService {
   static async createLog(params: {

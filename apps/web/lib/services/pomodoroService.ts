@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { LogService } from './logService'
 import { LogType } from '@prisma/client'
 

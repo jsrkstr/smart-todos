@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import Link from "next/link"
@@ -7,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useTasks } from "@/hooks/use-tasks"
-import type { Task } from "@/types/task"
+import { useCalendarEvents } from "@/hooks/use-calendar-events"
+import { CalendarEvent } from "@/types/calendar-events"
 import { cn } from "@/lib/utils"
 
 // Helper to get days in month
@@ -38,30 +36,27 @@ const getWeekDates = (date: Date) => {
   return weekDates
 }
 
-// Helper to categorize tasks by time of day
-const categorizeTasksByTime = (tasks: Task[]) => {
-  const morning: Task[] = []
-  const afternoon: Task[] = []
-  const evening: Task[] = []
+// Helper to categorize events by time of day
+const categorizeEventsByTime = (events: CalendarEvent[]) => {
+  const morning: CalendarEvent[] = []
+  const afternoon: CalendarEvent[] = []
+  const evening: CalendarEvent[] = []
 
-  tasks.forEach((task) => {
-    const time = task.time || "09:00" // Default to morning if no time
-    const hour = Number.parseInt(time.split(":")[0])
+  events.forEach((event) => {
+    const hour = event.startTime.getHours()
 
     if (hour < 12) {
-      morning.push(task)
+      morning.push(event)
     } else if (hour < 17) {
-      afternoon.push(task)
+      afternoon.push(event)
     } else {
-      evening.push(task)
+      evening.push(event)
     }
   })
 
-  // Sort tasks by time within each category
-  const sortByTime = (a: Task, b: Task) => {
-    const timeA = a.time || "00:00"
-    const timeB = b.time || "00:00"
-    return timeA.localeCompare(timeB)
+  // Sort events by time within each category
+  const sortByTime = (a: CalendarEvent, b: CalendarEvent) => {
+    return a.startTime.getTime() - b.startTime.getTime()
   }
 
   morning.sort(sortByTime)
@@ -71,26 +66,13 @@ const categorizeTasksByTime = (tasks: Task[]) => {
   return { morning, afternoon, evening }
 }
 
-// Helper function to get class based on stage
-function getStageClassName(stage: TaskStage): string {
-  switch (stage) {
-    case "Refinement":
-      return "stage-refinement";
-    case "Breakdown":
-      return "stage-breakdown";
-    case "Planning":
-      return "stage-planning";
-    case "Execution":
-      return "stage-execution";
-    case "Reflection":
-      return "stage-reflection";
-    default:
-      return "";
-  }
+// Helper function to format time
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-export function TaskCalendar() {
-  const { tasks } = useTasks()
+export function CalendarView() {
+  const { events, isLoading } = useCalendarEvents()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<"week" | "month">("week")
 
@@ -101,18 +83,8 @@ export function TaskCalendar() {
   const weekDates = getWeekDates(currentDate)
 
   const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
   ]
 
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -139,14 +111,14 @@ export function TaskCalendar() {
     }
   }
 
-  // Get tasks for a specific day
-  const getTasksForDay = (date: Date) => {
-    return tasks.filter((task) => {
-      const taskDate = new Date(task.date)
+  // Get events for a specific day
+  const getEventsForDay = (date: Date) => {
+    return events.filter((event) => {
+      const eventDate = new Date(event.startTime)
       return (
-        taskDate.getDate() === date.getDate() &&
-        taskDate.getMonth() === date.getMonth() &&
-        taskDate.getFullYear() === date.getFullYear()
+        eventDate.getDate() === date.getDate() &&
+        eventDate.getMonth() === date.getMonth() &&
+        eventDate.getFullYear() === date.getFullYear()
       )
     })
   }
@@ -180,6 +152,18 @@ export function TaskCalendar() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center h-[400px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardContent className="p-6">
@@ -205,7 +189,7 @@ export function TaskCalendar() {
             <Button asChild>
               <Link href="/add-task">
                 <Plus className="h-4 w-4 mr-2" />
-                Add Task
+                Add Event
               </Link>
             </Button>
           </div>
@@ -227,7 +211,7 @@ export function TaskCalendar() {
               }
 
               const date = new Date(currentYear, currentMonth, day)
-              const dayTasks = getTasksForDay(date)
+              const dayEvents = getEventsForDay(date)
               const isToday =
                 new Date().getDate() === day &&
                 new Date().getMonth() === currentMonth &&
@@ -243,63 +227,74 @@ export function TaskCalendar() {
                     >
                       <div className="flex justify-between items-center mb-1">
                         <span className={`text-sm font-medium ${isToday ? "text-primary" : ""}`}>{day}</span>
-                        {dayTasks.length > 0 && (
+                        {dayEvents.length > 0 && (
                           <span className="text-xs bg-primary/10 text-primary px-1.5 rounded-full">
-                            {dayTasks.length}
+                            {dayEvents.length}
                           </span>
                         )}
                       </div>
 
                       <div className="space-y-1">
-                        {dayTasks.slice(0, 3).map((task) => (
+                        {dayEvents.slice(0, 3).map((event) => (
                           <div
-                            key={task.id}
+                            key={event.id}
                             className={cn(
                               "text-xs truncate p-1 rounded",
-                              task.completed && "line-through text-muted-foreground bg-muted/30",
-                              getStageClassName(task.stage)
+                              event.status === "cancelled" && "line-through text-muted-foreground bg-muted/30",
+                              event.allDay && "bg-primary/5"
                             )}
                           >
-                            {task.time && <span className="mr-1">{task.time}</span>}
-                            {task.title}
+                            {!event.allDay && <span className="mr-1">{formatTime(event.startTime)}</span>}
+                            {event.title}
                           </div>
                         ))}
 
-                        {dayTasks.length > 3 && (
-                          <div className="text-xs text-muted-foreground">+{dayTasks.length - 3} more</div>
+                        {dayEvents.length > 3 && (
+                          <div className="text-xs text-muted-foreground">+{dayEvents.length - 3} more</div>
                         )}
                       </div>
                     </div>
                   </HoverCardTrigger>
 
-                  {dayTasks.length > 0 && (
+                  {dayEvents.length > 0 && (
                     <HoverCardContent className="w-80 p-0">
                       <div className="p-4">
                         <h3 className="font-medium mb-2">
                           {date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
                         </h3>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                          {dayTasks.map((task) => (
+                          {dayEvents.map((event) => (
                             <div
-                              key={task.id}
+                              key={event.id}
                               className={cn(
                                 "p-2 rounded-md border",
-                                task.completed && "opacity-60"
+                                event.status === "cancelled" && "opacity-60"
                               )}
                             >
                               <div className="flex items-center justify-between">
-                                <span className={`font-medium ${task.completed ? "line-through" : ""}`}>
-                                  {task.title}
+                                <span className={`font-medium ${event.status === "cancelled" ? "line-through" : ""}`}>
+                                  {event.title}
                                 </span>
                                 <span
-                                  className={`text-xs px-1.5 py-0.5 rounded-full ${getStageClassName(task.stage)}`}
+                                  className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                    event.status === "confirmed" ? "bg-green-100 text-green-700" :
+                                    event.status === "tentative" ? "bg-yellow-100 text-yellow-700" :
+                                    "bg-red-100 text-red-700"
+                                  }`}
                                 >
-                                  {task.stage}
+                                  {event.status}
                                 </span>
                               </div>
-                              {task.time && <div className="text-sm text-muted-foreground mt-1">Time: {task.time}</div>}
-                              {task.location && (
-                                <div className="text-sm text-muted-foreground">Location: {task.location}</div>
+                              {!event.allDay && (
+                                <div className="text-sm text-muted-foreground mt-1">
+                                  {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                                </div>
+                              )}
+                              {event.location && (
+                                <div className="text-sm text-muted-foreground">Location: {event.location}</div>
+                              )}
+                              {event.description && (
+                                <div className="text-sm text-muted-foreground mt-1">{event.description}</div>
                               )}
                             </div>
                           ))}
@@ -333,8 +328,8 @@ export function TaskCalendar() {
             {/* Week view content */}
             <div className="grid grid-cols-7 gap-1">
               {weekDates.map((date, dateIndex) => {
-                const dayTasks = getTasksForDay(date)
-                const { morning, afternoon, evening } = categorizeTasksByTime(dayTasks)
+                const dayEvents = getEventsForDay(date)
+                const { morning, afternoon, evening } = categorizeEventsByTime(dayEvents)
 
                 return (
                   <div key={dateIndex} className="min-h-[400px] border rounded-md p-2">
@@ -342,17 +337,17 @@ export function TaskCalendar() {
                       <div>
                         <h4 className="text-xs font-medium text-muted-foreground mb-1">MORNING</h4>
                         <div className="space-y-1">
-                          {morning.map((task) => (
+                          {morning.map((event) => (
                             <div
-                              key={task.id}
+                              key={event.id}
                               className={cn(
                                 "text-xs p-1.5 rounded",
-                                task.completed && "line-through text-muted-foreground bg-muted/30",
-                                getStageClassName(task.stage)
+                                event.status === "cancelled" && "line-through text-muted-foreground bg-muted/30",
+                                event.allDay && "bg-primary/5"
                               )}
                             >
-                              <div className="font-medium">{task.time || "9:00"}</div>
-                              <div>{task.title}</div>
+                              <div className="font-medium">{formatTime(event.startTime)}</div>
+                              <div>{event.title}</div>
                             </div>
                           ))}
                         </div>
@@ -361,17 +356,17 @@ export function TaskCalendar() {
                       <div>
                         <h4 className="text-xs font-medium text-muted-foreground mb-1">AFTERNOON</h4>
                         <div className="space-y-1">
-                          {afternoon.map((task) => (
+                          {afternoon.map((event) => (
                             <div
-                              key={task.id}
+                              key={event.id}
                               className={cn(
                                 "text-xs p-1.5 rounded",
-                                task.completed && "line-through text-muted-foreground bg-muted/30",
-                                getStageClassName(task.stage)
+                                event.status === "cancelled" && "line-through text-muted-foreground bg-muted/30",
+                                event.allDay && "bg-primary/5"
                               )}
                             >
-                              <div className="font-medium">{task.time || "13:00"}</div>
-                              <div>{task.title}</div>
+                              <div className="font-medium">{formatTime(event.startTime)}</div>
+                              <div>{event.title}</div>
                             </div>
                           ))}
                         </div>
@@ -380,17 +375,17 @@ export function TaskCalendar() {
                       <div>
                         <h4 className="text-xs font-medium text-muted-foreground mb-1">EVENING</h4>
                         <div className="space-y-1">
-                          {evening.map((task) => (
+                          {evening.map((event) => (
                             <div
-                              key={task.id}
+                              key={event.id}
                               className={cn(
                                 "text-xs p-1.5 rounded",
-                                task.completed && "line-through text-muted-foreground bg-muted/30",
-                                getStageClassName(task.stage)
+                                event.status === "cancelled" && "line-through text-muted-foreground bg-muted/30",
+                                event.allDay && "bg-primary/5"
                               )}
                             >
-                              <div className="font-medium">{task.time || "18:00"}</div>
-                              <div>{task.title}</div>
+                              <div className="font-medium">{formatTime(event.startTime)}</div>
+                              <div>{event.title}</div>
                             </div>
                           ))}
                         </div>
@@ -405,5 +400,4 @@ export function TaskCalendar() {
       </CardContent>
     </Card>
   )
-}
-
+} 

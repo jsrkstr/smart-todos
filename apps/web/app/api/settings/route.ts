@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { AuthenticatedApiRequest, withAuth } from '@/lib/api-middleware'
 
 // GET /api/settings
@@ -23,7 +23,6 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
           longBreakDuration: 15,
           soundEnabled: true,
           notificationsEnabled: true,
-          emailNotifications: false,
           defaultReminderTime: 'at_time'
         },
       })

@@ -147,7 +147,6 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           subTasks,
           reminderTime,
           dateAdded: new Date().toISOString(),
-          status: "new",
           completed: isCompleted,
           stage,
         })
