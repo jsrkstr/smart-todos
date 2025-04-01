@@ -91,7 +91,7 @@ model Settings {
   longBreakDuration    Int      @default(15)
   soundEnabled         Boolean  @default(true)
   notificationsEnabled Boolean  @default(true)
-  defaultReminderTime  ReminderTimeOption? @default(at_time)
+  defaultReminderTime  Int      @default(0)
 }
 
 enum TaskPriority {

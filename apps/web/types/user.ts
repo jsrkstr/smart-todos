@@ -26,7 +26,7 @@ export interface Settings {
   notificationsEnabled: boolean
   emailNotifications: boolean
   userId: string
-  reminderTime: string
+  defaultReminderTime: number
 }
 
 export interface PsychProfile {

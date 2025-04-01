@@ -8,7 +8,7 @@ interface Settings {
   soundEnabled: boolean
   notificationsEnabled: boolean
   emailNotifications: boolean
-  reminderTime: string
+  defaultReminderTime: number
 }
 
 const defaultSettings: Settings = {
@@ -19,7 +19,7 @@ const defaultSettings: Settings = {
   soundEnabled: true,
   notificationsEnabled: true,
   emailNotifications: false,
-  reminderTime: "30",
+  defaultReminderTime: 0,
 }
 
 interface SettingsStore {

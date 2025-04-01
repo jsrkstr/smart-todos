@@ -11,7 +11,7 @@ type Settings = {
   soundEnabled: boolean;
   notificationsEnabled: boolean;
   emailNotifications: boolean;
-  reminderTime: string;
+  defaultReminderTime: number;
 }
 
 interface UseSettingsReturn {

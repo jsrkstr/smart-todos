@@ -235,17 +235,18 @@ export function SettingsForm() {
             <div className="space-y-2">
               <Label htmlFor="reminder-time">Default Reminder Time</Label>
               <Select
-                defaultValue={settings.reminderTime}
-                onValueChange={(value) => updateSettings({ reminderTime: value })}
+                defaultValue={settings.defaultReminderTime.toString()}
+                onValueChange={(value) => updateSettings({ defaultReminderTime: parseInt(value, 10) })}
               >
                 <SelectTrigger id="reminder-time">
                   <SelectValue placeholder="Select time" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="0">At scheduled time</SelectItem>
+                  <SelectItem value="5">5 minutes before</SelectItem>
                   <SelectItem value="15">15 minutes before</SelectItem>
                   <SelectItem value="30">30 minutes before</SelectItem>
                   <SelectItem value="60">1 hour before</SelectItem>
-                  <SelectItem value="120">2 hours before</SelectItem>
                   <SelectItem value="1440">1 day before</SelectItem>
                 </SelectContent>
               </Select>

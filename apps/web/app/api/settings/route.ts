@@ -23,7 +23,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
           longBreakDuration: 15,
           soundEnabled: true,
           notificationsEnabled: true,
-          defaultReminderTime: 'at_time'
+          defaultReminderTime: 0
         },
       })
 

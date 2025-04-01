@@ -101,7 +101,7 @@ export function useNotifications() {
     if (task.reminderTime) {
       reminderTime = new Date(task.reminderTime)
     } else {
-      const reminderMinutes: number = Number.parseInt(settings.reminderTime || "30")
+      const reminderMinutes: number = settings.defaultReminderTime || 0
       reminderTime = new Date(taskDate.getTime() - reminderMinutes * 60 * 1000)
     }
 
