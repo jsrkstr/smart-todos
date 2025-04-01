@@ -1,33 +1,30 @@
 "use client"
 
-import { useSettingsStore } from "@/lib/store/useSettingsStore"
+import { useSettingsStore } from '@/lib/store/useSettingsStore'
+import type { ReminderTimeOption } from '@/types/task'
 
-// Import the Settings type from the store
-type Settings = {
-  theme: "light" | "dark" | "system";
-  pomodoroDuration: number;
-  shortBreakDuration: number;
-  longBreakDuration: number;
-  soundEnabled: boolean;
-  notificationsEnabled: boolean;
-  emailNotifications: boolean;
-  defaultReminderTime: number;
-}
+export function useSettings() {
+  const { settings, updateSettings, resetSettings } = useSettingsStore()
 
-interface UseSettingsReturn {
-  settings: Settings;
-  updateSettings: (updates: Partial<Settings>) => Promise<Settings | null>;
-}
+  const updateReminderTime = (reminderTime: ReminderTimeOption) => {
+    updateSettings({ reminderTime })
+  }
 
-export function useSettings(): UseSettingsReturn {
-  const { 
-    settings, 
-    updateSettings 
-  } = useSettingsStore()
+  const toggleDarkMode = () => {
+    updateSettings({ darkMode: !settings.darkMode })
+  }
+
+  const toggleNotifications = () => {
+    updateSettings({ notifications: !settings.notifications })
+  }
 
   return {
     settings,
     updateSettings,
+    resetSettings,
+    updateReminderTime,
+    toggleDarkMode,
+    toggleNotifications
   }
 }
 

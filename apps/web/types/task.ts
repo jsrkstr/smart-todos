@@ -27,8 +27,15 @@ export type TaskStage = "Refinement" | "Breakdown" | "Planning" | "Execution" | 
 export interface Tag {
   id?: string
   name: string
-  color?: string
+  color: string
   categoryId?: string
+  category?: TagCategory
+}
+
+export interface TagCategory {
+  id?: string
+  name: string
+  tags?: Tag[]
 }
 
 export interface Notification {

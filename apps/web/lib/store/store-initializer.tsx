@@ -4,12 +4,14 @@ import { useEffect, useRef } from "react"
 import { useTaskStore } from "./useTaskStore"
 import { useSettingsStore } from "./useSettingsStore"
 import { useCalendarStore } from "./calendar-store/useCalendarStore"
+import { useTagStore } from "./useTagStore"
 
 export function StoreInitializer(): null {
   const { fetchTasks } = useTaskStore()
   const { fetchSettings } = useSettingsStore()
   const { fetchEvents } = useCalendarStore()
   const initialized = useRef<boolean>(false)
+  const { fetchTags } = useTagStore()
 
   useEffect((): void => {
     // Only initialize stores once
@@ -20,8 +22,9 @@ export function StoreInitializer(): null {
       fetchSettings()
       fetchTasks()
       fetchEvents()
+      fetchTags()
     }
-  }, [fetchSettings, fetchTasks, fetchEvents])
+  }, [fetchSettings, fetchTasks, fetchEvents, fetchTags])
 
   // This component doesn't render anything
   return null

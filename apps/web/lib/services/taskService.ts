@@ -15,6 +15,7 @@ export interface CreateTaskInput {
   estimatedTimeMinutes?: number;
   location?: string;
   why?: string;
+  tagIds?: string[];
   subTasks?: {
     title: string;
     status?: TaskStatus;
@@ -35,6 +36,7 @@ export interface UpdateTaskInput {
   estimatedTimeMinutes?: number;
   location?: string;
   why?: string;
+  tagIds?: string[];
   subTasks?: {
     title: string;
     status?: TaskStatus;
@@ -44,9 +46,9 @@ export interface UpdateTaskInput {
 
 export class TaskService {
   static async createTask(input: CreateTaskInput): Promise<Task> {
-    const { userId, subTasks, ...taskData } = input
+    const { userId, subTasks, tagIds, ...taskData } = input
 
-    // Create the task with its subtasks
+    // Create the task with its subtasks and tags
     const newTask = await prisma.task.create({
       data: {
         ...taskData,
@@ -55,9 +57,19 @@ export class TaskService {
           create: subTasks.map(st => ({
             ...st,
           }))
+        } : undefined,
+        tags: tagIds && tagIds.length > 0 ? {
+          connect: tagIds.map(id => ({ id }))
         } : undefined
       },
-      include: { subTasks: true }
+      include: { 
+        subTasks: true,
+        tags: {
+          include: {
+            category: true
+          }
+        }
+      }
     })
 
     // Create a log entry for the new task
@@ -77,10 +89,25 @@ export class TaskService {
   }
 
   static async updateTask(input: UpdateTaskInput): Promise<Task> {
-    const { id, userId, subTasks, ...updates } = input
+    const { id, userId, subTasks, tagIds, ...updates } = input
 
     // Update the task and create a log entry
     const task = await prisma.$transaction(async (tx) => {
+      // If tagIds are provided, first disconnect all existing tags
+      if (tagIds !== undefined) {
+        await tx.task.update({
+          where: { 
+            id,
+            userId
+          },
+          data: {
+            tags: {
+              set: []
+            }
+          }
+        });
+      }
+
       const updatedTask = await tx.task.update({
         where: { 
           id,
@@ -93,9 +120,19 @@ export class TaskService {
             create: subTasks.map(st => ({
               ...st,
             }))
+          } : undefined,
+          tags: tagIds && tagIds.length > 0 ? {
+            connect: tagIds.map(id => ({ id }))
           } : undefined
         },
-        include: { subTasks: true }
+        include: { 
+          subTasks: true,
+          tags: {
+            include: {
+              category: true
+            }
+          }
+        }
       })
 
       // Create a log entry for the task update
@@ -146,7 +183,14 @@ export class TaskService {
   static async getTasks(userId: string): Promise<Task[]> {
     return prisma.task.findMany({
       where: { userId },
-      include: { subTasks: true },
+      include: { 
+        subTasks: true,
+        tags: {
+          include: {
+            category: true
+          }
+        }
+      },
       orderBy: { dateAdded: 'desc' }
     })
   }
@@ -157,7 +201,14 @@ export class TaskService {
         id,
         userId
       },
-      include: { subTasks: true }
+      include: { 
+        subTasks: true,
+        tags: {
+          include: {
+            category: true
+          }
+        }
+      }
     })
   }
 

@@ -150,12 +150,22 @@ model SubTask {
 }
 
 model Tag {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  color       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  categoryId  String?
+  category    TagCategory? @relation(fields: [categoryId], references: [id])
+  tasks       Task[]   @relation("TaskTags")
+}
+
+model TagCategory {
   id        String   @id @default(cuid())
   name      String   @unique
-  color     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  tasks     Task[]   @relation("TaskTags")
+  tags      Tag[]
 }
 
 model Notification {

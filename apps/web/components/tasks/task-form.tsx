@@ -15,11 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { useTasks } from "@/hooks/use-tasks"
+import { useTaskStore } from "@/lib/store/useTaskStore"
 import { useToast } from "@/hooks/use-toast"
-import type { SubTask, Task, ReminderTimeOption, TaskPriority, TaskStatus, TaskStage } from "@/types/task"
+import type { SubTask, Task, ReminderTimeOption, TaskPriority, TaskStatus, TaskStage, Tag } from "@/types/task"
 import { useSettings } from "@/hooks/use-settings"
 import { Switch } from "@/components/ui/switch"
+import { TagSelect } from "@/components/tags/tag-select"
 
 interface TaskFormProps {
   taskId?: string
@@ -28,7 +29,7 @@ interface TaskFormProps {
 
 export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const router = useRouter()
-  const { tasks, addTask, updateTask } = useTasks()
+  const { tasks, addTask, updateTask, fetchTasks } = useTaskStore()
   const { toast } = useToast()
   const { settings } = useSettings()
 
@@ -44,12 +45,18 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState<boolean>(false)
   const [suggestedSubTasks, setSuggestedSubTasks] = useState<SubTask[]>([])
   const [reminderTime, setReminderTime] = useState<ReminderTimeOption>(
-    // Make sure we have a valid enum value
-    ((settings.reminderTime as ReminderTimeOption) || "at_time") as ReminderTimeOption
+    // Default to "at_time" if not set in settings
+    (settings.reminderTime || "at_time") as ReminderTimeOption
   )
   const [task, setTask] = useState<Task | null>(null)
   const [isCompleted, setIsCompleted] = useState(task?.completed || false)
   const [stage, setStage] = useState<TaskStage>(task?.stage || "Refinement")
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([])
+
+  // Fetch tasks on component mount
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
 
   // Fetch task data if editing
   useEffect((): void => {
@@ -62,6 +69,11 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
         setLocation(existingTask.location || "")
         setWhy(existingTask.why || "")
         setSubTasks(existingTask.subTasks || [])
+        
+        // Handle tags
+        if (existingTask.tags) {
+          setSelectedTags(existingTask.tags)
+        }
         
         // Handle date
         if (existingTask.date) {
@@ -104,7 +116,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     if (isEditing && taskId && task) {
       // Update existing task
       try {
-        updateTask(taskId, {
+        const updatedTask = {
           title,
           date: date ? date.toISOString() : new Date().toISOString(),
           time,
@@ -116,7 +128,10 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           reminderTime,
           completed: isCompleted,
           stage,
-        })
+          tags: selectedTags,
+        }
+        
+        await updateTask(taskId, updatedTask)
 
         toast({
           title: "Success",
@@ -135,7 +150,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     } else {
       // Add new task
       try {
-        addTask({
+        const newTask = {
           id: Date.now().toString(),
           title,
           date: date ? date.toISOString() : new Date().toISOString(),
@@ -149,7 +164,10 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           dateAdded: new Date().toISOString(),
           completed: isCompleted,
           stage,
-        })
+          tags: selectedTags,
+        }
+        
+        await addTask(newTask)
 
         toast({
           title: "Success",
@@ -291,6 +309,15 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
                 <Sparkles className="h-4 w-4" />
               </Button>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            <TagSelect
+              selectedTags={selectedTags}
+              onChange={setSelectedTags}
+              placeholder="Select tags..."
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -482,7 +509,10 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="stage">Stage</Label>
-              <Select value={stage} onValueChange={setStage}>
+              <Select 
+                value={stage} 
+                onValueChange={(value) => setStage(value as TaskStage)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select stage" />
                 </SelectTrigger>

@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Directory Structure
+
+- apps/
+  - mobile/
+  - web/
+    - app/
+      - api/
+    - components/
+    - hooks/
+    - lib/
+      - services/
+      - store/
+    - prisma/
+
+
+
