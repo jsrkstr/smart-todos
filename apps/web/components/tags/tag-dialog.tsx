@@ -190,7 +190,6 @@ export function TagDialog({ open, onOpenChange, onTagCreated }: TagDialogProps) 
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id as string}>
                       {category.name}

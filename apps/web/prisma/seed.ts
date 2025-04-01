@@ -1,4 +1,4 @@
-import { PrismaClient, TaskStatus, ReminderTimeOption } from '@prisma/client'
+import { PrismaClient, TaskStatus, ReminderTimeOption, TaskStage, TaskPriority } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -74,6 +74,43 @@ const coaches = [
   }
 ]
 
+// Add tag categories
+const tagCategories = [
+  { name: "Work" },
+  { name: "Personal" },
+  { name: "Health" },
+  { name: "Learning" },
+  { name: "Finance" }
+]
+
+// Add tags with their categories
+const tags = [
+  { name: "Project", color: "#4F46E5", categoryName: "Work" },
+  { name: "Meeting", color: "#0EA5E9", categoryName: "Work" },
+  { name: "Deadline", color: "#DC2626", categoryName: "Work" },
+  { name: "Email", color: "#2563EB", categoryName: "Work" },
+  
+  { name: "Family", color: "#EC4899", categoryName: "Personal" },
+  { name: "Friends", color: "#8B5CF6", categoryName: "Personal" },
+  { name: "Hobby", color: "#10B981", categoryName: "Personal" },
+  { name: "Chores", color: "#6B7280", categoryName: "Personal" },
+  
+  { name: "Exercise", color: "#22C55E", categoryName: "Health" },
+  { name: "Nutrition", color: "#EAB308", categoryName: "Health" },
+  { name: "Doctor", color: "#EF4444", categoryName: "Health" },
+  { name: "Meditation", color: "#3B82F6", categoryName: "Health" },
+  
+  { name: "Course", color: "#F97316", categoryName: "Learning" },
+  { name: "Reading", color: "#8B5CF6", categoryName: "Learning" },
+  { name: "Practice", color: "#06B6D4", categoryName: "Learning" },
+  { name: "Research", color: "#0EA5E9", categoryName: "Learning" },
+  
+  { name: "Budget", color: "#64748B", categoryName: "Finance" },
+  { name: "Investment", color: "#10B981", categoryName: "Finance" },
+  { name: "Bills", color: "#EF4444", categoryName: "Finance" },
+  { name: "Taxes", color: "#DC2626", categoryName: "Finance" }
+]
+
 const sampleTasks = [
   {
     title: "Complete project proposal",
@@ -82,10 +119,12 @@ const sampleTasks = [
     deadline: new Date(Date.now() + 86400000), // Tomorrow
     dateAdded: new Date(),
     completed: false,
-    priority: "high",
+    stage: TaskStage.Refinement,
+    priority: TaskPriority.high,
     location: "Office",
     estimatedTimeMinutes: 120,
     why: "This will help advance my career and demonstrate my skills",
+    tagNames: ["Project", "Deadline"],
     subTasks: [
       { title: "Research competitors", status: TaskStatus.completed, position: 0 },
       { title: "Create outline", status: TaskStatus.completed, position: 1 },
@@ -100,11 +139,13 @@ const sampleTasks = [
     deadline: new Date(),
     dateAdded: new Date(Date.now() - 86400000), // Yesterday
     completed: false,
-    priority: "medium",
+    stage: TaskStage.Planning,
+    priority: TaskPriority.medium,
     location: "Park",
     estimatedTimeMinutes: 30,
     reminderTime: ReminderTimeOption.thirty_min_before,
     why: "Maintaining my health is essential for long-term productivity",
+    tagNames: ["Exercise", "Health"],
     subTasks: [
       { title: "Prepare running clothes", status: TaskStatus.completed, position: 0 },
       { title: "Fill water bottle", status: TaskStatus.new, position: 1 },
@@ -117,9 +158,11 @@ const sampleTasks = [
     deadline: new Date(),
     dateAdded: new Date(Date.now() - 172800000), // 2 days ago
     completed: true,
-    priority: "low",
+    stage: TaskStage.Reflection,
+    priority: TaskPriority.low,
     estimatedTimeMinutes: 30,
     why: "Reading helps me learn and grow",
+    tagNames: ["Reading", "Learning"],
     subTasks: [],
   },
 ]
@@ -133,6 +176,8 @@ async function main() {
     await prisma.pomodoro.deleteMany()
     await prisma.subTask.deleteMany()
     await prisma.task.deleteMany()
+    await prisma.tag.deleteMany()
+    await prisma.tagCategory.deleteMany()
     await prisma.settings.deleteMany()
     await prisma.psychProfile.deleteMany()
     await prisma.coach.deleteMany()
@@ -152,6 +197,44 @@ async function main() {
 
     // Get the default coach (Marie)
     const defaultCoach = createdCoaches[0]
+
+    // Create tag categories
+    console.log('Creating tag categories...')
+    const createdTagCategories = await Promise.all(
+      tagCategories.map(category => 
+        prisma.tagCategory.create({
+          data: {
+            name: category.name
+          }
+        })
+      )
+    )
+    console.log(`Created ${createdTagCategories.length} tag categories`)
+
+    // Create map of category names to IDs
+    const categoryMap = new Map(
+      createdTagCategories.map(category => [category.name, category.id])
+    )
+
+    // Create tags
+    console.log('Creating tags...')
+    const createdTags = await Promise.all(
+      tags.map(tag => 
+        prisma.tag.create({
+          data: {
+            name: tag.name,
+            color: tag.color,
+            categoryId: categoryMap.get(tag.categoryName)
+          }
+        })
+      )
+    )
+    console.log(`Created ${createdTags.length} tags`)
+
+    // Create a map of tag names to their IDs
+    const tagMap = new Map(
+      createdTags.map(tag => [tag.name, tag.id])
+    )
 
     // Create a user
     const user = await prisma.user.create({
@@ -189,11 +272,22 @@ async function main() {
         // Create tasks for the user
         tasks: {
           create: sampleTasks.map(task => {
-            const { subTasks, ...taskData } = task
+            const { subTasks, tagNames, ...taskData } = task
             return {
               ...taskData,
               subTasks: {
                 create: subTasks || []
+              },
+              tags: {
+                connect: tagNames?.map(tagName => {
+                    const tagId = tagMap.get(tagName);
+                    // Only include tags that exist in our map
+                    if (tagId) {
+                      return { id: tagId };
+                    }
+                    return null;
+                  })
+                  .filter(Boolean) || [] // Filter out null values
               }
             }
           })
