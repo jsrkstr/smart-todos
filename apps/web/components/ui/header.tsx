@@ -24,9 +24,10 @@ interface Notification {
 
 interface HeaderProps {
   onMenuClick: () => void
+  currentPage?: string
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, currentPage = "Smart Todos" }: HeaderProps) {
   const { setTheme } = useTheme()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -89,7 +90,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <span className="sr-only">Toggle menu</span>
         </Button>
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="text-primary text-xl">Smart Todos</span>
+          <span className="text-primary text-xl">{currentPage}</span>
         </Link>
         <div className="ml-auto flex items-center gap-2">
           <form className="hidden md:flex relative w-64">

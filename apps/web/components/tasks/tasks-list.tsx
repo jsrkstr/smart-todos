@@ -1,123 +1,173 @@
 "use client"
 
 import { useState } from "react"
-import { Filter, Plus } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TaskItem } from "@/components/tasks/task-item"
-import { EditTaskDialog } from "@/components/tasks/edit-task-dialog"
+import { Calendar, Clock, Tag, RefreshCw, Bell } from "lucide-react"
+import { cn } from "@/lib/utils"
+// Import React 19 compatible primitive components
+import * as React from "react"
+import * as CheckboxPrimitive from "@/components/ui/checkbox"
+import * as ButtonPrimitive from "@/components/ui/button"
 import { useTasks } from "@/hooks/use-tasks"
 import type { Task } from "@/types/task"
+// Import the new pickers
+import { DateTimeRepeatReminderPicker } from "./date-time-repeat-reminder-picker"
+import { TagPicker } from "./tag-picker"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet"
+import { EditTaskForm } from "./edit-task-form"
+import { TaskForm } from "./task-form"
 
 export function TasksList() {
-  const { tasks, deleteTask } = useTasks()
-  const [priorityFilter, setPriorityFilter] = useState<string>("all")
-  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false)
+  const { tasks, updateTask } = useTasks()
+  // Single state to manage which picker is open for which task
+  const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
-  const filterTasks = (taskList: Task[]): Task[] => {
-    if (priorityFilter === "all") return taskList
-    return taskList.filter((task: Task) => task.priority === priorityFilter)
-  }
+  // Group tasks by priority
+  const highPriorityTasks = tasks.filter(task => task.priority === "high" && !task.completed)
+  const mediumPriorityTasks = tasks.filter(task => task.priority === "medium" && !task.completed)
+  const lowPriorityTasks = tasks.filter(task => task.priority === "low" && !task.completed)
+  const completedTasks = tasks.filter(task => task.completed)
 
-  const handleEditTask = (task: Task): void => {
-    setTaskToEdit(task)
-    setIsEditDialogOpen(true)
-  }
+  // Create task groups
+  const taskGroups = [
+    {
+      title: "High Priority",
+      tasks: highPriorityTasks,
+    },
+    {
+      title: "Medium Priority",
+      tasks: mediumPriorityTasks,
+    },
+    {
+      title: "Low Priority",
+      tasks: lowPriorityTasks,
+    },
+    {
+      title: "Completed",
+      tasks: completedTasks,
+    },
+  ].filter(group => group.tasks.length > 0)
 
-  const handleDeleteTask = (taskId: string): void => {
-    if (window.confirm("Are you sure you want to delete this task?")) {
-      deleteTask(taskId)
+  const toggleTaskCompletion = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (task) {
+      updateTask(taskId, { completed: !task.completed })
     }
   }
 
-  const activeTasks = tasks.filter(task => task.status !== "completed")
-  const completedTasks = tasks.filter(task => task.status === "completed")
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select defaultValue="all" onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="high">High Priority</SelectItem>
-              <SelectItem value="medium">Medium Priority</SelectItem>
-              <SelectItem value="low">Low Priority</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="max-w-2xl mx-auto p-4">
+        {taskGroups.map((group) => (
+          <div key={group.title} className="mb-8">
+            <h2 className="text-3xl font-bold mb-4 text-gray-800">{group.title}</h2>
+            <div className="space-y-3">
+              {group.tasks.map((task) => (
+                <div key={task.id} onClick={() => setSelectedTaskId(task.id)} className="relative">
+                  <div className="flex items-start gap-3">
+                    <CheckboxPrimitive.Checkbox
+                      className="mt-1 h-6 w-6 rounded-full border-2"
+                      checked={task.completed}
+                      onCheckedChange={() => toggleTaskCompletion(task.id)}
+                    />
+                    <div className="flex-1">
+                      <div className="text-xl text-gray-800">{task.title}</div>
+                      <div className="flex flex-wrap gap-2 mt-1 text-gray-500">
+                        {task.deadline && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            <span className="text-sm">{new Date(task.deadline).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                        {task.time && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            <span className="text-sm">{task.time}</span>
+                          </div>
+                        )}
+                        {task.children && task.children.length > 0 && (
+                          <div className="flex items-center gap-1">
+                            <div
+                              className={cn(
+                                "h-4 w-4 rounded-full",
+                                task.children.every(child => child.completed) ? "bg-purple-500" : "bg-gray-300",
+                              )}
+                            >
+                              <span className="text-[10px] text-white flex items-center justify-center h-full">
+                                {task.children.filter(child => child.completed).length}/{task.children.length}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        {task.stage && (
+                          <div className="flex items-center gap-1">
+                            <RefreshCw className="h-4 w-4 text-red-500" />
+                            <span className="text-sm">{task.stage}</span>
+                          </div>
+                        )}
+                        {task.tags && task.tags.length > 0 && (
+                          task.tags.map((tag, index) => (
+                            <div key={index} className="flex items-center gap-1">
+                              <Tag className="h-4 w-4" />
+                              <span className="text-sm">{tag.name}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        {/* Combined Picker Trigger (Calendar Icon) */}
+                        <DateTimeRepeatReminderPicker
+                          task={task}
+                          open={activePicker?.taskId === task.id && activePicker?.type === 'dateTime'}
+                          onOpenChange={(open) => setActivePicker(open ? { taskId: task.id, type: 'dateTime' } : null)}
+                        >
+                          <ButtonPrimitive.Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <Calendar className="h-4 w-4" />
+                          </ButtonPrimitive.Button>
+                        </DateTimeRepeatReminderPicker>
 
-        <Button asChild>
-          <Link href="/add-task">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Task
-          </Link>
-        </Button>
+                        {/* Tag Picker Trigger (Tag Icon) */}
+                        <TagPicker
+                          task={task}
+                          open={activePicker?.taskId === task.id && activePicker?.type === 'tag'}
+                          onOpenChange={(open) => setActivePicker(open ? { taskId: task.id, type: 'tag' } : null)}
+                        >
+                          <ButtonPrimitive.Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <Tag className="h-4 w-4" />
+                          </ButtonPrimitive.Button>
+                        </TagPicker>
+
+                        {/* Remove Repeat and Bell Buttons as they are part of combined picker */}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Remove placeholder divs for pickers */}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
-
-      <Tabs defaultValue="all">
-        <TabsList className="mb-4">
-          <TabsTrigger value="all">All Tasks</TabsTrigger>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="all" className="space-y-4">
-          {filterTasks(tasks).length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No tasks found. Add a new task to get started!</p>
-          ) : (
-            filterTasks(tasks).map((task: Task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onEdit={() => handleEditTask(task)}
-                onDelete={() => handleDeleteTask(task.id)}
-              />
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="active" className="space-y-4">
-          {filterTasks(activeTasks).length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No active tasks. All done for now!</p>
-          ) : (
-            filterTasks(activeTasks).map((task: Task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onEdit={() => handleEditTask(task)}
-                onDelete={() => handleDeleteTask(task.id)}
-              />
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="completed" className="space-y-4">
-          {filterTasks(completedTasks).length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No completed tasks yet. Complete a task to see it here!
-            </p>
-          ) : (
-            filterTasks(completedTasks).map((task: Task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onEdit={() => handleEditTask(task)}
-                onDelete={() => handleDeleteTask(task.id)}
-              />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {taskToEdit && <EditTaskDialog task={taskToEdit} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />}
+      <Sheet open={!!selectedTaskId} onOpenChange={(open: boolean) => setSelectedTaskId(null)}>
+        {/* <SheetTrigger>Open</SheetTrigger> */}
+        <SheetContent className="w-[100%] sm:w-[500px]" aria-describedby="abc">
+          <SheetHeader>
+            <SheetTitle>Are you absolutely sure?</SheetTitle>
+            {selectedTaskId &&
+              <EditTaskForm taskId={selectedTaskId} />
+            }
+          </SheetHeader>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

@@ -25,6 +25,9 @@ export const useTagStore = create<TagStore>((set, get) => ({
   error: null,
 
   fetchTags: async (): Promise<void> => {
+    // Skip if already loaded or loading
+    if (get().tags.length > 0 || get().loading) return
+
     set({ loading: true, error: null })
     try {
       const [tagsResponse, categoriesResponse] = await Promise.all([
