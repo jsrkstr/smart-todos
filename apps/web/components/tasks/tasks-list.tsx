@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, Clock, Tag, RefreshCw, Bell } from "lucide-react"
+import { Calendar, Clock, Tag, RefreshCw, PanelLeftOpen } from "lucide-react"
 import { cn } from "@/lib/utils"
 // Import React 19 compatible primitive components
 import * as React from "react"
@@ -63,7 +63,7 @@ export function TasksList() {
             <h2 className="text-3xl font-bold mb-4 text-gray-800">{group.title}</h2>
             <div className="space-y-3">
               {group.tasks.map((task) => (
-                <div key={task.id} onClick={() => setSelectedTaskId(task.id)} className="relative">
+                <div key={task.id} className="relative">
                   <div className="flex items-start gap-3">
                     <CheckboxPrimitive.Checkbox
                       className="mt-1 h-6 w-6 rounded-full border-2"
@@ -148,6 +148,14 @@ export function TasksList() {
                         {/* Remove Repeat and Bell Buttons as they are part of combined picker */}
                       </div>
                     </div>
+                    <ButtonPrimitive.Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setSelectedTaskId(task.id)}
+                      >
+                        <PanelLeftOpen className="h-4 w-4" />
+                    </ButtonPrimitive.Button>
                   </div>
 
                   {/* Remove placeholder divs for pickers */}
