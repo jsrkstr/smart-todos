@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CheckCircle2, Clock, Filter, Plus } from "lucide-react"
+import { CheckCircle2, Clock, Filter, Plus, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,12 +12,22 @@ import { useTasks } from "@/hooks/use-tasks"
 import { QuoteCard } from "@/components/profile/quote-card"
 import type { Task } from "@/types/task"
 import type React from "react"
+import { format } from "date-fns"
 
 export function TasksOverview(): JSX.Element {
-  const { tasks, completedTasks } = useTasks()
+  const { tasks, completedTasks, fetchTasks } = useTasks()
   const [activeTab, setActiveTab] = useState<string>("today")
+  const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
 
   const completionRate: number = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0
+
+  const handleRefresh = () => {
+    fetchTasks()
+  }
+
+  const handleToggleCompletion = (taskId: string) => {
+    // This will be handled by the TaskItem component
+  }
 
   return (
     <div className="container mx-auto py-6">
@@ -67,18 +77,21 @@ export function TasksOverview(): JSX.Element {
       </div>
 
       <div className="mt-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">Tasks</h1>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleRefresh}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">My Tasks</h2>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm">
               <Filter className="h-4 w-4 mr-2" />
               Filter
-            </Button>
-            <Button asChild>
-              <Link href="/add-task">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Task
-              </Link>
             </Button>
           </div>
         </div>
@@ -94,7 +107,14 @@ export function TasksOverview(): JSX.Element {
             {tasks
               .filter((task: Task) => new Date(task.deadline).toDateString() === new Date().toDateString())
               .map((task: Task) => (
-                <TaskItem key={task.id} task={task} />
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onToggleCompletion={handleToggleCompletion}
+                  onOpenSidebar={() => {}}
+                  activePicker={activePicker}
+                  onSetActivePicker={setActivePicker}
+                />
               ))}
             {tasks.filter((task: Task) => new Date(task.deadline).toDateString() === new Date().toDateString()).length ===
               0 && (
@@ -112,7 +132,14 @@ export function TasksOverview(): JSX.Element {
                   new Date(task.deadline).toDateString() !== new Date().toDateString(),
               )
               .map((task: Task) => (
-                <TaskItem key={task.id} task={task} />
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onToggleCompletion={handleToggleCompletion}
+                  onOpenSidebar={() => {}}
+                  activePicker={activePicker}
+                  onSetActivePicker={setActivePicker}
+                />
               ))}
             {tasks.filter(
               (task: Task) =>
@@ -127,7 +154,14 @@ export function TasksOverview(): JSX.Element {
 
           <TabsContent value="completed" className="space-y-4">
             {completedTasks.map((task: Task) => (
-              <TaskItem key={task.id} task={task} />
+              <TaskItem
+                key={task.id}
+                task={task}
+                onToggleCompletion={handleToggleCompletion}
+                onOpenSidebar={() => {}}
+                activePicker={activePicker}
+                onSetActivePicker={setActivePicker}
+              />
             ))}
             {completedTasks.length === 0 && (
               <p className="text-center text-muted-foreground py-8">

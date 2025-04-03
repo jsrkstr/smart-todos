@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useCalendarEvents } from "@/hooks/use-calendar-events"
 import { CalendarEvent } from "@/types/calendar-events"
 import { cn } from "@/lib/utils"
+import { format } from "date-fns"
 
 // Helper to get days in month
 const getDaysInMonth = (year: number, month: number) => {
@@ -186,11 +187,14 @@ export function CalendarView() {
               </TabsList>
             </Tabs>
 
-            <Button asChild>
-              <Link href="/add-task">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Event
-              </Link>
+            <Button variant="outline" onClick={prevPeriod}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h2 className="text-lg font-semibold">
+              {format(currentDate, 'MMMM yyyy')}
+            </h2>
+            <Button variant="outline" onClick={nextPeriod}>
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>

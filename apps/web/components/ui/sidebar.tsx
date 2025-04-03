@@ -25,6 +25,7 @@ import {
   Settings,
   User,
   HeartHandshake,
+  CheckSquare,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -153,10 +154,9 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname()
 
-  const navItems = [
-    { href: "/", label: "Dashboard", icon: Home },
-    { href: "/add-task", label: "Add Task", icon: PlusCircle },
-    { href: "/tasks", label: "My Tasks", icon: ClipboardList },
+  const navigationItems = [
+    { href: "/", label: "Overview", icon: Home },
+    { href: "/tasks", label: "Tasks", icon: CheckSquare },
     { href: "/calendar", label: "Calendar", icon: Calendar },
     { href: "/pomodoro", label: "Pomodoro", icon: Clock },
     { href: "/progress", label: "Progress", icon: LineChart },
@@ -188,7 +188,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </Button>
         </div>
         <nav className="space-y-1 px-2 py-4">
-          {navItems.map((item) => {
+          {navigationItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
 
