@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, CheckCircle, ChevronDown, ChevronUp, MapPin, MoreHorizontal, Star, Clock, Tag, RefreshCw, PanelLeftOpen } from "lucide-react"
+import { Calendar, CircleDot, Circle, CircleCheck, MapPin, MoreHorizontal, Star, Clock, Tag, RefreshCw, PanelLeftOpen } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useTasks } from "@/hooks/use-tasks"
@@ -84,75 +84,68 @@ export function TaskItem({
         <div className="flex-1">
           <div className="text-xl text-gray-800">{task.title}</div>
           <div className="flex flex-wrap gap-2 mt-1 text-gray-500">
-            {task.deadline && (
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                <span className="text-sm">{new Date(task.deadline).toLocaleDateString()}</span>
-              </div>
-            )}
-            {task.time && (
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                <span className="text-sm">{task.time}</span>
-              </div>
-            )}
-            {task.children && task.children.length > 0 && (
-              <div className="flex items-center gap-1">
-                <div
-                  className={cn(
-                    "h-4 w-4 rounded-full",
-                    task.children.every(child => child.completed) ? "bg-purple-500" : "bg-gray-300",
-                  )}
-                >
-                  <span className="text-[10px] text-white flex items-center justify-center h-full">
-                    {task.children.filter(child => child.completed).length}/{task.children.length}
-                  </span>
+            <div className="flex items-center gap-1">
+              {task.children && task.children.length > 0 && (
+                <div className="flex items-center gap-1">
+                  { task.children.every(child => child.completed) ?
+                    <CircleCheck className="h-4 w-4" /> :
+                    task.children.some(child => child.completed) ?
+                    <CircleDot className="h-4 w-4" /> :
+                    <Circle className="h-4 w-4" />}
+                  <div
+                  >
+                    <span className="text-sm">
+                      {task.children.filter(child => child.completed).length}/{task.children.length}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              <DateTimeRepeatReminderPicker
+                task={task}
+                open={activePicker?.taskId === task.id && activePicker?.type === 'dateTime'}
+                onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'dateTime' } : null)}
+              >
+                <ButtonPrimitive.Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
+                  <Calendar className="h-4 w-4" />
+                </ButtonPrimitive.Button>
+              </DateTimeRepeatReminderPicker>
+              {task.deadline && (
+                <span className="text-sm">{new Date(task.deadline).toLocaleDateString()}</span>
+              )}
+              {task.time && (
+                <span className="text-sm">{task.time}</span>
+              )}
+            </div>
+          
             {task.stage && (
               <div className="flex items-center gap-1">
                 <RefreshCw className="h-4 w-4 text-red-500" />
                 <span className="text-sm">{task.stage}</span>
               </div>
             )}
-            {task.tags && task.tags.length > 0 && (
-              task.tags.map((tag, index) => (
-                <div key={index} className="flex items-center gap-1">
+            <div className="flex items-center gap-1">
+              <TagPicker
+                task={task}
+                open={activePicker?.taskId === task.id && activePicker?.type === 'tag'}
+                onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'tag' } : null)}
+              >
+                <ButtonPrimitive.Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
                   <Tag className="h-4 w-4" />
-                  <span className="text-sm">{tag.name}</span>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="flex gap-2 mt-2">
-            <DateTimeRepeatReminderPicker
-              task={task}
-              open={activePicker?.taskId === task.id && activePicker?.type === 'dateTime'}
-              onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'dateTime' } : null)}
-            >
-              <ButtonPrimitive.Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-              >
-                <Calendar className="h-4 w-4" />
-              </ButtonPrimitive.Button>
-            </DateTimeRepeatReminderPicker>
-
-            <TagPicker
-              task={task}
-              open={activePicker?.taskId === task.id && activePicker?.type === 'tag'}
-              onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'tag' } : null)}
-            >
-              <ButtonPrimitive.Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-              >
-                <Tag className="h-4 w-4" />
-              </ButtonPrimitive.Button>
-            </TagPicker>
+                </ButtonPrimitive.Button>
+              </TagPicker>
+              {task.tags && task.tags.length > 0 && (
+                <span className="text-sm">{task.tags.map((tag) => tag.name).join(', ')}</span>
+              )}
+            </div>
           </div>
         </div>
         <ButtonPrimitive.Button

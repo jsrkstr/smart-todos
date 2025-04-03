@@ -10,8 +10,7 @@
 
 ### UI & Styling
 - Tailwind CSS for utility-first styling
-- Material UI for core components
-- Shadcn UI for enhanced components
+- use Shadcn UI for all components
 - CSS Modules for component-specific styles
 
 ### State Management
