@@ -7,8 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { CoachSelection } from "@/components/coach/coach-selection";
 import { useCoaches } from "@/hooks/use-coaches";
 import { useProfile } from "@/hooks/use-profile";
-import AppLayout from "../dashboard/layout";
 import { useToast } from "@/hooks/use-toast"
+import { AppLayout } from "@/components/layouts/app-layout";
 
 export default function MyCoachPage() {
   const router = useRouter();
