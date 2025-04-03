@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
 import { Mail, Lock, ArrowRight, Loader2, User } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function SignupPage() {
   const [name, setName] = useState("")

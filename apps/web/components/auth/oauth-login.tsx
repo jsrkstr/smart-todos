@@ -9,7 +9,8 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
 import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/hooks/use-auth"
+
 
 interface OAuthLoginProps {
   onLogin?: () => void

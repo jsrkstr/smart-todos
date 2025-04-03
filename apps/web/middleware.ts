@@ -20,72 +20,87 @@ const publicRoutes = [
 const loginRoute = '/login';
 
 export async function middleware(request: NextRequest) {
-  // Get the pathname from the URL
-  const { pathname } = request.nextUrl
-  
-  // Skip middleware for API routes except auth-related ones
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
-    return NextResponse.next();
-  }
-  
-  // Check if the path is a public route or starts with a public route
-  const isPublicRoute = publicRoutes.some(route => 
-    pathname === route || pathname.startsWith(`${route}/`)
-  );
-  
-  // Skip auth check for public routes
-  if (isPublicRoute) {
-    return NextResponse.next();
-  }
-  
-  // Check for authentication token in cookies
-  const token = request.cookies.get('token')?.value;
-  let isValidToken = false;
-  let payload: JWTPayload | null = null;
-  
-  // Verify token validity using JWT utility
-  if (token) {
-    try {
-      payload = await JWT.verify<JWTPayload>(token);
-      isValidToken = !!payload;
-    } catch (error) {
-      console.error('Token verification failed:', error);
+  try {
+    console.log('Middleware executing for:', request.nextUrl.pathname);
+    
+    // Get the pathname from the URL
+    const { pathname } = request.nextUrl
+    
+    // Skip middleware for API routes except auth-related ones
+    if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
+      console.log('Skipping middleware for API route:', pathname);
+      return NextResponse.next();
     }
-  }
-  
-  // Special case for login page - redirect to dashboard if already logged in
-  if (pathname === loginRoute || pathname.startsWith(`${loginRoute}/`)) {
-    if (isValidToken) {
-      // User is already logged in - redirect to dashboard
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+    
+    // Check if the path is a public route or starts with a public route
+    const isPublicRoute = publicRoutes.some(route => 
+      pathname === route || pathname.startsWith(`${route}/`)
+    );
+    
+    // Skip auth check for public routes
+    if (isPublicRoute) {
+      console.log('Skipping middleware for public route:', pathname);
+      return NextResponse.next();
     }
-    // Not logged in, allow access to login page
+    
+    // Check for authentication token in cookies
+    const token = request.cookies.get('token')?.value;
+    let isValidToken = false;
+    let payload: JWTPayload | null = null;
+    
+    console.log('Token present:', !!token);
+    
+    // Verify token validity using JWT utility
+    if (token) {
+      try {
+        payload = await JWT.verify<JWTPayload>(token);
+        isValidToken = !!payload;
+        console.log('Token verification successful');
+      } catch (error) {
+        console.error('Token verification failed:', error);
+        isValidToken = false;
+      }
+    }
+    
+    // Special case for login page - redirect to dashboard if already logged in
+    if (pathname === loginRoute || pathname.startsWith(`${loginRoute}/`)) {
+      if (isValidToken) {
+        console.log('Redirecting authenticated user from login to dashboard');
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+      // Not logged in, allow access to login page
+      return NextResponse.next();
+    }
+    
+    // Special case for root path - redirect based on auth status
+    if (pathname === '/') {
+      if (isValidToken) {
+        console.log('Redirecting authenticated user from root to dashboard');
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      } else {
+        console.log('Redirecting unauthenticated user from root to login');
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+    }
+    
+    // For protected routes, check token validity
+    if (!isValidToken) {
+      console.log('Redirecting unauthenticated user to login');
+      return NextResponse.redirect(new URL(`${loginRoute}?redirect=${encodeURIComponent(pathname)}`, request.url));
+    }
+    
+    // If token exists and is valid, allow the request
     return NextResponse.next();
+  } catch (error) {
+    console.error('Middleware error:', error);
+    // On error, redirect to login for safety
+    return NextResponse.redirect(new URL('/login', request.url));
   }
-  
-  // Special case for root path - redirect based on auth status
-  if (pathname === '/') {
-    if (isValidToken) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    } else {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-  }
-  
-  // For protected routes, check token validity
-  if (!isValidToken) {
-    // User is not authenticated - redirect to login
-    return NextResponse.redirect(new URL(`${loginRoute}?redirect=${encodeURIComponent(pathname)}`, request.url));
-  }
-  
-  // If token exists and is valid, allow the request
-  return NextResponse.next();
 }
 
 // Apply this middleware to all routes except public assets
 export const config = {
   matcher: [
-    // Match all routes except for static assets, api routes, etc
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
