@@ -16,6 +16,7 @@ import * as CheckboxPrimitive from "@/components/ui/checkbox"
 import * as ButtonPrimitive from "@/components/ui/button"
 import * as ProgressPrimitive from "@/components/ui/progress"
 import * as BadgePrimitive from "@/components/ui/badge"
+import { format } from "date-fns"
 
 interface TaskItemProps {
   task: Task
@@ -77,13 +78,13 @@ export function TaskItem({
     <div className="relative">
       <div className="flex items-start gap-3">
         <CheckboxPrimitive.Checkbox
-          className="mt-1 h-6 w-6 rounded-full border-2"
+          className="mt-1 h-5 w-5 border-2"
           checked={task.completed}
           onCheckedChange={() => onToggleCompletion(task.id)}
         />
         <div className="flex-1">
-          <div className="text-xl text-gray-800">{task.title}</div>
-          <div className="flex flex-wrap gap-2 mt-1 text-gray-500">
+          <div className="text-l text-gray-800">{task.title}</div>
+          <div className="flex flex-wrap text-gray-500">
             <div className="flex items-center gap-1">
               {task.children && task.children.length > 0 && (
                 <div className="flex items-center gap-1">
@@ -109,25 +110,27 @@ export function TaskItem({
                 <ButtonPrimitive.Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  className="h-8 p-0"
                 >
-                  <Calendar className="h-4 w-4" />
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {task.deadline && (
+                      <span className="text-sm">{format(new Date(task.deadline), 'MMM dd')}</span>
+                    )}
+                    {task.time && (
+                      <span className="text-sm">{task.time}</span>
+                    )}
+                  </div>
                 </ButtonPrimitive.Button>
               </DateTimeRepeatReminderPicker>
-              {task.deadline && (
-                <span className="text-sm">{new Date(task.deadline).toLocaleDateString()}</span>
-              )}
-              {task.time && (
-                <span className="text-sm">{task.time}</span>
-              )}
             </div>
           
-            {task.stage && (
+            {/* {task.stage && (
               <div className="flex items-center gap-1">
                 <RefreshCw className="h-4 w-4 text-red-500" />
                 <span className="text-sm">{task.stage}</span>
               </div>
-            )}
+            )} */}
             <div className="flex items-center gap-1">
               <TagPicker
                 task={task}
