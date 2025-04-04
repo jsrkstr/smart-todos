@@ -15,6 +15,7 @@ import * as InputPrimitive from "@/components/ui/input"
 import * as SelectPrimitive from "@/components/ui/select"
 import * as LabelPrimitive from "@/components/ui/label"
 import * as TabsPrimitive from "@/components/ui/tabs"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "../ui/drawer"
 
 interface DateTimeRepeatReminderPickerProps {
   task: Task
@@ -60,12 +61,15 @@ export function DateTimeRepeatReminderPicker({
   }
 
   return (
-    <PopoverPrimitive.Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverPrimitive.PopoverTrigger asChild>
-        {children}
-      </PopoverPrimitive.PopoverTrigger>
-      <PopoverPrimitive.PopoverContent className="w-auto p-0" align="start">
-        <TabsPrimitive.Tabs defaultValue="date" className="w-[320px]">
+    <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerTrigger>
+          {children}
+        </DrawerTrigger>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="px-4">
+            <DrawerTitle>Select Date</DrawerTitle>
+          </DrawerHeader>
+          <TabsPrimitive.Tabs defaultValue="date">
           <TabsPrimitive.TabsList className="grid w-full grid-cols-4">
             <TabsPrimitive.TabsTrigger value="date"><CalendarIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
             <TabsPrimitive.TabsTrigger value="time"><ClockIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
@@ -110,7 +114,59 @@ export function DateTimeRepeatReminderPicker({
                 Clear
              </ButtonPrimitive.Button>
         </div>
-      </PopoverPrimitive.PopoverContent>
-    </PopoverPrimitive.Popover>
+    </DrawerContent>
+    </Drawer>
+    // <PopoverPrimitive.Popover open={open} onOpenChange={onOpenChange}>
+    //   <PopoverPrimitive.PopoverTrigger asChild>
+    //     {children}
+    //   </PopoverPrimitive.PopoverTrigger>
+    //   <PopoverPrimitive.PopoverContent className="w-auto p-0" align="start">
+    //     <TabsPrimitive.Tabs defaultValue="date" className="w-[320px]">
+    //       <TabsPrimitive.TabsList className="grid w-full grid-cols-4">
+    //         <TabsPrimitive.TabsTrigger value="date"><CalendarIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
+    //         <TabsPrimitive.TabsTrigger value="time"><ClockIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
+    //         <TabsPrimitive.TabsTrigger value="repeat" disabled><RepeatIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
+    //         <TabsPrimitive.TabsTrigger value="reminder" disabled><BellIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
+    //       </TabsPrimitive.TabsList>
+
+    //       <TabsPrimitive.TabsContent value="date" className="p-3">
+    //         <CalendarPrimitive.Calendar
+    //           mode="single"
+    //           selected={date}
+    //           onSelect={handleDateSelect}
+    //           initialFocus
+    //         />
+    //       </TabsPrimitive.TabsContent>
+
+    //       <TabsPrimitive.TabsContent value="time" className="p-3 space-y-3">
+    //          <LabelPrimitive.Label htmlFor="time">Set Time</LabelPrimitive.Label>
+    //          <InputPrimitive.Input 
+    //             id="time"
+    //             type="time"
+    //             value={time}
+    //             onChange={handleTimeChange}
+    //          />
+    //       </TabsPrimitive.TabsContent>
+          
+    //       {/* Placeholder for Repeat and Reminder tabs */}
+    //       <TabsPrimitive.TabsContent value="repeat" className="p-3">
+    //         Repeat settings (coming soon).
+    //       </TabsPrimitive.TabsContent>
+    //       <TabsPrimitive.TabsContent value="reminder" className="p-3">
+    //         Reminder settings (coming soon).
+    //       </TabsPrimitive.TabsContent>
+    //     </TabsPrimitive.Tabs>
+    //     <div className="p-3 border-t flex justify-end">
+    //          <ButtonPrimitive.Button 
+    //             variant="ghost" 
+    //             size="sm" 
+    //             onClick={handleClear}
+    //             disabled={!date && !time}
+    //          >
+    //             Clear
+    //          </ButtonPrimitive.Button>
+    //     </div>
+    //   </PopoverPrimitive.PopoverContent>
+    // </PopoverPrimitive.Popover>
   )
 } 

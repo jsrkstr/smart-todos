@@ -3,6 +3,7 @@ import { ReminderTimeOption } from '@prisma/client'
 import { AuthenticatedApiRequest, withAuth } from '@/lib/api-middleware'
 import { TaskService } from '@/lib/services/taskService'
 import type { CreateTaskInput, UpdateTaskInput } from '@/lib/services/taskService'
+import { Tag } from '@/types/tag'
 
 // Interface for child task data coming from the client
 interface ChildTaskPayload {
@@ -106,6 +107,8 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
         estimatedTimeMinutes: payload.estimatedTimeMinutes,
         location: payload.location,
         why: payload.why,
+        tagIds: payload.tags ? payload.tags.map((t: Tag) => t.id) : undefined,
+        completed: payload.completed,
         children: payload.children?.map((child: ChildTaskPayload) => ({
           title: child.title,
           priority: child.priority || 'medium',

@@ -35,6 +35,7 @@ export interface UpdateTaskInput {
   location?: string;
   why?: string;
   tagIds?: string[];
+  completed?: boolean,
   children?: {
     title: string;
   }[];

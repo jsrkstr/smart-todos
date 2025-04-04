@@ -83,11 +83,11 @@ export function TaskItem({
           onCheckedChange={() => onToggleCompletion(task.id)}
         />
         <div className="flex-1">
-          <div className="text-l text-gray-800">{task.title}</div>
+          <div className="text-base text-gray-800">{task.title}</div>
           <div className="flex flex-wrap text-gray-500">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 -ml-2">
               {task.children && task.children.length > 0 && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 px-2">
                   { task.children.every(child => child.completed) ?
                     <CircleCheck className="h-4 w-4" /> :
                     task.children.some(child => child.completed) ?
@@ -112,7 +112,7 @@ export function TaskItem({
                   size="sm"
                   className="h-8 p-0"
                 >
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 px-2">
                     <Calendar className="h-4 w-4" />
                     {task.deadline && (
                       <span className="text-sm">{format(new Date(task.deadline), 'MMM dd')}</span>
@@ -131,7 +131,7 @@ export function TaskItem({
                 <span className="text-sm">{task.stage}</span>
               </div>
             )} */}
-            <div className="flex items-center gap-1">
+            
               <TagPicker
                 task={task}
                 open={activePicker?.taskId === task.id && activePicker?.type === 'tag'}
@@ -140,15 +140,16 @@ export function TaskItem({
                 <ButtonPrimitive.Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  className="h-8 p-0"
                 >
+                  <div className="flex items-center gap-1 px-2">
                   <Tag className="h-4 w-4" />
-                </ButtonPrimitive.Button>
+                  {task.tags && task.tags.length > 0 && (
+                    <span className="text-sm">{task.tags.map((tag) => tag.name).join(', ')}</span>
+                  )}
+                  </div>
+                  </ButtonPrimitive.Button>
               </TagPicker>
-              {task.tags && task.tags.length > 0 && (
-                <span className="text-sm">{task.tags.map((tag) => tag.name).join(', ')}</span>
-              )}
-            </div>
           </div>
         </div>
         <ButtonPrimitive.Button
