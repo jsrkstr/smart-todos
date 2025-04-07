@@ -71,8 +71,8 @@ export function TasksList() {
         <SheetContent side="right" className="w-[100%] sm:w-[500px]">
           <SheetHeader>
             <SheetTitle>Task Details</SheetTitle>
-            {selectedTaskId && <EditTaskForm taskId={selectedTaskId} />}
           </SheetHeader>
+          {selectedTaskId && <EditTaskForm taskId={selectedTaskId} />}
         </SheetContent>
       </Sheet>
     </div>

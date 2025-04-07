@@ -70,10 +70,13 @@ export function DateTimeRepeatReminderPicker({
         <DrawerTrigger>
           {children}
         </DrawerTrigger>
-        <DrawerContent className="max-h-[85vh]">
+        <DrawerContent className="max-h-[85vh]" aria-describedby="date-description">
           <DrawerHeader className="px-4">
             <DrawerTitle>Select Date</DrawerTitle>
           </DrawerHeader>
+          <div id="date-description" className="sr-only">
+            Select a date and time for the task. You can also set repeat and reminder options.
+          </div>
           <TabsPrimitive.Tabs defaultValue="date">
           <TabsPrimitive.TabsList className="grid w-full grid-cols-4">
             <TabsPrimitive.TabsTrigger value="date"><CalendarIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>

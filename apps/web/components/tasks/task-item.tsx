@@ -84,10 +84,10 @@ export function TaskItem({
         />
         <div className="flex-1">
           <div className="text-base text-gray-800">{task.title}</div>
-          <div className="flex flex-wrap text-gray-500">
+          <div className="flex flex-wrap gap-1 text-gray-500">
             <div className="flex items-center gap-1 -ml-2">
               {task.children && task.children.length > 0 && (
-                <div className="flex items-center gap-1 px-2">
+                <div className="flex items-center gap-1 ml-2">
                   {task.children.every(child => child.completed) ?
                     <CircleCheck className="h-4 w-4" /> :
                     task.children.some(child => child.completed) ?
@@ -123,19 +123,12 @@ export function TaskItem({
               </DateTimeRepeatReminderPicker>
             </div>
 
-            {/* {task.stage && (
-              <div className="flex items-center gap-1">
-                <RefreshCw className="h-4 w-4 text-red-500" />
-                <span className="text-sm">{task.stage}</span>
-              </div>
-            )} */}
-
             <TagPicker
               task={task}
               open={activePicker?.taskId === task.id && activePicker?.type === 'tag'}
               onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'tag' } : null)}
             >
-              <div className="flex items-center gap-1 px-2">
+              <div className="flex items-center gap-1">
                 <Tag className="h-4 w-4" />
                 {task.tags && task.tags.length > 0 && (
                   <span className="text-sm">{task.tags.map((tag) => tag.name).join(', ')}</span>
