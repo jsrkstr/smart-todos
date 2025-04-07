@@ -19,6 +19,9 @@ export interface CreateTaskInput {
   children?: {
     title: string;
   }[];
+  notifications?: {
+    type: string;
+  }[];
 }
 
 export interface UpdateTaskInput {
@@ -39,6 +42,9 @@ export interface UpdateTaskInput {
   completed?: boolean,
   children?: {
     title: string;
+  }[];
+  notifications?: {
+    type: string;
   }[];
 }
 

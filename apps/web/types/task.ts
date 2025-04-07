@@ -39,16 +39,14 @@ export interface TagCategory {
 }
 
 export interface Notification {
-  id?: string
-  title: string
-  subtitle?: string
-  metadata?: any
-  mode: "phone_call" | "chat_message" | "alarm" | "push_notification"
-  type: "info" | "question" | "reminder"
-  status: string
-  trigger: "location" | "time"
-  triggerAt?: string
-  location?: string
+  id: string
+  message?: string
+  mode: "Push" | "Chat" | "Email";
+  type: "Info" | "Question" | "Reminder"
+  trigger?: "FixedTime" | "RelativeTime" | "Location"
+  relativeTimeValue: number;
+  relativeTimeUnit: "Minutes" | "Hours" | "Days"
+  author: "User" | "Bot" | "Model"
 }
 
 export interface Task {

@@ -5,6 +5,17 @@ import { TaskService } from '@/lib/services/taskService'
 import type { CreateTaskInput, UpdateTaskInput } from '@/lib/services/taskService'
 import { Tag } from '@/types/tag'
 
+// Interface for notification data coming from the client
+interface NotificationPayload {
+  id: string
+  mode: "Push" | "Chat" | "Email";
+  type: "Info" | "Question" | "Reminder"
+  trigger?: "FixedTime" | "RelativeTime" | "Location"
+  relativeTimeValue: number;
+  relativeTimeUnit: "Minutes" | "Hours" | "Days"
+  author: "User" | "Bot" | "Model"
+}
+
 // Interface for child task data coming from the client
 interface ChildTaskPayload {
   title: string
@@ -49,6 +60,14 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextR
         estimatedTimeMinutes: payload.estimatedTimeMinutes,
         location: payload.location,
         why: payload.why,
+        notifications: payload.notifications?.map((notification: NotificationPayload) => ({
+          mode: notification.mode,
+          type: notification.type,
+          trigger: notification.trigger,
+          relativeTimeValue: notification.relativeTimeValue,
+          relativeTimeUnit: notification.relativeTimeUnit,
+          author: notification.author,
+        })),
         children: payload.children?.map((child: ChildTaskPayload) => ({
           title: child.title,
           priority: child.priority || 'medium',
@@ -110,6 +129,12 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
         why: payload.why,
         tagIds: payload.tags ? payload.tags.map((t: Tag) => t.id) : undefined,
         completed: payload.completed,
+        notifications: payload.notifications?.map((notification: NotificationPayload) => ({
+          id: notification.id,
+          mode: notification.mode,
+          relativeTimeValue: notification.relativeTimeValue,
+          relativeTimeUnit: notification.relativeTimeUnit,
+        })),
         children: payload.children?.map((child: ChildTaskPayload) => ({
           title: child.title,
           priority: child.priority || 'medium',
