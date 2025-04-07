@@ -106,6 +106,7 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
         stage: payload.stage,
         estimatedTimeMinutes: payload.estimatedTimeMinutes,
         location: payload.location,
+        repeats: payload.repeats,
         why: payload.why,
         tagIds: payload.tags ? payload.tags.map((t: Tag) => t.id) : undefined,
         completed: payload.completed,

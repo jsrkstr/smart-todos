@@ -28,9 +28,9 @@ interface TaskItemProps {
   onSetActivePicker: (picker: { taskId: string; type: 'dateTime' | 'tag' } | null) => void
 }
 
-export function TaskItem({ 
-  task, 
-  onEdit, 
+export function TaskItem({
+  task,
+  onEdit,
   onDelete,
   onToggleCompletion,
   onOpenSidebar,
@@ -43,7 +43,7 @@ export function TaskItem({
 
   const isCompleted = task.completed
   const currentStage = task.stage
-  
+
   const childrenCompleted: number = task.children?.filter(child => child.completed).length || 0
   const childrenTotal: number = task.children?.length || 0
   const childrenProgress: number = childrenTotal > 0 ? Math.round((childrenCompleted / childrenTotal) * 100) : 0
@@ -88,11 +88,11 @@ export function TaskItem({
             <div className="flex items-center gap-1 -ml-2">
               {task.children && task.children.length > 0 && (
                 <div className="flex items-center gap-1 px-2">
-                  { task.children.every(child => child.completed) ?
+                  {task.children.every(child => child.completed) ?
                     <CircleCheck className="h-4 w-4" /> :
                     task.children.some(child => child.completed) ?
-                    <CircleDot className="h-4 w-4" /> :
-                    <Circle className="h-4 w-4" />}
+                      <CircleDot className="h-4 w-4" /> :
+                      <Circle className="h-4 w-4" />}
                   <div
                   >
                     <span className="text-sm">
@@ -107,49 +107,38 @@ export function TaskItem({
                 open={activePicker?.taskId === task.id && activePicker?.type === 'dateTime'}
                 onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'dateTime' } : null)}
               >
-                <ButtonPrimitive.Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 p-0"
-                >
-                  <div className="flex items-center gap-1 px-2">
-                    <Calendar className="h-4 w-4" />
-                    {task.deadline && (
-                      <span className="text-sm">{format(new Date(task.deadline), 'MMM dd')}</span>
-                    )}
-                    {task.time && (
-                      <span className="text-sm">{task.time}</span>
-                    )}
-                  </div>
-                </ButtonPrimitive.Button>
+
+                <div className="flex items-center gap-1 px-2">
+                  <Calendar className="h-4 w-4" />
+                  {task.deadline && (
+                    <span className="text-sm">{format(new Date(task.deadline), 'MMM dd')}</span>
+                  )}
+                  {task.time && (
+                    <span className="text-sm">{task.time}</span>
+                  )}
+                </div>
               </DateTimeRepeatReminderPicker>
             </div>
-          
+
             {/* {task.stage && (
               <div className="flex items-center gap-1">
                 <RefreshCw className="h-4 w-4 text-red-500" />
                 <span className="text-sm">{task.stage}</span>
               </div>
             )} */}
-            
-              <TagPicker
-                task={task}
-                open={activePicker?.taskId === task.id && activePicker?.type === 'tag'}
-                onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'tag' } : null)}
-              >
-                <ButtonPrimitive.Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 p-0"
-                >
-                  <div className="flex items-center gap-1 px-2">
-                  <Tag className="h-4 w-4" />
-                  {task.tags && task.tags.length > 0 && (
-                    <span className="text-sm">{task.tags.map((tag) => tag.name).join(', ')}</span>
-                  )}
-                  </div>
-                  </ButtonPrimitive.Button>
-              </TagPicker>
+
+            <TagPicker
+              task={task}
+              open={activePicker?.taskId === task.id && activePicker?.type === 'tag'}
+              onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'tag' } : null)}
+            >
+              <div className="flex items-center gap-1 px-2">
+                <Tag className="h-4 w-4" />
+                {task.tags && task.tags.length > 0 && (
+                  <span className="text-sm">{task.tags.map((tag) => tag.name).join(', ')}</span>
+                )}
+              </div>
+            </TagPicker>
           </div>
         </div>
         <ButtonPrimitive.Button

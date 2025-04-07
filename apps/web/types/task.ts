@@ -54,6 +54,7 @@ export interface Notification {
 export interface Task {
   id: string
   title: string
+  description?: string
   date: string // Date for the task
   time?: string // Time for the task
   deadline?: string // Optional deadline
@@ -68,6 +69,7 @@ export interface Task {
   location?: string
   why?: string
   reminderTime?: ReminderTimeOption
+  repeatRule?: string // RFC 5545 RRULE string
   // subTasks?: SubTask[] // REMOVED
   notifications?: Notification[]
 

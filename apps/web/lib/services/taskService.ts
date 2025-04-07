@@ -33,6 +33,7 @@ export interface UpdateTaskInput {
   stage?: "Refinement" | "Breakdown" | "Planning" | "Execution" | "Reflection";
   estimatedTimeMinutes?: number;
   location?: string;
+  repeats?: string;
   why?: string;
   tagIds?: string[];
   completed?: boolean,
