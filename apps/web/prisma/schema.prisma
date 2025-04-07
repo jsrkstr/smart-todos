@@ -161,9 +161,13 @@ model TagCategory {
 
 model Notification {
   id        String   @id @default(cuid())
-  type      NotificationType @default(Push)
+  type      NotificationType @default(Reminder)
+  trigger   NotificationTrigger @default(RelativeTime)
+  mode      NotificationMode @default(Push)
   message   String
   read      Boolean  @default(false)
+  relativeTimeValue Int?
+  relativeTimeUnit NotificationRelativeTimeUnit?
   userId    String
   taskId    String?
   createdAt DateTime @default(now())
@@ -397,9 +401,27 @@ enum NotificationAuthor {
 }
 
 enum NotificationType {
+  Reminder
+  Question
+  Info
+}
+
+enum NotificationTrigger {
+    FixedTime
+    RelativeTime
+    Location
+}
+
+enum NotificationMode {
     Push
     Email
     Chat
+}
+
+enum NotificationRelativeTimeUnit {
+  Minutes
+  Hours
+  Days
 }
 
 enum TaskStage {
