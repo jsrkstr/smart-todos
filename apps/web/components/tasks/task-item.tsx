@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, CircleDot, Circle, CircleCheck, MapPin, MoreHorizontal, Star, Clock, Tag, RefreshCw, PanelLeftOpen } from "lucide-react"
+import { Calendar, CircleDot, Circle, CircleCheck, MapPin, MoreHorizontal, Star, Clock, Tag, RefreshCw, PanelLeftOpen, Repeat } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useTasks } from "@/hooks/use-tasks"
@@ -115,6 +115,9 @@ export function TaskItem({
                   )}
                   {task.time && (
                     <span className="text-sm">{task.time}</span>
+                  )}
+                  {task.repeats && (
+                    <Repeat className="h-4 w-4 ml-1 p-1 rounded-[2vw] bg-gray-200" />
                   )}
                 </div>
               </DateTimeRepeatReminderPicker>

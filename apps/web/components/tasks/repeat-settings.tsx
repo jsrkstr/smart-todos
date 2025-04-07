@@ -41,10 +41,14 @@ export function RepeatSettings({ value, onChange }: RepeatSettingsProps) {
   const [yearMonth, setYearMonth] = React.useState("1")
   const [yearDay, setYearDay] = React.useState(1)
   const [repeatOn, setRepeatOn] = React.useState(!!value)
+  const [isInitializing, setIsInitializing] = React.useState(true)
 
   // Parse existing RRULE if provided
   React.useEffect(() => {
-    if (!value) return
+    if (!value) {
+      setIsInitializing(false)
+      return
+    }
 
     const rrule = value.replace("RRULE:", "")
     const parts = rrule.split(";").reduce((acc, part) => {
@@ -58,48 +62,83 @@ export function RepeatSettings({ value, onChange }: RepeatSettingsProps) {
     if (parts.BYMONTHDAY) setMonthDay(parseInt(parts.BYMONTHDAY))
     if (parts.BYMONTH) setYearMonth(parts.BYMONTH)
     if (parts.BYYEARDAY) setYearDay(parseInt(parts.BYYEARDAY))
+    
+    setIsInitializing(false)
   }, [value])
 
-  // Generate RRULE string when settings change
-  // const generateRRule = React.useCallback(() => {
-  const generateRRule = () => {
+  // Generate RRULE string based on current settings
+  const generateRRule = (
+    frequency: RepeatFrequency,
+    interval: number,
+    weekday: WeekDay,
+    monthDay: number,
+    yearMonth: string,
+    yearDay: number,
+    repeatOn: boolean
+  ) => {
     if (!repeatOn) {
       return '';
     }
 
-    const parts: string[] = [`FREQ=${frequency}`]
+    const parts: string[] = [`FREQ=${frequency}`];
 
     if (interval > 1) {
-      parts.push(`INTERVAL=${interval}`)
+      parts.push(`INTERVAL=${interval}`);
     }
 
     switch (frequency) {
       case "WEEKLY":
-        parts.push(`BYDAY=${weekday}`)
-        break
+        parts.push(`BYDAY=${weekday}`);
+        break;
       case "MONTHLY":
-        parts.push(`BYMONTHDAY=${monthDay}`)
-        break
+        parts.push(`BYMONTHDAY=${monthDay}`);
+        break;
       case "YEARLY":
         if (yearMonth && yearDay) {
-          parts.push(`BYMONTH=${yearMonth}`)
-          parts.push(`BYMONTHDAY=${yearDay}`)
+          parts.push(`BYMONTH=${yearMonth}`);
+          parts.push(`BYMONTHDAY=${yearDay}`);
         }
-        break
+        break;
     }
 
-    return `RRULE:${parts.join(";")}`
+    return `RRULE:${parts.join(";")}`;
   }
-  // , [frequency, interval, weekday, monthDay, yearMonth, yearDay])
 
-  // Update RRULE when settings change
-  React.useEffect(() => {
-    const rrule = generateRRule()
-    if (value !== rrule) {
-      debugger;
-      onChange(rrule)
-    }
-  }, [frequency, interval, weekday, monthDay, yearMonth, yearDay, onChange, generateRRule])
+  // Custom setters that update state and call onChange
+  const handleSetFrequency = (newFrequency: RepeatFrequency) => {
+    setFrequency(newFrequency)
+    onChange(generateRRule(newFrequency, interval, weekday, monthDay, yearMonth, yearDay, repeatOn))
+  }
+
+  const handleSetInterval = (newInterval: number) => {
+    setInterval(newInterval)
+    onChange(generateRRule(frequency, newInterval, weekday, monthDay, yearMonth, yearDay, repeatOn))
+  }
+
+  const handleSetWeekday = (newWeekday: WeekDay) => {
+    setWeekday(newWeekday)
+    onChange(generateRRule(frequency, interval, newWeekday, monthDay, yearMonth, yearDay, repeatOn))
+  }
+
+  const handleSetMonthDay = (newMonthDay: number) => {
+    setMonthDay(newMonthDay)
+    onChange(generateRRule(frequency, interval, weekday, newMonthDay, yearMonth, yearDay, repeatOn))
+  }
+
+  const handleSetYearMonth = (newYearMonth: string) => {
+    setYearMonth(newYearMonth)
+    onChange(generateRRule(frequency, interval, weekday, monthDay, newYearMonth, yearDay, repeatOn))
+  }
+
+  const handleSetYearDay = (newYearDay: number) => {
+    setYearDay(newYearDay)
+    onChange(generateRRule(frequency, interval, weekday, monthDay, yearMonth, newYearDay, repeatOn))
+  }
+
+  const handleSetRepeatOn = (newRepeatOn: boolean) => {
+    setRepeatOn(newRepeatOn)
+    onChange(newRepeatOn ? generateRRule(frequency, interval, weekday, monthDay, yearMonth, yearDay, newRepeatOn) : '')
+  }
 
   return (
     <div>
@@ -113,7 +152,7 @@ export function RepeatSettings({ value, onChange }: RepeatSettingsProps) {
         <Checkbox
           id="repeat-checkbox"
           checked={repeatOn}
-          onCheckedChange={() => { setRepeatOn(!repeatOn) }}
+          onCheckedChange={(checked) => handleSetRepeatOn(!!checked)}
         />
       </div>
       { repeatOn && (<div className="space-y-6">
@@ -125,10 +164,10 @@ export function RepeatSettings({ value, onChange }: RepeatSettingsProps) {
               min={1}
               max={99}
               value={interval}
-              onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
+              onChange={(e) => handleSetInterval(parseInt(e.target.value) || 1)}
               className="w-20"
             />
-            <Select value={frequency} onValueChange={(v) => setFrequency(v as RepeatFrequency)}>
+            <Select value={frequency} onValueChange={(v) => handleSetFrequency(v as RepeatFrequency)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -145,7 +184,7 @@ export function RepeatSettings({ value, onChange }: RepeatSettingsProps) {
         {frequency === "WEEKLY" && (
           <div className="space-y-4">
             <Label>On</Label>
-            <RadioGroup value={weekday} onValueChange={(v) => setWeekday(v as WeekDay)}>
+            <RadioGroup value={weekday} onValueChange={(v) => handleSetWeekday(v as WeekDay)}>
               <div className="grid grid-cols-2 gap-2">
                 {WEEKDAYS.map((day) => (
                   <div key={day} className="flex items-center space-x-2">
@@ -161,7 +200,7 @@ export function RepeatSettings({ value, onChange }: RepeatSettingsProps) {
         {frequency === "MONTHLY" && (
           <div className="space-y-4">
             <Label>On day</Label>
-            <Select value={monthDay.toString()} onValueChange={(v) => setMonthDay(parseInt(v))}>
+            <Select value={monthDay.toString()} onValueChange={(v) => handleSetMonthDay(parseInt(v))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -180,7 +219,7 @@ export function RepeatSettings({ value, onChange }: RepeatSettingsProps) {
           <div className="space-y-4">
             <Label>On</Label>
             <div className="flex gap-2">
-              <Select value={yearMonth} onValueChange={setYearMonth}>
+              <Select value={yearMonth} onValueChange={handleSetYearMonth}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -192,7 +231,7 @@ export function RepeatSettings({ value, onChange }: RepeatSettingsProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={yearDay.toString()} onValueChange={(v) => setYearDay(parseInt(v))}>
+              <Select value={yearDay.toString()} onValueChange={(v) => handleSetYearDay(parseInt(v))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
