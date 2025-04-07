@@ -7,12 +7,14 @@ import { Tag } from '@/types/tag'
 
 // Interface for notification data coming from the client
 interface NotificationPayload {
-  id: string
+  id?: string
   mode: "Push" | "Chat" | "Email";
   type: "Info" | "Question" | "Reminder"
   trigger?: "FixedTime" | "RelativeTime" | "Location"
-  relativeTimeValue: number;
-  relativeTimeUnit: "Minutes" | "Hours" | "Days"
+  message: string; // Required message field
+  relativeTimeValue?: number;
+  relativeTimeUnit?: "Minutes" | "Hours" | "Days"
+  fixedTime?: string; // ISO string for fixed time notifications
   author: "User" | "Bot" | "Model"
 }
 
@@ -64,14 +66,15 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextR
           mode: notification.mode,
           type: notification.type,
           trigger: notification.trigger,
+          message: notification.message || `Reminder for: ${payload.title}`,
           relativeTimeValue: notification.relativeTimeValue,
           relativeTimeUnit: notification.relativeTimeUnit,
+          fixedTime: notification.fixedTime ? new Date(notification.fixedTime) : undefined,
           author: notification.author,
         })),
         children: payload.children?.map((child: ChildTaskPayload) => ({
           title: child.title,
           priority: child.priority || 'medium',
-          stage: child.stage || 'Refinement'
         }))
       }
     } catch (jsonError) {
@@ -129,17 +132,8 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
         why: payload.why,
         tagIds: payload.tags ? payload.tags.map((t: Tag) => t.id) : undefined,
         completed: payload.completed,
-        notifications: payload.notifications?.map((notification: NotificationPayload) => ({
-          id: notification.id,
-          mode: notification.mode,
-          relativeTimeValue: notification.relativeTimeValue,
-          relativeTimeUnit: notification.relativeTimeUnit,
-        })),
-        children: payload.children?.map((child: ChildTaskPayload) => ({
-          title: child.title,
-          priority: child.priority || 'medium',
-          stage: child.stage || 'Refinement'
-        }))
+        notifications: payload.notifications,
+        children: payload.children,
       }
     } catch (jsonError) {
       const errorMessage: string = jsonError instanceof Error ? jsonError.message : 'Unknown error'

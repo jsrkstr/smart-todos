@@ -3,6 +3,35 @@ import { prisma } from '@/lib/prisma'
 import { LogService } from './logService'
 import type { TaskPriority } from '@/types/task'
 
+// Notification enum types from Prisma schema
+type NotificationType = 'Reminder' | 'Question' | 'Info'
+type NotificationMode = 'Push' | 'Email' | 'Chat'
+type NotificationTrigger = 'FixedTime' | 'RelativeTime' | 'Location'
+type NotificationRelativeTimeUnit = 'Minutes' | 'Hours' | 'Days'
+type NotificationAuthor = 'User' | 'Bot' | 'Model'
+
+export interface NotificationCreateinput {
+  mode: NotificationMode;
+  type: NotificationType;
+  trigger?: NotificationTrigger;
+  message: string;
+  relativeTimeValue?: number;
+  relativeTimeUnit?: NotificationRelativeTimeUnit;
+  fixedTime?: Date;
+  author: NotificationAuthor;
+}
+
+export interface ChildrenCreateinput {
+  title: string;
+  description?: string;
+}
+
+export interface ChildrenUpdateInput {
+  id: string;
+  title: string;
+  description?: string;
+}
+
 export interface CreateTaskInput {
   userId: string;
   title: string;
@@ -18,10 +47,22 @@ export interface CreateTaskInput {
   tagIds?: string[];
   children?: {
     title: string;
+    priority?: string;
+    stage?: string;
   }[];
-  notifications?: {
-    type: string;
-  }[];
+  notifications?: NotificationCreateinput[];
+}
+
+export interface NotificationUpdateInput {
+  id: string;
+  mode?: NotificationMode;
+  type?: NotificationType;
+  trigger?: NotificationTrigger;
+  message?: string;
+  relativeTimeValue?: number;
+  relativeTimeUnit?: NotificationRelativeTimeUnit;
+  fixedTime?: Date;
+  author?: NotificationAuthor;
 }
 
 export interface UpdateTaskInput {
@@ -41,18 +82,22 @@ export interface UpdateTaskInput {
   tagIds?: string[];
   completed?: boolean,
   children?: {
-    title: string;
-  }[];
+    create: ChildrenCreateinput[],
+    update: ChildrenUpdateInput[],
+    removeIds: string[],
+  }
   notifications?: {
-    type: string;
-  }[];
+    create: NotificationCreateinput[],
+    update: NotificationUpdateInput[],
+    removeIds: string[],
+  }
 }
 
 export class TaskService {
   static async createTask(input: CreateTaskInput): Promise<Task> {
-    const { userId, children, tagIds, ...taskData } = input
+    const { userId, children, tagIds, notifications, ...taskData } = input
 
-    // Create the task with its children (subtasks) and tags
+    // Create the task with its children (subtasks) and tags first
     const newTask = await prisma.task.create({
       data: {
         ...taskData,
@@ -66,6 +111,20 @@ export class TaskService {
             stage: taskData.stage
           }))
         } : undefined,
+        notifications: notifications ? {
+          create: notifications.map(notification => ({
+            message: notification.message,
+            mode: notification.mode,
+            type: notification.type,
+            trigger: notification.trigger || 'RelativeTime',
+            relativeTimeValue: notification.relativeTimeValue,
+            relativeTimeUnit: notification.relativeTimeUnit,
+            fixedTime: notification.fixedTime,
+            author: notification.author,
+            userId: userId,
+            // taskId: newTask.id
+          })),
+        } : undefined,
         tags: tagIds && tagIds.length > 0 ? {
           connect: tagIds.map(id => ({ id }))
         } : undefined
@@ -76,7 +135,8 @@ export class TaskService {
           include: {
             category: true
           }
-        }
+        },
+        notifications: true
       }
     })
 
@@ -89,7 +149,8 @@ export class TaskService {
         title: newTask.title,
         date: newTask.date,
         priority: newTask.priority,
-        childrenCount: children?.length || 0
+        childrenCount: children?.length || 0,
+        notificationsCount: notifications?.length || 0
       }
     })
 
@@ -97,7 +158,7 @@ export class TaskService {
   }
 
   static async updateTask(input: UpdateTaskInput): Promise<Task> {
-    const { id, userId, children, tagIds, ...updates } = input
+    const { id, userId, children, tagIds, notifications, ...updates } = input
 
     // Update the task and create a log entry
     const task = await prisma.$transaction(async (tx) => {
@@ -116,6 +177,7 @@ export class TaskService {
         });
       }
 
+
       const updatedTask = await tx.task.update({
         where: {
           id,
@@ -124,17 +186,41 @@ export class TaskService {
         data: {
           ...updates,
           children: children ? {
-            create: children.map(child => ({
+            create: children?.create?.map(child => ({
               ...child,
               userId: userId,
               date: updates.date || new Date(),
-              priority: updates.priority || 'medium',
-              stage: updates.stage || 'Refinement'
-            }))
+            })),
+            update: children?.update?.map(child => ({
+              where: {
+                id: child.id,
+              },
+              data: {
+                ...child,
+                userId: userId,
+                date: updates.date || new Date(),
+              },
+            })),
+            deleteMany: children?.removeIds.map(id => ({ id })),
           } : undefined,
           tags: tagIds && tagIds.length > 0 ? {
             connect: tagIds.map(id => ({ id }))
-          } : undefined
+          } : undefined,
+          notifications: {
+            create: notifications?.create?.map(notification => ({
+              ...notification,
+              userId: userId,
+            })),
+            update: notifications?.update?.map(notification => ({
+              where: {
+                id: notification.id,
+              },
+              data: {
+                ...notification,
+              }
+            })),
+            deleteMany: notifications?.removeIds.map(id => ({ id })),
+          }
         },
         include: {
           children: true,
@@ -142,7 +228,8 @@ export class TaskService {
             include: {
               category: true
             }
-          }
+          },
+          notifications: true
         }
       })
 
@@ -154,7 +241,8 @@ export class TaskService {
         data: {
           updatedFields: Object.keys(updates),
           newValues: updates,
-          childrenAdded: children?.length || 0
+          childrenAdded: children?.create?.length || 0,
+          notificationsUpdated: notifications?.create?.length || 0
         }
       })
 
@@ -204,7 +292,8 @@ export class TaskService {
           include: {
             category: true
           }
-        }
+        },
+        notifications: true
       },
       orderBy: { dateAdded: 'desc' }
     })
@@ -222,7 +311,8 @@ export class TaskService {
           include: {
             category: true
           }
-        }
+        },
+        notifications: true
       }
     })
   }
@@ -237,7 +327,10 @@ export class TaskService {
         data: {
           completed: true,
         },
-        include: { children: true }
+        include: { 
+          children: true,
+          notifications: true
+        }
       })
 
       // Create a log entry for task completion
@@ -267,7 +360,10 @@ export class TaskService {
         data: {
           completed: false,
         },
-        include: { children: true }
+        include: { 
+          children: true,
+          notifications: true
+        }
       })
 
       // Create a log entry for task reactivation
