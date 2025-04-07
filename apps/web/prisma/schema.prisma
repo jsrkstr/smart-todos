@@ -161,7 +161,7 @@ model TagCategory {
 
 model Notification {
   id        String   @id @default(cuid())
-  type      String
+  type      NotificationType @default(Push)
   message   String
   read      Boolean  @default(false)
   userId    String
@@ -169,6 +169,7 @@ model Notification {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
   task      Task?    @relation(fields: [taskId], references: [id])
+  author    NotificationAuthor @default(User)
 }
 
 model Log {
@@ -387,6 +388,18 @@ enum LogAuthor {
     Bot
     Model
     App
+}
+
+enum NotificationAuthor {
+    User
+    Bot
+    Model
+}
+
+enum NotificationType {
+    Push
+    Email
+    Chat
 }
 
 enum TaskStage {
