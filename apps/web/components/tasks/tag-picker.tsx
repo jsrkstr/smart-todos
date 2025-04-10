@@ -95,7 +95,7 @@ export function TagPicker({
               />
             </div>
           </DrawerHeader>
-          <ScrollArea className="flex-1 px-4 pb-6">
+          <ScrollArea className="flex-1 px-4 pb-6" style={{ overflow: "scroll"}}>
             {loading ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 Loading tags...
