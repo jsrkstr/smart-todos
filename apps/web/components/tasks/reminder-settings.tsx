@@ -6,12 +6,14 @@ import { useToast } from "@/components/ui/use-toast"
 import * as SelectPrimitive from "@/components/ui/select"
 import * as InputPrimitive from "@/components/ui/input"
 import * as ButtonPrimitive from "@/components/ui/button"
-import type { Task, Notification } from '@/types/task'
+import type { Task, Notification as OriginalNotification } from '@/types/task'
 
 interface NotificationSettingsProps {
   value: Notification[],
   onChange: (value: Notification[]) => void
 }
+
+type Notification = OriginalNotification & { isNew?: boolean };
 
 export function ReminderSettings({ value, onChange }: NotificationSettingsProps) {
   const { toast } = useToast()
@@ -37,6 +39,7 @@ export function ReminderSettings({ value, onChange }: NotificationSettingsProps)
       relativeTimeValue: 15,
       relativeTimeUnit: 'Minutes',
       author: "User",
+      isNew: true,
     }
     const updatedNotifications = [...notifications, newNotification]
     setNotifications(updatedNotifications)
@@ -59,15 +62,15 @@ export function ReminderSettings({ value, onChange }: NotificationSettingsProps)
 
   const handleNotificationTimeChange = (id: string, time: number) => {
     const updatedNotifications = notifications.map(r => 
-      r.id === id ? { ...r, time } : r
+      r.id === id ? { ...r, relativeTimeValue: time } : r
     )
     setNotifications(updatedNotifications)
     onChange(updatedNotifications)
   }
 
-  const handleNotificationUnitChange = (id: string, unit: 'minutes' | 'hours' | 'days') => {
+  const handleNotificationUnitChange = (id: string, unit: 'Minutes' | 'Hours' | 'Days') => {
     const updatedNotifications = notifications.map(r => 
-      r.id === id ? { ...r, unit } : r
+      r.id === id ? { ...r, relativeTimeUnit: unit } : r
     )
     setNotifications(updatedNotifications)
     onChange(updatedNotifications)

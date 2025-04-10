@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import type { Task, TaskPriority, TaskStage } from '@/types/task'
+import type { Task, TaskPriority, TaskStage, Notification } from '@/types/task'
+import type { NotificationCreateinput, NotificationUpdateInput } from '@/lib/services/taskService'
 
 type SetupNotificationsFunction = (tasks: Task[]) => void
 
@@ -12,7 +13,7 @@ interface TaskStore {
   // Actions
   setNotificationHandler: (handler: SetupNotificationsFunction) => void
   fetchTasks: () => Promise<void>
-  addTask: (task: Task) => Promise<Task | null>
+  addTask: (task: Partial<Task>) => Promise<Task | null>
   toggleTaskCompletion: (taskId: string) => Promise<void>
   deleteTask: (taskId: string) => Promise<void>
   updateTask: (taskId: string, updates: Partial<Task>) => Promise<Task | null>
@@ -67,7 +68,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   addTask: async (task: Partial<Task>): Promise<Task | null> => {
-    const validatedTask: Task = {
+    const validatedTask: any = {
       id: task.id || crypto.randomUUID(),
       title: task.title || '',
       date: task.date || new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
@@ -79,9 +80,30 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       priority: task.priority || "Medium" as TaskPriority,
       location: task.location,
       why: task.why,
-      reminderTime: task.reminderTime,
-      children: task.children || []
+      reminderTime: task.reminderTime
     };
+
+    // Format children for API
+    if (task.children && task.children.length > 0) {
+      validatedTask.children = task.children.map(child => ({
+        title: child.title,
+        description: child.description,
+        priority: child.priority || 'medium'
+      }));
+    }
+
+    // Format notifications for API
+    if (task.notifications && task.notifications.length > 0) {
+      validatedTask.notifications = task.notifications.map((notification: Notification) => ({
+        message: notification.message || `Reminder for: ${task.title}`,
+        mode: notification.mode,
+        type: notification.type,
+        trigger: notification.trigger,
+        relativeTimeValue: notification.relativeTimeValue,
+        relativeTimeUnit: notification.relativeTimeUnit,
+        author: notification.author
+      }));
+    }
 
     try {
       // Validate task data before sending
@@ -154,10 +176,83 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
   updateTask: async (taskId: string, updates: Partial<Task>): Promise<Task | null> => {
     try {
+      const payload: any = { id: taskId, ...updates };
+      
+      // Format children for API if provided
+      if (updates.children) {
+        // Extract current task to compare children
+        const currentTask = get().tasks.find(t => t.id === taskId);
+        const currentChildren = currentTask?.children || [];
+        
+        // Sort children into create, update, and remove arrays
+        const createChildren = updates.children.filter(c => !c.id);
+        const updateChildren = updates.children.filter(c => !!c.id);
+        const removeIds = currentChildren
+          .filter(c => !updates.children?.some(uc => uc.id === c.id))
+          .map(c => c.id);
+        
+        payload.children = {
+          create: createChildren.map(c => ({
+            title: c.title,
+            description: c.description
+          })),
+          update: updateChildren.map(c => ({
+            id: c.id,
+            title: c.title,
+            description: c.description
+          })),
+          removeIds: removeIds
+        };
+      }
+
+      // Format notifications for API if provided
+      if (updates.notifications) {
+        // Extract current task to compare notifications
+        const currentTask = get().tasks.find(t => t.id === taskId);
+        const currentNotifications = currentTask?.notifications || [];
+
+        updates.notifications = updates.notifications.map(n => {
+          if (n.isNew) {
+            n.id = undefined;
+          }
+          return n;
+        })
+        
+        // Sort notifications into create, update, and remove arrays
+        const createNotifications = updates.notifications.filter(n => !n.id);
+        const updateNotifications = updates.notifications.filter(n => !!n.id);
+        const removeIds = currentNotifications
+          .filter(n => !updates.notifications?.some(un => un.id === n.id))
+          .map(n => n.id);
+        
+        payload.notifications = {
+          create: createNotifications.map(n => ({
+            message: n.message || `Reminder for task`,
+            mode: n.mode,
+            type: n.type,
+            trigger: n.trigger,
+            relativeTimeValue: n.relativeTimeValue,
+            relativeTimeUnit: n.relativeTimeUnit,
+            author: n.author
+          })),
+          update: updateNotifications.map(n => ({
+            id: n.id,
+            message: n.message,
+            mode: n.mode,
+            type: n.type,
+            trigger: n.trigger,
+            relativeTimeValue: n.relativeTimeValue,
+            relativeTimeUnit: n.relativeTimeUnit,
+            author: n.author
+          })),
+          removeIds: removeIds
+        };
+      }
+
       const response: Response = await fetch('/api/tasks', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: taskId, ...updates }),
+        body: JSON.stringify(payload),
       })
       if (!response.ok) {
         throw new Error('Failed to update task')

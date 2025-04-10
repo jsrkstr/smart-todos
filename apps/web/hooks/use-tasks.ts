@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useRef } from "react"
 import { useNotifications } from "@/hooks/use-notifications"
 import { useTaskStore } from "@/lib/store/useTaskStore"
-import type { Task } from "@/types/task"
+import type { Task, Notification } from "@/types/task"
 
 export function useTasks() {
   const { scheduleTaskReminder } = useNotifications()
@@ -22,7 +22,7 @@ export function useTasks() {
   // Create a memoized notification setup function
   const setupNotifications = useCallback((tasks: Task[]): void => {
     tasks.forEach((task: Task) => {
-      if (task.status !== "completed") {
+      if (!task.completed) {
         scheduleTaskReminder(task)
       }
     })
@@ -37,10 +37,19 @@ export function useTasks() {
   }, [setNotificationHandler, setupNotifications]);
 
   // Get completed tasks
-  const completedTasks: Task[] = tasks.filter((task: Task) => task.status === "completed")
+  const completedTasks: Task[] = tasks.filter((task: Task) => task.completed)
 
   // Add a new task with notification scheduling
-  const addTask = async (task: Task): Promise<Task | null> => {
+  const addTask = async (task: Partial<Task>): Promise<Task | null> => {
+    // Prepare notifications if specified
+    if (task.notifications) {
+      // Ensure each notification has proper structure
+      task.notifications = task.notifications.map(notification => ({
+        ...notification,
+        message: notification.message || `Reminder for: ${task.title}`,
+      }))
+    }
+    
     const newTask: Task | null = await storeAddTask(task)
     if (newTask) {
       scheduleTaskReminder(newTask)
@@ -50,8 +59,22 @@ export function useTasks() {
 
   // Update a task with notification rescheduling
   const updateTask = async (taskId: string, updates: Partial<Task>): Promise<Task | null> => {
+    // Format children properly if needed
+    if (updates.children) {
+      // taskStore will handle the children format conversion
+    }
+
+    // Format notifications properly if needed
+    if (updates.notifications) {
+      // Ensure each notification has proper structure
+      updates.notifications = updates.notifications.map(notification => ({
+        ...notification,
+        message: notification.message || `Reminder for task`,
+      }))
+    }
+
     const updatedTask: Task | null = await storeUpdateTask(taskId, updates)
-    if (updatedTask && updatedTask.status !== "completed") {
+    if (updatedTask && !updatedTask.completed) {
       scheduleTaskReminder(updatedTask)
     }
     return updatedTask

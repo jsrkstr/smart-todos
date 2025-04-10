@@ -39,7 +39,7 @@ export interface TagCategory {
 }
 
 export interface Notification {
-  id: string
+  id?: string
   message?: string
   mode: "Push" | "Chat" | "Email";
   type: "Info" | "Question" | "Reminder"
@@ -47,6 +47,7 @@ export interface Notification {
   relativeTimeValue: number;
   relativeTimeUnit: "Minutes" | "Hours" | "Days"
   author: "User" | "Bot" | "Model"
+  isNew?: boolean
 }
 
 export interface Task {
