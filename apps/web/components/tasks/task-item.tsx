@@ -8,6 +8,7 @@ import { useTasks } from "@/hooks/use-tasks"
 import type { Task, TaskStage } from "@/types/task"
 import { DateTimeRepeatReminderPicker } from "./date-time-repeat-reminder-picker"
 import { TagPicker } from "./tag-picker"
+import { Input } from "@/components/ui/input"
 
 // Import React 19 compatible components
 import * as React from "react"
@@ -40,6 +41,8 @@ export function TaskItem({
   const router = useRouter()
   const { toggleTaskCompletion, deleteTask, updateTask } = useTasks()
   const [expanded, setExpanded] = useState<boolean>(false)
+  const [isEditing, setIsEditing] = useState<boolean>(false)
+  const [editedTitle, setEditedTitle] = useState<string>(task.title)
 
   const isCompleted = task.completed
   const currentStage = task.stage
@@ -68,6 +71,28 @@ export function TaskItem({
     if (onDelete) onDelete()
   }
 
+  const handleTitleClick = (): void => {
+    if (!isCompleted) {
+      setIsEditing(true)
+    }
+  }
+
+  const handleTitleBlur = async (): Promise<void> => {
+    setIsEditing(false)
+    if (editedTitle !== task.title) {
+      await updateTask(task.id, { title: editedTitle })
+    }
+  }
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur()
+    } else if (e.key === 'Escape') {
+      setEditedTitle(task.title)
+      setIsEditing(false)
+    }
+  }
+
   const getSuccessVariant = () => {
     return {
       className: "border-transparent bg-green-100 text-green-800 hover:bg-green-200"
@@ -83,7 +108,26 @@ export function TaskItem({
           onCheckedChange={() => onToggleCompletion(task.id)}
         />
         <div className="flex-1">
-          <div className="text-base text-gray-800">{task.title}</div>
+          {isEditing ? (
+            <Input
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              onBlur={handleTitleBlur}
+              onKeyDown={handleTitleKeyDown}
+              className="text-base"
+              autoFocus
+            />
+          ) : (
+            <div 
+              className={cn(
+                "text-base text-gray-800 cursor-pointer",
+                isCompleted && "line-through text-gray-500"
+              )}
+              onClick={handleTitleClick}
+            >
+              {task.title}
+            </div>
+          )}
           <div className="flex flex-wrap gap-1 text-gray-500">
             <div className="flex items-center gap-1 -ml-2">
               {task.children && task.children.length > 0 && (
@@ -107,7 +151,6 @@ export function TaskItem({
                 open={activePicker?.taskId === task.id && activePicker?.type === 'dateTime'}
                 onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'dateTime' } : null)}
               >
-
                 <div className="flex items-center gap-1 px-2">
                   <Calendar className="h-4 w-4" />
                   {task.deadline && (

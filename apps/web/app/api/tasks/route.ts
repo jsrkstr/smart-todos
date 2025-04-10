@@ -83,7 +83,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextR
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
     }
     
-    if (!taskData || !taskData.title) {
+    if (!taskData) {
       console.error('Invalid task data received:', taskData)
       return NextResponse.json({ error: 'Invalid task data' }, { status: 400 })
     }

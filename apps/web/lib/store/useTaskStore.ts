@@ -107,7 +107,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     try {
       // Validate task data before sending
-      if (!validatedTask || !validatedTask.title) {
+      if (!validatedTask) {
         console.error("Invalid task data:", validatedTask);
         throw new Error('Invalid task data');
       }

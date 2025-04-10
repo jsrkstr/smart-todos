@@ -20,7 +20,7 @@ export type ReminderTimeOption =
 
 // export type TaskStatus = "new" | "planned" | "completed"; // REMOVED
 
-export type TaskPriority = "low" | "medium" | "high";
+export type TaskPriority = 'low' | 'medium' | 'high';
 
 export type TaskStage = "Refinement" | "Breakdown" | "Planning" | "Execution" | "Reflection";
 
