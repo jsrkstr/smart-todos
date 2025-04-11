@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, CircleDot, Circle, CircleCheck, MapPin, MoreHorizontal, Star, Clock, Tag, RefreshCw, PanelLeftOpen, Repeat } from "lucide-react"
+import { Calendar, CircleDot, Circle, CircleCheck, Tag, ChevronRight, Repeat } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useTasks } from "@/hooks/use-tasks"
 import type { Task, TaskStage } from "@/types/task"
 import { DateTimeRepeatReminderPicker } from "./date-time-repeat-reminder-picker"
 import { TagPicker } from "./tag-picker"
+import { useSwipeable } from 'react-swipeable'
 import { Input } from "@/components/ui/input"
 
 // Import React 19 compatible components
@@ -59,6 +60,16 @@ export function TaskItem({
     setIsEditing(!!edit);
   }, [edit]);
 
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (!showDetails) {
+        onOpenSidebar(task.id)
+      }
+    },
+    // preventDefaultTouchmoveEvent: true,
+    trackTouch: true,
+  })
+
   const handlePostpone = (): void => {
     const currentDeadline: Date = new Date(task.deadline as string)
     const nextDay: Date = new Date(currentDeadline)
@@ -104,7 +115,7 @@ export function TaskItem({
   }
 
   return (
-    <div className="relative">
+    <div className="relative" {...swipeHandlers} >
       <div className="flex items-start gap-3">
         <div className="flex-1">
           {isEditing ? (
@@ -123,21 +134,21 @@ export function TaskItem({
                 "text-base text-gray-800 cursor-pointer",
                 isCompleted && "line-through text-gray-500"
               )}
-              style={{ height: '1.5rem' }}
+              style={{ minHeight: '1.5rem' }}
               onClick={handleTitleClick}
             >
               {task.title}
             </div>
           )}
-          <div className="flex flex-wrap gap-1 text-gray-500" style={{ height: '1.25rem' }}>
+          <div className="flex flex-wrap gap-1 text-gray-500" style={{ minHeight: '1.25rem' }}>
             <div className="flex items-center gap-1 -ml-2">
               {task.children && task.children.length > 0 && (
                 <div className="flex items-center gap-1 ml-2">
                   {task.children.every(child => child.completed) ?
-                    <CircleCheck className="h-4 w-4" /> :
+                    <CircleCheck className="h-3 w-3" /> :
                     task.children.some(child => child.completed) ?
-                      <CircleDot className="h-4 w-4" /> :
-                      <Circle className="h-4 w-4" />}
+                      <CircleDot className="h-3 w-3" /> :
+                      <Circle className="h-3 w-3" />}
                   <div
                   >
                     <span className="text-sm">
@@ -153,7 +164,7 @@ export function TaskItem({
                 onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'dateTime' } : null)}
               >
                 <div className="flex items-center gap-1 px-2">
-                  <Calendar className="h-2 w-2" />
+                  <Calendar className="h-3 w-3" />
                   {task.deadline && (
                     <span className="text-sm">{format(new Date(task.deadline), 'MMM dd')}</span>
                   )}
@@ -173,7 +184,7 @@ export function TaskItem({
               onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'tag' } : null)}
             >
               <div className="flex items-center gap-1">
-                <Tag className="h-2 w-2" />
+                <Tag className="h-3 w-3" />
                 {task.tags && task.tags.length > 0 && (
                   <span className="text-sm">{task.tags.map((tag) => tag.name).join(', ')}</span>
                 )}
@@ -194,7 +205,7 @@ export function TaskItem({
             className="h-8 w-8 p-0"
             onClick={() => onOpenSidebar(task.id)}
           >
-            <PanelLeftOpen className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" />
           </ButtonPrimitive.Button>
         }
       </div>

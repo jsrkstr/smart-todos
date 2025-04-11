@@ -116,7 +116,7 @@ export function TasksList() {
         {taskGroups.map((group) => (
           <div key={group.title} className="">
             <h4 className="text-xl font-bold mb-4 text-gray-800">{group.title}</h4>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {group.tasks.map((task) => (
                 <TaskItem
                   key={task.id}
