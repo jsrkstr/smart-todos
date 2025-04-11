@@ -86,7 +86,7 @@ export function DateTimeRepeatReminderPicker({
             <TabsPrimitive.TabsTrigger value="reminder"><BellIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
           </TabsPrimitive.TabsList>
 
-          <TabsPrimitive.TabsContent value="date" className="p-3">
+          <TabsPrimitive.TabsContent value="date" className="p-3 min-h-[40vh]">
             <CalendarPrimitive.Calendar
               mode="single"
               selected={date}
@@ -95,7 +95,7 @@ export function DateTimeRepeatReminderPicker({
             />
           </TabsPrimitive.TabsContent>
 
-          <TabsPrimitive.TabsContent value="time" className="p-3 space-y-3">
+          <TabsPrimitive.TabsContent value="time" className="p-3 space-y-3 min-h-[40vh]">
              <LabelPrimitive.Label htmlFor="time">Set Time</LabelPrimitive.Label>
              <InputPrimitive.Input 
                 id="time"
@@ -105,7 +105,7 @@ export function DateTimeRepeatReminderPicker({
              />
           </TabsPrimitive.TabsContent>
           
-          <TabsPrimitive.TabsContent value="repeat" className="p-3">
+          <TabsPrimitive.TabsContent value="repeat" className="p-3 min-h-[40vh]">
             <RepeatSettings
               value={task.repeats}
               onChange={(rrule) => {
@@ -113,7 +113,7 @@ export function DateTimeRepeatReminderPicker({
               }}
             />
           </TabsPrimitive.TabsContent>
-          <TabsPrimitive.TabsContent value="reminder" className="p-3 space-y-4">
+          <TabsPrimitive.TabsContent value="reminder" className="p-3 space-y-4 min-h-[40vh]">
             <ReminderSettings value={task.notifications} onChange={(value: Notification[]) => {
               updateTask(task.id, { notifications: value})
             }} />
