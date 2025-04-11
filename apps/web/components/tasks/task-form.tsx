@@ -35,6 +35,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
       onOpenSidebar={() => {}}
       activePicker={activePicker}
       onSetActivePicker={setActivePicker}
+      showDetails
     />
   ) : null
 } 

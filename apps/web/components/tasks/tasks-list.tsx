@@ -7,6 +7,7 @@ import type { Task, TaskPriority } from "@/types/task"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { EditTaskForm } from "./edit-task-form"
 import { TaskItem } from "./task-item"
+import { useRouter, useSearchParams } from "next/navigation"
 
 interface TaskGroup {
   title: string;
@@ -16,15 +17,25 @@ interface TaskGroup {
 }
 
 export function TasksList() {
+  const router = useRouter()
+  const searchParams = useSearchParams();
   const { tasks, updateTask, addTask } = useTasks()
   const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
 
   // Group tasks by priority
   const highPriorityTasks = tasks.filter(task => task.priority === "high" && !task.completed)
   const mediumPriorityTasks = tasks.filter(task => task.priority === "medium" && !task.completed)
   const lowPriorityTasks = tasks.filter(task => task.priority === "low" && !task.completed)
   const completedTasks = tasks.filter(task => task.completed)
+
+  React.useEffect(() => {
+    if(!searchParams.get('task-id') && selectedTaskId) {
+      console.log('set  unll')
+      setSelectedTaskId(null);
+    }
+  }, [searchParams])
 
   // Create task groups
   const taskGroups: TaskGroup[] = [
@@ -61,8 +72,8 @@ export function TasksList() {
     }
   }
 
-  const addNewTask = (group: TaskGroup) => {
-    addTask({
+  const addNewTask = async (group: TaskGroup) => {
+    const newTask = await addTask({
       title: '',
       priority: group.priority,
       completed: group.completed,
@@ -81,7 +92,22 @@ export function TasksList() {
         relativeTimeUnit: 'Minutes',
         author: 'Bot',
       }],
-    })
+    });
+    if (newTask) {
+      setEditingTaskId(newTask.id);
+    }
+  }
+
+  const onOpenSidebar = (id: string) => {
+    router.push(`?task-id=${id}`);
+    setSelectedTaskId(id);
+  }
+
+  const onOpenChange = (open: boolean) => {
+    if (!open && searchParams.get('task-id')) {
+      router.back();
+    }
+    setSelectedTaskId(open ? selectedTaskId : null);
   }
 
   return (
@@ -96,9 +122,10 @@ export function TasksList() {
                   key={task.id}
                   task={task}
                   onToggleCompletion={toggleTaskCompletion}
-                  onOpenSidebar={setSelectedTaskId}
+                  onOpenSidebar={(id) => onOpenSidebar(id)}
                   activePicker={activePicker}
                   onSetActivePicker={setActivePicker}
+                  edit={editingTaskId === task.id}
                 />
               ))}
             </div>
@@ -106,7 +133,7 @@ export function TasksList() {
           </div>
         ))}
       </div>
-      <Sheet open={!!selectedTaskId} onOpenChange={(open) => setSelectedTaskId(open ? selectedTaskId : null)}>
+      <Sheet open={!!selectedTaskId} onOpenChange={(open) => onOpenChange(open)}>
         <SheetContent side="right" className="w-[100%] sm:w-[500px]">
           <SheetHeader>
             <SheetTitle>Task Details</SheetTitle>
