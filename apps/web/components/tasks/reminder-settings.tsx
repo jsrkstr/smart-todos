@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { XIcon, PlusCircleIcon } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import * as SelectPrimitive from "@/components/ui/select"
 import * as InputPrimitive from "@/components/ui/input"
 import * as ButtonPrimitive from "@/components/ui/button"

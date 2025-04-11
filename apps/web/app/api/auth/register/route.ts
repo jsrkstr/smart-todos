@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { JWT } from '@/lib/jwt'
 import { z } from 'zod'
+import crypto from 'crypto'
 
 // Validation schema for registration
 const registerSchema = z.object({
@@ -10,6 +11,13 @@ const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters')
 })
+
+// Hash password using crypto
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex')
+  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex')
+  return `${salt}:${hash}`
+}
 
 // POST /api/auth/register - Create a new user account
 export async function POST(request: Request) {
@@ -32,12 +40,15 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
     
+    // Hash the password
+    const hashedPassword = hashPassword(password)
+    
     // Create new user
-    // In a real application, you'd hash the password here
     const user = await prisma.user.create({
       data: {
         name,
         email,
+        hashedPassword,
         principles: [],
         inspirations: [],
         settings: {
@@ -62,7 +73,7 @@ export async function POST(request: Request) {
     const token = await JWT.sign({ userId: user.id })
     
     // Set token cookie
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     cookieStore.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

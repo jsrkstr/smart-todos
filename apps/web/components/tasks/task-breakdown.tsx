@@ -17,7 +17,7 @@ import { useRewards } from "@/hooks/use-rewards"
 import { DatePicker } from "@/components/ui/date-picker"
 import { TimePicker } from "@/components/ui/time-picker"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 interface TaskBreakdownProps {

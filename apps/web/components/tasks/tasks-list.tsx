@@ -63,7 +63,7 @@ export function TasksList() {
       priority: 'high',
       completed: true,
     },
-  ].filter(group => group.tasks.length > 0)
+  ]
 
   const toggleTaskCompletion = (taskId: string) => {
     const task = tasks.find(t => t.id === taskId)

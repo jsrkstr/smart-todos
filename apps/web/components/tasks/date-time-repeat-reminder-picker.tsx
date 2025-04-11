@@ -18,7 +18,7 @@ import * as TabsPrimitive from "@/components/ui/tabs"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "../ui/drawer"
 import { RepeatSettings } from "./repeat-settings"
 import { ReminderSettings } from "./reminder-settings"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 
 interface DateTimeRepeatReminderPickerProps {
