@@ -129,58 +129,59 @@ export function TaskItem({
               {task.title}
             </div>
           )}
-        </div>
-        <div className="flex flex-wrap gap-1 text-gray-500" style={{ height: '1.25rem' }}>
-          <div className="flex items-center gap-1 -ml-2">
-            {task.children && task.children.length > 0 && (
-              <div className="flex items-center gap-1 ml-2">
-                {task.children.every(child => child.completed) ?
-                  <CircleCheck className="h-4 w-4" /> :
-                  task.children.some(child => child.completed) ?
-                    <CircleDot className="h-4 w-4" /> :
-                    <Circle className="h-4 w-4" />}
-                <div
-                >
-                  <span className="text-sm">
-                    {task.children.filter(child => child.completed).length}/{task.children.length}
-                  </span>
+          <div className="flex flex-wrap gap-1 text-gray-500" style={{ height: '1.25rem' }}>
+            <div className="flex items-center gap-1 -ml-2">
+              {task.children && task.children.length > 0 && (
+                <div className="flex items-center gap-1 ml-2">
+                  {task.children.every(child => child.completed) ?
+                    <CircleCheck className="h-4 w-4" /> :
+                    task.children.some(child => child.completed) ?
+                      <CircleDot className="h-4 w-4" /> :
+                      <Circle className="h-4 w-4" />}
+                  <div
+                  >
+                    <span className="text-sm">
+                      {task.children.filter(child => child.completed).length}/{task.children.length}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )}
-
-            <DateTimeRepeatReminderPicker
-              task={task}
-              open={activePicker?.taskId === task.id && activePicker?.type === 'dateTime'}
-              onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'dateTime' } : null)}
-            >
-              <div className="flex items-center gap-1 px-2">
-                <Calendar className="h-4 w-4" />
-                {task.deadline && (
-                  <span className="text-sm">{format(new Date(task.deadline), 'MMM dd')}</span>
-                )}
-                {task.time && (
-                  <span className="text-sm">{task.time}</span>
-                )}
-                {task.repeats && (
-                  <Repeat className="h-4 w-4 ml-1 p-1 rounded-[2vw] bg-gray-200" />
-                )}
-              </div>
-            </DateTimeRepeatReminderPicker>
-          </div>
-
-          <TagPicker
-            task={task}
-            open={activePicker?.taskId === task.id && activePicker?.type === 'tag'}
-            onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'tag' } : null)}
-          >
-            <div className="flex items-center gap-1">
-              <Tag className="h-4 w-4" />
-              {task.tags && task.tags.length > 0 && (
-                <span className="text-sm">{task.tags.map((tag) => tag.name).join(', ')}</span>
               )}
+
+              <DateTimeRepeatReminderPicker
+                task={task}
+                open={activePicker?.taskId === task.id && activePicker?.type === 'dateTime'}
+                onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'dateTime' } : null)}
+              >
+                <div className="flex items-center gap-1 px-2">
+                  <Calendar className="h-2 w-2" />
+                  {task.deadline && (
+                    <span className="text-sm">{format(new Date(task.deadline), 'MMM dd')}</span>
+                  )}
+                  {task.time && (
+                    <span className="text-sm">{task.time}</span>
+                  )}
+                  {task.repeats && (
+                    <Repeat className="h-4 w-4 ml-1 p-1 rounded-[2vw] bg-gray-200" />
+                  )}
+                </div>
+              </DateTimeRepeatReminderPicker>
             </div>
-          </TagPicker>
+
+            <TagPicker
+              task={task}
+              open={activePicker?.taskId === task.id && activePicker?.type === 'tag'}
+              onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'tag' } : null)}
+            >
+              <div className="flex items-center gap-1">
+                <Tag className="h-2 w-2" />
+                {task.tags && task.tags.length > 0 && (
+                  <span className="text-sm">{task.tags.map((tag) => tag.name).join(', ')}</span>
+                )}
+              </div>
+            </TagPicker>
+          </div>
         </div>
+
         {showDetails ?
           <CheckboxPrimitive.Checkbox
             className="mt-1 h-5 w-5 border-2"
