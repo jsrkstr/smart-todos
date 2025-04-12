@@ -25,6 +25,7 @@ model User {
   updatedAt      DateTime      @updatedAt
   settings       Settings?
   tasks          Task[]
+  chatMessages   ChatMessage[]
   userInsights   UserInsight[]
   logs           Log[]
   notifications  Notification[]
@@ -104,6 +105,7 @@ enum TaskPriority {
 model Task {
   id                   String              @id @default(cuid())
   title                String
+  description          String?             @db.Text
   date                 DateTime
   time                 String?
   deadline             DateTime?
@@ -139,6 +141,7 @@ model Task {
   parentId             String?             // Link to parent task
   parent               Task?               @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: Cascade) // Cascade delete subtasks if parent is deleted
   children             Task[]              @relation("TaskHierarchy") // List of subtasks
+  chatMessages         ChatMessage[]
 }
 
 model Tag {
@@ -485,4 +488,22 @@ model CalendarEvent {
   updatedAt         DateTime          @updatedAt
 
   @@unique([calendarConnectionId, externalId])
+}
+
+model ChatMessage {
+  id                String            @id @default(cuid())
+  externalId        String?            
+  content           String            @db.Text
+  role              ChatMessageRole
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  userId            String
+  taskId            String
+  user              User              @relation(fields: [userId], references: [id])
+  task              Task              @relation(fields: [taskId], references: [id])
+}
+
+enum ChatMessageRole {
+  user
+  assistant
 }
