@@ -5,6 +5,7 @@ import type { RefineTaskInput, UpdateTaskInput } from '@/lib/services/taskServic
 import OpenAI from 'openai'
 import { Tag } from '@/types/tag'
 import { TaskPriority, TaskStage } from '@/types/task'
+import { TagService } from '@/lib/services/tagService'
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -63,7 +64,7 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
       messages: [
         { 
           role: "system", 
-          content: "You are a task optimization assistant. Your job is to improve task descriptions, suggest appropriate tags, refine deadlines, and estimate time better. Provide output in JSON format only with these fields: title, description, priority (must be 'low', 'medium', or 'high'), deadline (ISO string or null), estimatedTimeMinutes (number), location (string), why (string)."
+          content: "You are a task optimization assistant. Your job is to improve task descriptions, suggest appropriate tags, refine deadlines, and estimate time better. Provide output in JSON format only with these fields: title, description, priority (must be 'low', 'medium', or 'high'), deadline (ISO string or null), estimatedTimeMinutes (number), location (string), why (string), tags (max 2, object with fields name (string) and category (string))"
         },
         {
           role: "user",
@@ -76,6 +77,8 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
     // Parse the AI response
     const refinedData = JSON.parse(aiResponse.choices[0].message.content)
     console.log('AI response', refinedData);
+
+    
     
     // Prepare the update data with proper type validation
     const updates: UpdateTaskInput = {
@@ -93,6 +96,54 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
         : undefined,
       why: refinedData.why,
       location: refinedData.location,
+    }
+
+    // Handle tags from AI response
+    if (refinedData.tags && Array.isArray(refinedData.tags)) {
+      // Fetch all existing tags and categories upfront
+      const [allTags, allCategories] = await Promise.all([
+        TagService.getTags(),
+        TagService.getTagCategories()
+      ])
+
+      const tagIds: string[] = []
+
+      for (const tagData of refinedData.tags) {
+        // Find existing tag by name
+        let existingTag = allTags.find((t: Tag) => t.name.toLowerCase() === tagData.name.toLowerCase())
+        
+        if (!existingTag) {
+          console.log('creating tag', tagData);
+          // If tag doesn't exist, handle category first
+          let categoryId: string | undefined
+          
+          if (tagData.category) {
+            // Find existing category
+            let category = allCategories.find((c: TagCategory) => c.name.toLowerCase() === tagData.category.toLowerCase())
+            
+            if (!category) {
+              console.log('creating category', tagData);
+              // Create new category if it doesn't exist
+              category = await TagService.createTagCategory({ name: tagData.category })
+              allCategories.push(category) // Add to our cache
+            }
+            
+            categoryId = category.id
+          }
+
+          // Create new tag with category
+          existingTag = await TagService.createTag({
+            name: tagData.name,
+            color: '#808080', // Default gray color
+            categoryId
+          })
+          allTags.push(existingTag) // Add to our cache
+        }
+
+        tagIds.push(existingTag.id)
+      }
+
+      updates.tagIds = tagIds
     }
 
     // Update the task with the refined data

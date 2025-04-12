@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useTaskStore } from "@/lib/store/useTaskStore"
 import { TaskItem } from "./task-item"
 import type { Task } from "@/types/task"
 import { Drawer, DrawerContent, DrawerHeader, DrawerOverlay, DrawerTitle, DrawerTrigger } from "../ui/drawer"
@@ -11,6 +10,7 @@ import { Send, Wand2 } from "lucide-react"
 import { Button } from "../ui/button"
 import ChatBox from "../chat/chat-box"
 import { useToast } from "@/hooks/use-toast"
+import { useTasks } from "@/hooks/use-tasks"
 
 interface TaskFormProps {
   taskId?: string
@@ -19,7 +19,7 @@ interface TaskFormProps {
 
 export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const router = useRouter()
-  const { tasks, updateTask, refineTask } = useTaskStore()
+  const { tasks, updateTask, refineTask } = useTasks()
   const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
   const task = tasks.find(t => t.id === taskId)
   const [open, setOpen] = useState<boolean>(false)

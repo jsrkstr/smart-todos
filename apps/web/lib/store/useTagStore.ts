@@ -8,7 +8,7 @@ interface TagStore {
   error: string | null
   
   // Actions
-  fetchTags: () => Promise<void>
+  fetchTags: (force: boolean) => Promise<void>
   addTag: (tag: Omit<Tag, "id">) => Promise<Tag | null>
   updateTag: (id: string, tag: Partial<Tag>) => Promise<Tag | null>
   deleteTag: (id: string) => Promise<void>
@@ -24,9 +24,10 @@ export const useTagStore = create<TagStore>((set, get) => ({
   loading: false,
   error: null,
 
-  fetchTags: async (): Promise<void> => {
+  fetchTags: async (force: boolean): Promise<void> => {
+    debugger;
     // Skip if already loaded or loading
-    if (get().tags.length > 0 || get().loading) return
+    if (!force && (get().tags.length > 0 || get().loading)) return
 
     set({ loading: true, error: null })
     try {

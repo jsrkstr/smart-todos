@@ -4,6 +4,7 @@ import { useEffect, useCallback, useRef } from "react"
 import { useNotifications } from "@/hooks/use-notifications"
 import { useTaskStore } from "@/lib/store/useTaskStore"
 import type { Task, Notification } from "@/types/task"
+import { useTagStore } from "@/lib/store/useTagStore"
 
 export function useTasks() {
   const { scheduleTaskReminder } = useNotifications()
@@ -16,8 +17,10 @@ export function useTasks() {
     toggleTaskCompletion, 
     deleteTask, 
     updateTask: storeUpdateTask,
-    refineTask,
+    refineTask: storeRefineTask,
   } = useTaskStore()
+
+  const { fetchTags } = useTagStore()
   
   // Use a ref to track if we've already set up the notification handler
   const handlerSetupRef = useRef<boolean>(false)
@@ -81,6 +84,13 @@ export function useTasks() {
       scheduleTaskReminder(updatedTask)
     }
     return updatedTask
+  }
+
+  const refineTask = async (taskId: string): Promise<Task | null> => {
+    const updatedTask: Task | null = await storeRefineTask(taskId)
+    debugger;
+    await fetchTags(true);
+    return updatedTask;
   }
 
   return {
