@@ -92,3 +92,10 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.keyboard-open .mobile-input {
+  position: fixed;
+  bottom: var(--screen-keyboard-height,0);
+  left: 0;
+  width: 100%;
+}

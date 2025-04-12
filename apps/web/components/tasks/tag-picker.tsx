@@ -83,7 +83,7 @@ export function TagPicker({
         <DrawerTrigger>
           {children}
         </DrawerTrigger>
-        <DrawerContent className="max-h-[85vh]">
+        <DrawerContent className="max-h-[60vh]">
           <DrawerHeader className="px-4">
             <DrawerTitle>Select Tags</DrawerTitle>
             <div className="mt-4">
