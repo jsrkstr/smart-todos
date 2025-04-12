@@ -147,9 +147,9 @@ export function TasksList() {
 
       </div>
       <Sheet open={!!selectedTaskId} onOpenChange={(open) => onOpenChange(open)}>
-        <SheetContent side="right" className="w-[100%] sm:w-[500px]">
-          <SheetHeader>
-            <SheetTitle>Task Details</SheetTitle>
+        <SheetContent side="right" className="w-[100%] sm:w-[600px]">
+          <SheetHeader className="h-4">
+            {/* <SheetTitle>Task Details</SheetTitle> */}
           </SheetHeader>
           {selectedTaskId && <EditTaskForm taskId={selectedTaskId} />}
         </SheetContent>

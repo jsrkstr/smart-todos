@@ -7,9 +7,10 @@ import { TaskItem } from "./task-item"
 import type { Task } from "@/types/task"
 import { Drawer, DrawerContent, DrawerHeader, DrawerOverlay, DrawerTitle, DrawerTrigger } from "../ui/drawer"
 import { Input } from "../ui/input"
-import { Send } from "lucide-react"
+import { Send, Wand2 } from "lucide-react"
 import { Button } from "../ui/button"
 import ChatBox from "../chat/chat-box"
+import { useToast } from "@/hooks/use-toast"
 
 interface TaskFormProps {
   taskId?: string
@@ -18,12 +19,14 @@ interface TaskFormProps {
 
 export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const router = useRouter()
-  const { tasks, updateTask } = useTaskStore()
+  const { tasks, updateTask, refineTask } = useTaskStore()
   const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
   const task = tasks.find(t => t.id === taskId)
   const [open, setOpen] = useState<boolean>(false)
   const snapPoints = ['148px', '355px', 1];
   const [snap, setSnap] = useState<number | string | null>(snapPoints[0]);
+  const [isRefining, setIsRefining] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     // setOpen(true);
@@ -59,12 +62,30 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     }
   }
 
+  const handleRefineTask = async () => {
+    if (!task?.id) return
+    
+    try {
+      setIsRefining(true)
+      await refineTask(task?.id);
+      toast({ title: 'Task successfully refined!' });
+    } catch (error) {
+      console.error('Error refining task:', error)
+      toast({
+        title: 'Failed to refine task',
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefining(false)
+    }
+  }
+
   const onOpenChange = (open: boolean) => {
     setOpen(open);
   };
 
   return task ? (
-    <div className="flex flex-col justify-betweennnn h-full pb-4">
+    <div className="flex flex-col justify-betweennnn h-full pb-4"> 
       <TaskItem
         task={task}
         onToggleCompletion={handleToggleCompletion}
@@ -73,6 +94,16 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
         onSetActivePicker={setActivePicker}
         showDetails
       />
+      <div className="py-4">
+        <Button 
+            variant="outline" 
+            onClick={handleRefineTask}
+            disabled={isRefining}
+            title="Refine task with AI"
+          >
+            Refine <Wand2 className={`h-5 w-5 ${isRefining ? 'animate-pulse' : ''}`} />
+        </Button>
+      </div>
       <div className="flex-1 grow p-4 overflow-x-scroll">
         Subtasks here
       </div>

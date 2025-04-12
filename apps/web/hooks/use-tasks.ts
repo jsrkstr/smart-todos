@@ -15,7 +15,8 @@ export function useTasks() {
     addTask: storeAddTask, 
     toggleTaskCompletion, 
     deleteTask, 
-    updateTask: storeUpdateTask 
+    updateTask: storeUpdateTask,
+    refineTask,
   } = useTaskStore()
   
   // Use a ref to track if we've already set up the notification handler
@@ -91,6 +92,7 @@ export function useTasks() {
     toggleTaskCompletion,
     deleteTask,
     updateTask,
+    refineTask,
   }
 }
 

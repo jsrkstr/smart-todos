@@ -17,7 +17,8 @@ interface TaskStore {
   addTask: (task: Partial<Task>) => Promise<Task | null>
   toggleTaskCompletion: (taskId: string) => Promise<void>
   deleteTask: (taskId: string) => Promise<void>
-  updateTask: (taskId: string, updates: Partial<Task>) => Promise<Task | null>
+  updateTask: (taskId: string, updates: Partial<Task>) => Promise<Task | null>,
+  refineTask: (taskId: string) => Promise<Task | null>
   updateTaskStage: (taskId: string, stage: TaskStage) => Promise<void>
 }
 
@@ -290,4 +291,36 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       console.error('Failed to update task stage:', error);
     }
   },
+
+  refineTask: async (taskId: string): Promise<Task | null> => {
+    const task = get().tasks.find(t => t.id === taskId);
+    if (!task) return null;
+    
+    try {
+      const response = await fetch('/api/tasks/refine', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: task.id,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to refine task')
+      }
+
+      const updatedTask = await response.json()
+      
+      set(state => ({
+        tasks: state.tasks.map(task => task.id === taskId ? updatedTask : task)
+      }))
+      return updatedTask;
+    } catch (error) {
+      console.error('Error refining task:', error)
+      set({ error: error instanceof Error ? error.message : 'Failed to refine task' })
+      return null
+    }
+  }
 })) 
