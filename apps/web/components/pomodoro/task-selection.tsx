@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useTasks } from "@/hooks/useTasks"
 import { ChevronUpIcon, ChevronDownIcon, XIcon, PlayIcon, ListIcon, ChevronsRightIcon, TimerIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useTasks } from "@/hooks/use-tasks"
 
 export type TaskMode = "single" | "multi" | "free"
 
@@ -28,7 +28,7 @@ export function TaskSelection({
   taskMode,
   onTaskModeChange,
 }: TaskSelectionProps) {
-  const { tasks } = useTasks({ includeCompleted: false })
+  const { tasks } = useTasks()
   
   // Handle selecting a task
   const handleTaskSelection = (taskId: string) => {

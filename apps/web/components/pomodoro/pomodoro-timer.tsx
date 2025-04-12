@@ -15,7 +15,6 @@ import { Slider } from "@/components/ui/slider"
 import { Toggle } from "@/components/ui/toggle"
 import { CircleProgress } from "@/components/ui/circle-progress"
 import { usePomodoroTimer } from "@/hooks/usePomodoroTimer"
-import { useTasks } from "@/hooks/useTasks"
 import { TaskSelection } from "@/components/pomodoro/task-selection"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Volume2, VolumeX, Pause, Play, Square, Timer } from "lucide-react"
@@ -27,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useTasks } from "@/hooks/use-tasks"
 
 export function PomodoroTimer() {
   const {
