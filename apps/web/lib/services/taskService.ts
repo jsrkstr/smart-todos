@@ -93,6 +93,11 @@ export interface UpdateTaskInput {
   }
 }
 
+export interface RefineTaskInput {
+  id: string;
+  userId: string;
+}
+
 export class TaskService {
   static async createTask(input: CreateTaskInput): Promise<Task> {
     const { userId, children, tagIds, notifications, ...taskData } = input
@@ -280,6 +285,65 @@ export class TaskService {
     })
   }
 
+  static async refineTask(input: RefineTaskInput): Promise<Task> {
+    const { id, userId, ...updates } = input
+
+    // Update the task and create a log entry
+    const task = await prisma.$transaction(async (tx) => {
+      // // If tagIds are provided, first disconnect all existing tags
+      // if (tagIds !== undefined) {
+      //   await tx.task.update({
+      //     where: {
+      //       id,
+      //       userId
+      //     },
+      //     data: {
+      //       tags: {
+      //         set: []
+      //       }
+      //     }
+      //   });
+      // }
+
+
+      const updatedTask = await tx.task.update({
+        where: {
+          id,
+          userId
+        },
+        data: {
+          ...updates,
+        },
+        include: {
+          children: true,
+          tags: {
+            include: {
+              category: true
+            }
+          },
+          notifications: true
+        }
+      })
+
+      // Create a log entry for the task update
+      await LogService.createTaskLog({
+        type: 'task_updated',
+        userId,
+        taskId: id,
+        data: {
+          updatedFields: Object.keys(updates),
+          newValues: updates,
+          // childrenAdded: children?.create?.length || 0,
+          // notificationsUpdated: notifications?.create?.length || 0
+        }
+      })
+
+      return updatedTask
+    })
+
+    return task
+  }
+
   static async getTasks(userId: string): Promise<Task[]> {
     return prisma.task.findMany({
       where: {
@@ -382,4 +446,6 @@ export class TaskService {
 
     return task
   }
+
+
 } 
