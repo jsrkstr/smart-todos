@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { EditTaskForm } from "./edit-task-form"
 import { TaskItem } from "./task-item"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Skeleton } from "../ui/skeleton"
 
 interface TaskGroup {
   title: string;
@@ -19,7 +20,7 @@ interface TaskGroup {
 export function TasksList() {
   const router = useRouter()
   const searchParams = useSearchParams();
-  const { tasks, updateTask, addTask } = useTasks()
+  const { initialized: storeInitialized, loading, tasks, updateTask, addTask } = useTasks()
   const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
@@ -31,7 +32,7 @@ export function TasksList() {
   const completedTasks = tasks.filter(task => task.completed)
 
   React.useEffect(() => {
-    if(!searchParams.get('task-id') && selectedTaskId) {
+    if (!searchParams.get('task-id') && selectedTaskId) {
       console.log('set  unll')
       setSelectedTaskId(null);
     }
@@ -113,7 +114,7 @@ export function TasksList() {
   return (
     <div>
       <div className="max-w-2xl mx-auto">
-        {taskGroups.map((group) => (
+        {storeInitialized && !loading ? taskGroups.map((group) => (
           <div key={group.title} className="">
             <h4 className="text-xl font-bold mb-4 text-gray-800">{group.title}</h4>
             <div className="space-y-2">
@@ -131,7 +132,19 @@ export function TasksList() {
             </div>
             <div className="extra-space" style={{ height: '2rem' }} onClick={() => addNewTask(group)}></div>
           </div>
-        ))}
+        )) :
+          <div>
+            <Skeleton className="h-10 w-[200px] mb-8" />
+            <Skeleton className="h-7 w-full mb-8" />
+            <Skeleton className="h-7 w-full mb-8" />
+            <Skeleton className="h-7 w-full mb-8" />
+            <Skeleton className="h-10 w-[200px] mb-8 mt-8" />
+            <Skeleton className="h-7 w-full mb-8" />
+            <Skeleton className="h-7 w-full mb-8" />
+            <Skeleton className="h-7 w-full mb-8" />
+          </div>
+        }
+
       </div>
       <Sheet open={!!selectedTaskId} onOpenChange={(open) => onOpenChange(open)}>
         <SheetContent side="right" className="w-[100%] sm:w-[500px]">

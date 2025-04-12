@@ -7,6 +7,7 @@ type SetupNotificationsFunction = (tasks: Task[]) => void
 interface TaskStore {
   tasks: Task[]
   loading: boolean
+  initialized: boolean
   error: string | null
   setupNotifications: SetupNotificationsFunction | null
   
@@ -23,6 +24,7 @@ interface TaskStore {
 export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [],
   loading: false,
+  initialized: false,
   error: null,
   setupNotifications: null,
 
@@ -50,7 +52,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         return
       }
       const data: Task[] = await response.json()
-      set({ tasks: data, loading: false })
+      set({ tasks: data, loading: false, initialized: true })
       
       // Schedule notifications for tasks if handler is set
       const { setupNotifications } = get()

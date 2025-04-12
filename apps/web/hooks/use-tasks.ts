@@ -7,7 +7,9 @@ import type { Task, Notification } from "@/types/task"
 
 export function useTasks() {
   const { scheduleTaskReminder } = useNotifications()
-  const { 
+  const {
+    loading,
+    initialized,
     tasks, 
     setNotificationHandler,
     addTask: storeAddTask, 
@@ -81,6 +83,8 @@ export function useTasks() {
   }
 
   return {
+    loading,
+    initialized,
     tasks,
     completedTasks,
     addTask,
