@@ -46,8 +46,10 @@ export function TaskItem({
   const router = useRouter()
   const { toggleTaskCompletion, deleteTask, updateTask } = useTasks()
   const [expanded, setExpanded] = useState<boolean>(false)
-  const [isEditing, setIsEditing] = useState<boolean>(false)
+  const [isTitleEditing, setIsTitleEditing] = useState<boolean>(false)
+  const [isDescriptionEditing, setIsDescriptionEditing] = useState<boolean>(false)
   const [editedTitle, setEditedTitle] = useState<string>(task.title)
+  const [editedDescription, setEditedDescription] = useState<string>(task.description || '')
 
   const isCompleted = task.completed
   const currentStage = task.stage
@@ -57,7 +59,7 @@ export function TaskItem({
   const childrenProgress: number = childrenTotal > 0 ? Math.round((childrenCompleted / childrenTotal) * 100) : 0
 
   React.useEffect(() => {
-    setIsEditing(!!edit);
+    setIsTitleEditing(!!edit);
   }, [edit]);
 
   const swipeHandlers = useSwipeable({
@@ -88,14 +90,28 @@ export function TaskItem({
 
   const handleTitleClick = (): void => {
     if (!isCompleted) {
-      setIsEditing(true)
+      setIsTitleEditing(true)
+    }
+  }
+
+  const handleDescriptionClick = (): void => {
+    if (!isCompleted) {
+      setIsDescriptionEditing(true)
     }
   }
 
   const handleTitleBlur = async (): Promise<void> => {
-    setIsEditing(false)
+    setIsTitleEditing(false)
     if (editedTitle !== task.title) {
       await updateTask(task.id, { title: editedTitle })
+    }
+  }
+
+  const handleDescriptionBlur = async (): Promise<void> => {
+    setIsDescriptionEditing(false)
+    // const newDescription = !!editedDescription ? editedDescription : null;
+    if (editedDescription !== task.description) {
+      await updateTask(task.id, { description: editedDescription })
     }
   }
 
@@ -104,7 +120,16 @@ export function TaskItem({
       e.currentTarget.blur()
     } else if (e.key === 'Escape') {
       setEditedTitle(task.title)
-      setIsEditing(false)
+      setIsTitleEditing(false)
+    }
+  }
+
+  const handleDescriptionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur()
+    } else if (e.key === 'Escape') {
+      setEditedDescription(task.description ?? '')
+      setIsDescriptionEditing(false)
     }
   }
 
@@ -118,21 +143,22 @@ export function TaskItem({
     <div className="relative" {...swipeHandlers} >
       <div className="flex items-start gap-3">
         <div className="flex-1">
-          {isEditing ? (
+          {isTitleEditing ? (
             <input
               value={editedTitle}
               onChange={(e) => setEditedTitle(e.target.value)}
               onBlur={handleTitleBlur}
               onKeyDown={handleTitleKeyDown}
-              className="text-base"
+              className={cn(showDetails ? 'text-2xl' : 'text-base')}
               autoFocus
               style={{ border: 'none', outline: 'none', width: '100%' }}
             />
           ) : (
             <div
               className={cn(
-                "text-base text-gray-800 cursor-pointer",
-                isCompleted && "line-through text-gray-500"
+                "text-gray-800 cursor-pointer",
+                isCompleted && "line-through text-gray-500",
+                showDetails ? 'text-2xl' : 'text-base'
               )}
               style={{ minHeight: '1.5rem' }}
               onClick={handleTitleClick}
@@ -140,15 +166,15 @@ export function TaskItem({
               {task.title}
             </div>
           )}
-          <div className="flex flex-wrap gap-1 text-gray-500" style={{ minHeight: '1.25rem' }}>
+          <div className={cn("flex flex-wrap gap-1 text-gray-500", showDetails && 'mt-2')} style={{ minHeight: '1.25rem' }}>
             <div className="flex items-center gap-1 -ml-2">
               {task.children && task.children.length > 0 && (
                 <div className="flex items-center gap-1 ml-2">
                   {task.children.every(child => child.completed) ?
-                    <CircleCheck className="h-3 w-3" /> :
+                    <CircleCheck className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} /> :
                     task.children.some(child => child.completed) ?
-                      <CircleDot className="h-3 w-3" /> :
-                      <Circle className="h-3 w-3" />}
+                      <CircleDot className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} /> :
+                      <Circle className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} />}
                   <div
                   >
                     <span className="text-sm">
@@ -164,7 +190,7 @@ export function TaskItem({
                 onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'dateTime' } : null)}
               >
                 <div className="flex items-center gap-1 px-2">
-                  <Calendar className="h-3 w-3" />
+                  <Calendar className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3', showDetails && task.deadline && 'text-gray-800')} />
                   {task.deadline && (
                     <span className="text-sm">{format(new Date(task.deadline), 'MMM dd')}</span>
                   )}
@@ -172,7 +198,7 @@ export function TaskItem({
                     <span className="text-sm">{task.time}</span>
                   )}
                   {task.repeats && (
-                    <Repeat className="h-4 w-4 ml-1 p-1 rounded-[2vw] bg-gray-200" />
+                    <Repeat className={cn('ml-1 p-1 rounded-[2vw] bg-gray-200', showDetails ? 'h-5 w-5 text-gray-800' : 'h-4 w-4')} />
                   )}
                 </div>
               </DateTimeRepeatReminderPicker>
@@ -184,7 +210,7 @@ export function TaskItem({
               onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'tag' } : null)}
             >
               <div className="flex items-center gap-1">
-                <Tag className="h-3 w-3" />
+                <Tag className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3', showDetails && task.tags?.length && 'text-gray-800')} />
                 {task.tags && task.tags.length > 0 && (
                   <span className="text-sm">{task.tags.map((tag) => tag.name).join(', ')}</span>
                 )}
@@ -205,10 +231,31 @@ export function TaskItem({
             className="h-8 w-8 p-0"
             onClick={() => onOpenSidebar(task.id)}
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className='h-4 w-4' />
           </ButtonPrimitive.Button>
         }
       </div>
+      { showDetails &&
+      <>
+        <div className="flex items-start gap-3 mt-4">
+          { isDescriptionEditing ?
+          <textarea
+            value={editedDescription}
+            onChange={(e) => setEditedDescription(e.target.value)}
+            onBlur={handleDescriptionBlur}
+            onKeyDown={handleDescriptionKeyDown}
+            placeholder="Add description..."
+            className="w-full min-h-[100px] outline-none"
+            autoFocus
+          /> :
+          <div
+            onClick={handleDescriptionClick}>
+            { !!task.description ? task.description : <span className="text-gray-400">Add description...</span> }
+          </div>
+          }
+        </div>
+      </>
+      }
     </div>
   )
 }
