@@ -28,7 +28,7 @@ export default function ChatBox() {
   }, [])
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col bg-gray-100 mmmax-h-[50vh] h-[500px]">
       {/* Header */}
       {/* <div className="bg-white p-4 shadow-sm flex items-center space-x-3 sticky top-0 z-10">
         <Avatar className="h-10 w-10 bg-primary">
