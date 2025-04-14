@@ -1,7 +1,12 @@
-import { Task, Prisma } from '@prisma/client'
+import { Task, Prisma, ChatMessageRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { LogService } from './logService'
 import type { TaskPriority } from '@/types/task'
+import { ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from 'openai/resources/index.mjs'
+import OpenAI from 'openai'
+import { Tag } from '@/types/tag'
+import { TagService } from './tagService'
+import { ChatMessageService } from './chatMessageService'
 
 // Notification enum types from Prisma schema
 type NotificationType = 'Reminder' | 'Question' | 'Info'
@@ -9,6 +14,23 @@ type NotificationMode = 'Push' | 'Email' | 'Chat'
 type NotificationTrigger = 'FixedTime' | 'RelativeTime' | 'Location'
 type NotificationRelativeTimeUnit = 'Minutes' | 'Hours' | 'Days'
 type NotificationAuthor = 'User' | 'Bot' | 'Model'
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
+
+export interface TaskRefinedData {
+  title: string;
+  description: string;
+  priority: string;
+  deadline: string;
+  estimatedTimeMinutes: number;
+  why: string;
+  location: string
+  tags: { name: string, category: string }[];
+}
+
 
 export interface NotificationCreateinput {
   mode: NotificationMode;
@@ -75,6 +97,7 @@ export interface UpdateTaskInput {
   deadline?: Date;
   priority?: TaskPriority;
   stage?: "Refinement" | "Breakdown" | "Planning" | "Execution" | "Reflection";
+  stageStatus?: "NotStarted" | "InProgress" | "QuestionAsked" | "Completed";
   estimatedTimeMinutes?: number;
   location?: string;
   repeats?: string;
@@ -93,7 +116,7 @@ export interface UpdateTaskInput {
   }
 }
 
-export interface RefineTaskInput {
+export interface ProcessTaskInput {
   id: string;
   userId: string;
 }
@@ -285,64 +308,31 @@ export class TaskService {
     })
   }
 
-  // static async refineTask(input: RefineTaskInput): Promise<Task> {
-  //   const { id, userId, ...updates } = input
+  static async processTask(input: ProcessTaskInput): Promise<Task | null> {
+    const { id, userId, ...updates } = input
 
-  //   // Update the task and create a log entry
-  //   const task = await prisma.$transaction(async (tx) => {
-  //     // // If tagIds are provided, first disconnect all existing tags
-  //     // if (tagIds !== undefined) {
-  //     //   await tx.task.update({
-  //     //     where: {
-  //     //       id,
-  //     //       userId
-  //     //     },
-  //     //     data: {
-  //     //       tags: {
-  //     //         set: []
-  //     //       }
-  //     //     }
-  //     //   });
-  //     // }
+    // Fetch the original task with all its details
+    const originalTask = await TaskService.getTask(id, userId)
 
+    if (!originalTask) {
+      return null;
+    }
 
-  //     const updatedTask = await tx.task.update({
-  //       where: {
-  //         id,
-  //         userId
-  //       },
-  //       data: {
-  //         ...updates,
-  //       },
-  //       include: {
-  //         children: true,
-  //         tags: {
-  //           include: {
-  //             category: true
-  //           }
-  //         },
-  //         notifications: true
-  //       }
-  //     })
+    if (originalTask.stage === 'Planning' || originalTask.stage === 'Refinement') {
 
-  //     // Create a log entry for the task update
-  //     await LogService.createTaskLog({
-  //       type: 'task_updated',
-  //       userId,
-  //       taskId: id,
-  //       data: {
-  //         updatedFields: Object.keys(updates),
-  //         newValues: updates,
-  //         // childrenAdded: children?.create?.length || 0,
-  //         // notificationsUpdated: notifications?.create?.length || 0
-  //       }
-  //     })
+      if (originalTask.stageStatus === 'NotStarted' || originalTask.stageStatus === 'InProgress') {
+        console.log('startRefinement');
+        return TaskService.startRefinement(originalTask)
+      }
 
-  //     return updatedTask
-  //   })
+      if (originalTask.stageStatus === 'QuestionAsked') {
+        console.log('continueRefinement');
+        return TaskService.continueRefinement(originalTask)
+      }
+    }
 
-  //   return task
-  // }
+    return null;
+  }
 
   static async getTasks(userId: string): Promise<Task[]> {
     return prisma.task.findMany({
@@ -391,7 +381,7 @@ export class TaskService {
         data: {
           completed: true,
         },
-        include: { 
+        include: {
           children: true,
           notifications: true
         }
@@ -424,7 +414,7 @@ export class TaskService {
         data: {
           completed: false,
         },
-        include: { 
+        include: {
           children: true,
           notifications: true
         }
@@ -447,5 +437,229 @@ export class TaskService {
     return task
   }
 
+  static async startRefinement(task: Task) {
+    // Update the task status
+    const updatedTask = await TaskService.updateTask({
+      id: task.id,
+      userId: task.userId,
+      stage: 'Refinement',
+      stageStatus: 'InProgress',
+    });
+
+    // Prepare task data for OpenAI
+    const taskForAI = {
+      id: task.id,
+      title: task.title,
+      description: task.description || '',
+      priority: task.priority,
+      stage: task.stage,
+      deadline: task.deadline,
+      estimatedTimeMinutes: task.estimatedTimeMinutes,
+      location: task.location || '',
+      why: task.why || '',
+      // Use type assertion to handle tags
+      tags: Array.isArray((task as any).tags)
+        ? (task as any).tags.map((tag: Tag) => ({
+          name: tag.name,
+          category: tag.category?.name || ''
+        }))
+        : []
+    }
+
+    const refineTaskInstructionMessages: Array<ChatCompletionUserMessageParam | ChatCompletionSystemMessageParam> = [
+      {
+        role: "system",
+        content: `You are a task optimization assistant.
+          Your job is to improve task descriptions, suggest appropriate tags, refine deadlines, and estimate time better.
+          Start by understanding the task, if you less than 90% sure about the task, ask a question to the user.
+          Provide output in JSON format only with these fields: response_type (must be 'task_details', 'question'), question (if response_type=question), understand_percentage (if response_type=question), task_details (if response_type=task_details, nested fields: title, description, priority (must be 'low', 'medium', or 'high'), deadline (ISO string or null), estimatedTimeMinutes (number), location (string), why (string), tags (max 2, object with fields name (string) and category (string))).
+        `
+      },
+      {
+        role: "user",
+        content: `Please refine this task by providing a more detailed description, better tags, and more accurate time estimates and deadlines if needed:\n${JSON.stringify(taskForAI, null, 2)}`
+      }
+    ];
+
+    const createdMessages = await prisma.chatMessage.createMany({
+      data: refineTaskInstructionMessages.map(({ role, content }) => ({
+        role: role as ChatMessageRole,
+        content: content as string,
+        userId: task.userId,
+        taskId: task.id,
+      }))
+    })
+
+    // Send data to OpenAI for refinement
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: refineTaskInstructionMessages,
+      response_format: { type: "json_object" }
+    })
+
+    // Parse the AI response
+    const responseData = JSON.parse(aiResponse.choices[0].message.content || '{}')
+    console.log('AI response', responseData);
+
+    if (responseData.response_type === 'question') {
+      // Save the question directly using prisma
+      const storedMessage = await prisma.chatMessage.create({
+        data: {
+          userId: task.userId,
+          taskId: task.id,
+          content: responseData.question,
+          role: 'assistant',
+          metadata: {
+            understand_percentage: responseData.understand_percentage || 0,
+            type: "question"
+          }
+        }
+      })
+
+      // Update the task status
+      const updatedTask = await TaskService.updateTask({
+        id: task.id,
+        userId: task.userId,
+        stageStatus: 'QuestionAsked',
+      });
+      return updatedTask;
+    }
+
+    const refinedData = responseData.task_details;
+
+    return await TaskService.updateRefinedTask(task, refinedData)
+  }
+
+  static async updateRefinedTask(task: Task, refinedData: TaskRefinedData): Promise<Task | null> {
+    // Prepare the update data with proper type validation
+    const updates: UpdateTaskInput = {
+      id: task.id,
+      userId: task.userId,
+      title: refinedData.title,
+      description: refinedData.description,
+      // Ensure priority is one of the valid TaskPriority values
+      priority: ['low', 'medium', 'high'].includes(refinedData.priority?.toLowerCase())
+        ? refinedData.priority.toLowerCase() as TaskPriority
+        : undefined,
+      deadline: refinedData.deadline ? new Date(refinedData.deadline) : undefined,
+      estimatedTimeMinutes: typeof refinedData.estimatedTimeMinutes === 'number'
+        ? refinedData.estimatedTimeMinutes
+        : undefined,
+      why: refinedData.why,
+      location: refinedData.location,
+      stageStatus: 'Completed',
+    }
+
+    // Handle tags from AI response
+    if (refinedData.tags && Array.isArray(refinedData.tags)) {
+      // Fetch all existing tags and categories upfront
+      const [allTags, allCategories] = await Promise.all([
+        TagService.getTags(),
+        TagService.getTagCategories()
+      ])
+
+      const tagIds: string[] = []
+
+      for (const tagData of refinedData.tags) {
+        // Find existing tag by name
+        let existingTag = allTags.find((t) => t.name.toLowerCase() === tagData.name.toLowerCase())
+
+        if (!existingTag) {
+          console.log('creating tag', tagData);
+          // If tag doesn't exist, handle category first
+          let categoryId: string | undefined
+
+          if (tagData.category) {
+            // Find existing category
+            let category = allCategories.find((c) => c.name.toLowerCase() === tagData.category.toLowerCase())
+
+            if (!category) {
+              console.log('creating category', tagData);
+              // Create new category if it doesn't exist
+              category = await TagService.createTagCategory({ name: tagData.category })
+              allCategories.push(category) // Add to our cache
+            }
+
+            categoryId = category.id
+          }
+
+          // Create new tag with category
+          existingTag = await TagService.createTag({
+            name: tagData.name,
+            color: '#808080', // Default gray color
+            categoryId
+          })
+          allTags.push(existingTag) // Add to our cache
+        }
+
+        tagIds.push(existingTag.id)
+      }
+
+      updates.tagIds = tagIds
+    }
+
+    // Update the task with the refined data
+    const updatedTask = await TaskService.updateTask(updates)
+
+    if (updatedTask) {
+      // Save a success message directly using prisma
+      await prisma.chatMessage.create({
+        data: {
+          userId: task.userId,
+          taskId: task.id,
+          content: "Task has been successfully refined with AI assistance.",
+          role: ChatMessageRole.system,
+          metadata: {
+            type: "info",
+            refinement: true
+          }
+        }
+      })
+    }
+
+    return updatedTask;
+  }
+
+  static async continueRefinement(task: Task) {
+    const storedMessages = await ChatMessageService.getMessages(task.id);
+    const latestMessage = storedMessages[storedMessages.length - 1];
+    console.log('latest messaeg', latestMessage);
+    if (latestMessage && latestMessage.role === 'user') {
+      // Send data to OpenAI for refinement
+      const aiResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: storedMessages,
+        response_format: { type: "json_object" }
+      })
+
+      // Parse the AI response
+      const responseData = JSON.parse(aiResponse.choices[0].message.content || '{}')
+      console.log('AI response', responseData);
+
+      if (responseData.response_type === 'question') {
+        // Save the question directly using prisma
+        const storedMessage = await prisma.chatMessage.create({
+          data: {
+            userId: task.userId,
+            taskId: task.id,
+            content: responseData.question,
+            role: 'assistant',
+            metadata: {
+              understand_percentage: responseData.understand_percentage || 0,
+              type: "question"
+            }
+          }
+        })
+
+        return task;
+      }
+
+      const refinedData = responseData.task_details;
+
+      return await TaskService.updateRefinedTask(task, refinedData)
+    }
+
+    return null;
+  }
 
 } 

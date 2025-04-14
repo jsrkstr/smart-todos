@@ -314,16 +314,14 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       const responseData = await response.json()
       
       // Check if the response contains a question
-      if (responseData.type === 'question') {
+      if (responseData.task === null) {
         // Return null if it's a question response
         // The useTasks hook will handle this case
         return null;
       }
       
       // Otherwise, handle a successful task update
-      const updatedTask = responseData.type === 'task_details' 
-        ? responseData.task 
-        : responseData;
+      const updatedTask = responseData.task;
       
       set(state => ({
         tasks: state.tasks.map(task => task.id === taskId ? updatedTask : task)

@@ -112,6 +112,7 @@ model Task {
   dateAdded            DateTime            @default(now())
   completed            Boolean             @default(false)
   stage                TaskStage           @default(Refinement)
+  stageStatus          TaskStageStatus     @default(NotStarted)
   priority             TaskPriority        @default(medium)
   position             Int?
   tags                 Tag[]               @relation("TaskTags")
@@ -435,6 +436,13 @@ enum TaskStage {
   Planning
   Execution
   Reflection
+}
+
+enum TaskStageStatus {
+  NotStarted
+  InProgress
+  QuestionAsked
+  Completed
 }
 
 enum CalendarProvider {
