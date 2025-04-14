@@ -121,6 +121,12 @@ export interface ProcessTaskInput {
   userId: string;
 }
 
+export interface ProcessTaskResponse {
+  response_type: "message_to_user" | "task_details";
+  task: Task | null;
+  message: string;
+}
+
 export class TaskService {
   static async createTask(input: CreateTaskInput): Promise<Task> {
     const { userId, children, tagIds, notifications, ...taskData } = input
@@ -308,30 +314,39 @@ export class TaskService {
     })
   }
 
-  static async processTask(input: ProcessTaskInput): Promise<Task | null> {
-    const { id, userId, ...updates } = input
+  static async processTask(input: ProcessTaskInput): Promise<ProcessTaskResponse> {
+    const { id, userId } = input
 
     // Fetch the original task with all its details
     const originalTask = await TaskService.getTask(id, userId)
 
     if (!originalTask) {
-      return null;
+      return {
+        response_type: "message_to_user",
+        task: null,
+        message: "Task not found"
+      };
     }
 
     if (originalTask.stage === 'Planning' || originalTask.stage === 'Refinement') {
-
       if (originalTask.stageStatus === 'NotStarted' || originalTask.stageStatus === 'InProgress') {
         console.log('startRefinement');
-        return TaskService.startRefinement(originalTask)
+        const result = await TaskService.startRefinement(originalTask);
+        return result;
       }
 
       if (originalTask.stageStatus === 'QuestionAsked') {
         console.log('continueRefinement');
-        return TaskService.continueRefinement(originalTask)
+        const result = await TaskService.continueRefinement(originalTask);
+        return result;
       }
     }
 
-    return null;
+    return {
+      response_type: "message_to_user",
+      task: originalTask,
+      message: "No processing needed for current task stage"
+    };
   }
 
   static async getTasks(userId: string): Promise<Task[]> {
@@ -437,7 +452,7 @@ export class TaskService {
     return task
   }
 
-  static async startRefinement(task: Task) {
+  static async startRefinement(task: Task): Promise<ProcessTaskResponse> {
     // Update the task status
     const updatedTask = await TaskService.updateTask({
       id: task.id,
@@ -457,7 +472,6 @@ export class TaskService {
       estimatedTimeMinutes: task.estimatedTimeMinutes,
       location: task.location || '',
       why: task.why || '',
-      // Use type assertion to handle tags
       tags: Array.isArray((task as any).tags)
         ? (task as any).tags.map((tag: Tag) => ({
           name: tag.name,
@@ -522,108 +536,29 @@ export class TaskService {
         userId: task.userId,
         stageStatus: 'QuestionAsked',
       });
-      return updatedTask;
+
+      return {
+        response_type: "message_to_user",
+        task: updatedTask,
+        message: responseData.question
+      };
     }
 
     const refinedData = responseData.task_details;
+    const updatedTaskWithRefinements = await TaskService.updateRefinedTask(task, refinedData);
 
-    return await TaskService.updateRefinedTask(task, refinedData)
+    return {
+      response_type: "task_details",
+      task: updatedTaskWithRefinements,
+      message: "Task has been successfully refined with AI assistance."
+    };
   }
 
-  static async updateRefinedTask(task: Task, refinedData: TaskRefinedData): Promise<Task | null> {
-    // Prepare the update data with proper type validation
-    const updates: UpdateTaskInput = {
-      id: task.id,
-      userId: task.userId,
-      title: refinedData.title,
-      description: refinedData.description,
-      // Ensure priority is one of the valid TaskPriority values
-      priority: ['low', 'medium', 'high'].includes(refinedData.priority?.toLowerCase())
-        ? refinedData.priority.toLowerCase() as TaskPriority
-        : undefined,
-      deadline: refinedData.deadline ? new Date(refinedData.deadline) : undefined,
-      estimatedTimeMinutes: typeof refinedData.estimatedTimeMinutes === 'number'
-        ? refinedData.estimatedTimeMinutes
-        : undefined,
-      why: refinedData.why,
-      location: refinedData.location,
-      stageStatus: 'Completed',
-    }
-
-    // Handle tags from AI response
-    if (refinedData.tags && Array.isArray(refinedData.tags)) {
-      // Fetch all existing tags and categories upfront
-      const [allTags, allCategories] = await Promise.all([
-        TagService.getTags(),
-        TagService.getTagCategories()
-      ])
-
-      const tagIds: string[] = []
-
-      for (const tagData of refinedData.tags) {
-        // Find existing tag by name
-        let existingTag = allTags.find((t) => t.name.toLowerCase() === tagData.name.toLowerCase())
-
-        if (!existingTag) {
-          console.log('creating tag', tagData);
-          // If tag doesn't exist, handle category first
-          let categoryId: string | undefined
-
-          if (tagData.category) {
-            // Find existing category
-            let category = allCategories.find((c) => c.name.toLowerCase() === tagData.category.toLowerCase())
-
-            if (!category) {
-              console.log('creating category', tagData);
-              // Create new category if it doesn't exist
-              category = await TagService.createTagCategory({ name: tagData.category })
-              allCategories.push(category) // Add to our cache
-            }
-
-            categoryId = category.id
-          }
-
-          // Create new tag with category
-          existingTag = await TagService.createTag({
-            name: tagData.name,
-            color: '#808080', // Default gray color
-            categoryId
-          })
-          allTags.push(existingTag) // Add to our cache
-        }
-
-        tagIds.push(existingTag.id)
-      }
-
-      updates.tagIds = tagIds
-    }
-
-    // Update the task with the refined data
-    const updatedTask = await TaskService.updateTask(updates)
-
-    if (updatedTask) {
-      // Save a success message directly using prisma
-      await prisma.chatMessage.create({
-        data: {
-          userId: task.userId,
-          taskId: task.id,
-          content: "Task has been successfully refined with AI assistance.",
-          role: ChatMessageRole.system,
-          metadata: {
-            type: "info",
-            refinement: true
-          }
-        }
-      })
-    }
-
-    return updatedTask;
-  }
-
-  static async continueRefinement(task: Task) {
+  static async continueRefinement(task: Task): Promise<ProcessTaskResponse> {
     const storedMessages = await ChatMessageService.getMessages(task.id);
     const latestMessage = storedMessages[storedMessages.length - 1];
-    console.log('latest messaeg', latestMessage);
+    console.log('latest message', latestMessage);
+    
     if (latestMessage && latestMessage.role === 'user') {
       // Send data to OpenAI for refinement
       const aiResponse = await openai.chat.completions.create({
@@ -651,15 +586,108 @@ export class TaskService {
           }
         })
 
-        return task;
+        return {
+          response_type: "message_to_user",
+          task: task,
+          message: responseData.question
+        };
       }
 
       const refinedData = responseData.task_details;
+      const updatedTask = await TaskService.updateRefinedTask(task, refinedData);
 
-      return await TaskService.updateRefinedTask(task, refinedData)
+      return {
+        response_type: "task_details",
+        task: updatedTask,
+        message: "Task has been successfully refined with AI assistance."
+      };
     }
 
-    return null;
+    return {
+      response_type: "message_to_user",
+      task: task,
+      message: "No user message found to continue refinement."
+    };
   }
 
+  static async updateRefinedTask(task: Task, refinedData: TaskRefinedData): Promise<Task> {
+    // Prepare the update data with proper type validation
+    const updates: UpdateTaskInput = {
+      id: task.id,
+      userId: task.userId,
+      title: refinedData.title,
+      description: refinedData.description,
+      priority: ['low', 'medium', 'high'].includes(refinedData.priority?.toLowerCase())
+        ? refinedData.priority.toLowerCase() as TaskPriority
+        : undefined,
+      deadline: refinedData.deadline ? new Date(refinedData.deadline) : undefined,
+      estimatedTimeMinutes: typeof refinedData.estimatedTimeMinutes === 'number'
+        ? refinedData.estimatedTimeMinutes
+        : undefined,
+      why: refinedData.why,
+      location: refinedData.location,
+      stageStatus: 'Completed',
+    }
+
+    // Handle tags from AI response
+    if (refinedData.tags && Array.isArray(refinedData.tags)) {
+      const [allTags, allCategories] = await Promise.all([
+        TagService.getTags(),
+        TagService.getTagCategories()
+      ])
+
+      const tagIds: string[] = []
+
+      for (const tagData of refinedData.tags) {
+        let existingTag = allTags.find((t) => t.name.toLowerCase() === tagData.name.toLowerCase())
+
+        if (!existingTag) {
+          console.log('creating tag', tagData);
+          let categoryId: string | undefined
+
+          if (tagData.category) {
+            let category = allCategories.find((c) => c.name.toLowerCase() === tagData.category.toLowerCase())
+
+            if (!category) {
+              console.log('creating category', tagData);
+              category = await TagService.createTagCategory({ name: tagData.category })
+              allCategories.push(category)
+            }
+
+            categoryId = category.id
+          }
+
+          existingTag = await TagService.createTag({
+            name: tagData.name,
+            color: '#808080',
+            categoryId
+          })
+          allTags.push(existingTag)
+        }
+
+        tagIds.push(existingTag.id)
+      }
+
+      updates.tagIds = tagIds
+    }
+
+    const updatedTask = await TaskService.updateTask(updates)
+
+    if (updatedTask) {
+      await prisma.chatMessage.create({
+        data: {
+          userId: task.userId,
+          taskId: task.id,
+          content: "Task has been successfully refined with AI assistance.",
+          role: ChatMessageRole.system,
+          metadata: {
+            type: "info",
+            refinement: true
+          }
+        }
+      })
+    }
+
+    return updatedTask;
+  }
 } 

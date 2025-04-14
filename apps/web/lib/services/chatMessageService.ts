@@ -1,5 +1,6 @@
 import { ChatMessage, Prisma, ChatMessageRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { notEqual } from 'assert';
 
 export interface ChatMessageCreateInput {
   userId: string;
@@ -17,8 +18,11 @@ export interface ChatMessageUpdateInput {
 }
 
 export class ChatMessageService {
-  static async getMessages(taskId?: string): Promise<ChatMessage[]> {
-    const whereClause = taskId ? { taskId } : {}
+  static async getMessages(taskId?: string, filter = false): Promise<ChatMessage[]> {
+    const whereClause = {
+        ...(taskId ? { taskId } : {}),
+        ...(filter ? { role: { in: [ChatMessageRole.assistant, ChatMessageRole.user] } } : {}),
+    }
     
     const messages = await prisma.chatMessage.findMany({
       where: whereClause,

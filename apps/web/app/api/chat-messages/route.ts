@@ -3,7 +3,7 @@ import { AuthenticatedApiRequest, withAuth } from '@/lib/api-middleware'
 import { ChatMessageService } from '@/lib/services/chatMessageService'
 import { ChatMessageRole, Task } from '@prisma/client'
 import { openai } from "@ai-sdk/openai"
-import { appendResponseMessages, streamText } from "ai"
+import { appendResponseMessages, createDataStreamResponse, streamText } from "ai"
 import { TaskService } from '@/lib/services/taskService'
 
 // GET /api/chat-messages (optionally with ?taskId=xxx&latest=true)
@@ -13,7 +13,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
     const taskId = url.searchParams.get('taskId')
     const latest = url.searchParams.get('latest') === 'true'
 
-    let messages = await ChatMessageService.getMessages(taskId || undefined)
+    let messages = await ChatMessageService.getMessages(taskId || undefined, true)
 
     // If latest=true is specified, return only the most recent message
     if (latest && messages.length > 0) {
@@ -64,68 +64,38 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
 
     const { messages } = payload;
 
-    const task: Task | null = await TaskService.processTask({
+    const response = await TaskService.processTask({
       id: payload.taskId,
       userId: req.user.id,
     });
 
-    let returnMessage = 'Message Delivered';
+    const returnMessage = response.message;
 
-    if (task?.stageStatus === 'QuestionAsked') {
-      const messages = await ChatMessageService.getMessages(task.id)
-      const latestMessage = messages[messages.length - 1];
-      if (latestMessage && latestMessage.role === 'assistant') {
-        returnMessage = latestMessage.content;
-      }
-    }
+    // const response = {
+    //   response_type: 'task_details',
+    // }
 
-    // Create a streaming response compatible with useChat hook
-    const encoder = new TextEncoder();
-    const messageId = crypto.randomUUID();
-
-    const stream = new ReadableStream({
-      start(controller) {
-        // 1. Start Step Part
-        controller.enqueue(
-          encoder.encode(`f:${JSON.stringify({ messageId })}\n`)
-        );
-
-        // 2. Text content (can send multiple chunks like this)
-        controller.enqueue(
-          encoder.encode(`0: \"${returnMessage}\"\n`)
-        );
-
-        // 3. Finish Step Part
-        controller.enqueue(
-          encoder.encode(
-            `e:${JSON.stringify({
-              finishReason: "stop",
-              usage: { promptTokens: 5, completionTokens: 5 },
-              isContinued: false
-            })}\n`
-          )
-        );
-
-        // 4. Finish Message Part
-        controller.enqueue(
-          encoder.encode(
-            `d:${JSON.stringify({
-              finishReason: "stop",
-              usage: { promptTokens: 5, completionTokens: 5 }
-            })}\n`
-          )
-        );
-
-        controller.close();
-      }
-    });
-
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/text',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'x-vercel-ai-data-stream': 'v1',
+    return createDataStreamResponse({
+      execute: dataStream => {
+        const messageId = crypto.randomUUID();
+        dataStream.write(`f:${JSON.stringify({ messageId })}\n`);
+        dataStream.write(`0: \"${returnMessage}\"\n`);
+        dataStream.writeMessageAnnotation({ response_type: response.response_type });
+        // dataStream.writeData('call completed');
+        dataStream.write(`e:${JSON.stringify({
+          finishReason: "stop",
+          usage: { promptTokens: 5, completionTokens: 5 },
+          isContinued: false
+        })}\n`)
+        dataStream.write(`d:${JSON.stringify({
+          finishReason: "stop",
+          usage: { promptTokens: 5, completionTokens: 5 }
+        })}\n`)
+      },
+      onError: error => {
+        // Error messages are masked by default for security reasons.
+        // If you want to expose the error message to the client, you can do so here:
+        return error instanceof Error ? error.message : String(error);
       },
     });
 

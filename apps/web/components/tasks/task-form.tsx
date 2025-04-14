@@ -68,14 +68,14 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
 
   const handleRefineTask = async () => {
     if (!task?.id) return
-    
+
     try {
       setIsRefining(true)
       const updatedTask: Task | null = await refineTask(task.id);
-      
+
       // Check if we received a question
       if (updatedTask == null) {
-        toast({ 
+        toast({
           title: 'AI needs more information',
           description: 'Please answer the question in the chat to continue refining the task.'
         });
@@ -97,11 +97,11 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   // const handleSubmitResponse = async (e: React.FormEvent) => {
   //   e.preventDefault();
   //   if (!userResponse.trim() || !task?.id) return;
-    
+
   //   try {
   //     await respondToQuestion(task.id, userResponse);
   //     setUserResponse("");
-      
+
   //     if (!lastQuestionAsked) {
   //       // If no more questions, show success and close drawer
   //       toast({ title: 'Task successfully refined!' });
@@ -121,7 +121,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   };
 
   return task ? (
-    <div className="flex flex-col justify-betweennnn h-full pb-4"> 
+    <div className="flex flex-col justify-betweennnn h-full pb-4">
       <TaskItem
         task={task}
         onToggleCompletion={handleToggleCompletion}
@@ -131,14 +131,16 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
         showDetails
       />
       <div className="py-4">
-        <Button 
-            variant="outline" 
+        {task.stage === 'Planning' &&
+          <Button
+            variant="outline"
             onClick={handleRefineTask}
             disabled={isRefining}
             title="Refine task with AI"
           >
             Refine <Wand2 className={`h-5 w-5 ${isRefining ? 'animate-pulse' : ''}`} />
-        </Button>
+          </Button>
+        }
       </div>
       <div className="flex-1 grow p-4 overflow-x-scroll">
         Subtasks here

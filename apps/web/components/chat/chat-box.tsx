@@ -9,6 +9,8 @@ import { Button } from "../ui/button"
 import { useChatMessages } from "@/hooks/use-chat-messages"
 import { ChatMessage } from "@/types/chat-message"
 import { UIMessage } from "ai"
+import { useTaskStore } from "@/lib/store"
+import { useTagStore } from "@/lib/store/useTagStore"
 
 interface ChatBoxProps {
   taskId?: string
@@ -18,6 +20,8 @@ export default function ChatBox({ taskId }: ChatBoxProps) {
   const { messages: chatMessages, loading: messagesLoading, loadMessages } = useChatMessages(taskId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { fetchTasks } = useTaskStore();
+  const { fetchTags } = useTagStore();
   
   // Convert our chat messages to UI messages for the AI SDK
   const initialMessages: UIMessage[] = chatMessages.map(msg => ({
@@ -28,7 +32,7 @@ export default function ChatBox({ taskId }: ChatBoxProps) {
     parts: []
   }))
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
     initialMessages: initialMessages.length > 0 ? initialMessages : [],
     api: '/api/chat-messages',
     body: {
@@ -44,6 +48,14 @@ export default function ChatBox({ taskId }: ChatBoxProps) {
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    console.log('data', data);
+    const anno = messages[messages.length-1]?.annotations
+    console.log('messages anno', messages[messages.length-1]?.annotations)
+    if (anno?.[0]?.response_type === 'task_details') {
+      console.log('fetch tasks');
+      fetchTasks(true);
+      fetchTags(true);
+    }
   }, [messages])
 
   useEffect(() => {

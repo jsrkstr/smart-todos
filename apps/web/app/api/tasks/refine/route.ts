@@ -66,12 +66,14 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
     //   return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     // }
 
-    const updatedTask = await TaskService.processTask({
+    const response = await TaskService.processTask({
       id: taskData.id,
       userId: taskData.userId,
     })
 
-    if (updatedTask) {
+    const updatedTask = response.task;
+
+    if (response.response_type === 'task_details' && updatedTask) {
       return NextResponse.json({
         task: {
           ...updatedTask,
@@ -81,7 +83,9 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
         }
       })
     } else {
-      throw "Error refining task"
+      return NextResponse.json({
+        task: null
+      })
     }
   } catch (error) {
     const errorMessage: string = error instanceof Error ? error.message : 'Unknown error'

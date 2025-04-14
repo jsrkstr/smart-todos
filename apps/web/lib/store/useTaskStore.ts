@@ -13,7 +13,7 @@ interface TaskStore {
   
   // Actions
   setNotificationHandler: (handler: SetupNotificationsFunction) => void
-  fetchTasks: () => Promise<void>
+  fetchTasks: (force: boolean) => Promise<void>
   addTask: (task: Partial<Task>) => Promise<Task | null>
   toggleTaskCompletion: (taskId: string) => Promise<void>
   deleteTask: (taskId: string) => Promise<void>
@@ -36,9 +36,9 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 
-  fetchTasks: async (): Promise<void> => {
+  fetchTasks: async (force = false): Promise<void> => {
     // Skip if already loaded or loading
-    if (get().tasks.length > 0 || get().loading) return
+    if (!force && (get().tasks.length > 0 || get().loading)) return
     
     set({ loading: true, error: null })
     try {
