@@ -19,18 +19,22 @@ interface TaskFormProps {
 
 export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const router = useRouter()
-  const { tasks, updateTask, refineTask } = useTasks()
+  const { tasks, updateTask, refineTask, lastQuestionAsked, respondToQuestion } = useTasks()
   const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
   const task = tasks.find(t => t.id === taskId)
-  const [open, setOpen] = useState<boolean>(false)
+  const [openChat, setOpenChat] = useState<boolean>(false)
   const snapPoints = ['148px', '355px', 1];
   const [snap, setSnap] = useState<number | string | null>(snapPoints[0]);
   const [isRefining, setIsRefining] = useState(false)
+  const [userResponse, setUserResponse] = useState("")
   const { toast } = useToast()
 
-  useEffect(() => {
-    // setOpen(true);
-  }, [])
+  // useEffect(() => {
+  //   // If a question was asked, open the drawer
+  //   if (lastQuestionAsked && lastQuestionAsked.taskId === taskId) {
+  //     setOpenChat(true)
+  //   }
+  // }, [lastQuestionAsked, taskId])
 
   useEffect(() => {
     const onResize = () => {
@@ -67,8 +71,18 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     
     try {
       setIsRefining(true)
-      const task: Task | null = await refineTask(task?.id);
-      toast({ title: 'Task successfully refined!' });
+      const updatedTask: Task | null = await refineTask(task.id);
+      
+      // Check if we received a question
+      if (updatedTask == null) {
+        toast({ 
+          title: 'AI needs more information',
+          description: 'Please answer the question in the chat to continue refining the task.'
+        });
+        // The drawer will be opened due to the useEffect above
+      } else {
+        toast({ title: 'Task successfully refined!' });
+      }
     } catch (error) {
       console.error('Error refining task:', error)
       toast({
@@ -80,8 +94,30 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     }
   }
 
-  const onOpenChange = (open: boolean) => {
-    setOpen(open);
+  // const handleSubmitResponse = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!userResponse.trim() || !task?.id) return;
+    
+  //   try {
+  //     await respondToQuestion(task.id, userResponse);
+  //     setUserResponse("");
+      
+  //     if (!lastQuestionAsked) {
+  //       // If no more questions, show success and close drawer
+  //       toast({ title: 'Task successfully refined!' });
+  //       setOpenChat(false);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error sending response:', error);
+  //     toast({
+  //       title: 'Failed to send response',
+  //       variant: "destructive",
+  //     });
+  //   }
+  // }
+
+  const onOpenChatChange = (open: boolean) => {
+    setOpenChat(open);
   };
 
   return task ? (
@@ -107,21 +143,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
       <div className="flex-1 grow p-4 overflow-x-scroll">
         Subtasks here
       </div>
-      {/* <div className="flex gap-2 mb-4 w-full px-4 mobile-input">
-          <Input
-            placeholder="Type a message..."
-            className="flex-1 rounded-full border-gray-300 focus:border-primary focus:ring-primary"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            className="rounded-full h-10 w-10 flex items-center justify-center"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-      </div> */}
-      <Drawer open={open} onOpenChange={onOpenChange} modal={true}>
-        {/* snapPoints={snapPoints} activeSnapPoint={snap} setActiveSnapPoint={setSnap} */}
+      <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true}>
         <DrawerTrigger asChild>
           <div className="flex gap-2 mb-4 pt-2">
             <div style={{}} className="w-full h-full absolute"></div>
@@ -142,7 +164,31 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
           <DrawerHeader className="px-4">
             <DrawerTitle>Chat</DrawerTitle>
           </DrawerHeader>
-          <ChatBox />
+          <ChatBox taskId={taskId} />
+          {/* {lastQuestionAsked && lastQuestionAsked.taskId === taskId ? (
+            <div className="px-4 pb-4">
+              <div className="p-3 mb-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="font-medium text-amber-800">AI needs more information</p>
+                <p className="text-amber-700">{lastQuestionAsked.question}</p>
+              </div>
+              <form onSubmit={handleSubmitResponse} className="flex gap-2">
+                <Input
+                  value={userResponse}
+                  onChange={(e) => setUserResponse(e.target.value)}
+                  placeholder="Type your answer..."
+                  className="flex-1"
+                />
+                <Button 
+                  type="submit" 
+                  disabled={!userResponse.trim() || isRefining}
+                >
+                  Send
+                </Button>
+              </form>
+            </div>
+          ) : (
+            <ChatBox taskId={taskId} />
+          )} */}
         </DrawerContent>
       </Drawer>
     </div>

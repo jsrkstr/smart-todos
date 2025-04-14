@@ -6,6 +6,33 @@ import OpenAI from 'openai'
 import { Tag } from '@/types/tag'
 import { TaskPriority, TaskStage } from '@/types/task'
 import { TagService } from '@/lib/services/tagService'
+import { ChatMessageRole } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+
+// Define TagCategory interface if not already defined elsewhere
+interface TagCategory {
+  id: string;
+  name: string;
+}
+
+// Local implementation for creating chat messages for the refine endpoint
+const createChatMessage = async (data: {
+  userId: string;
+  taskId: string;
+  content: string;
+  role: 'user' | 'assistant' | 'system';
+  metadata?: any;
+}) => {
+  return await prisma.chatMessage.create({
+    data: {
+      userId: data.userId,
+      taskId: data.taskId,
+      content: data.content,
+      role: data.role as ChatMessageRole,
+      metadata: data.metadata
+    }
+  });
+};
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -79,11 +106,30 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
     })
 
     // Parse the AI response
-    const responseData = JSON.parse(aiResponse.choices[0].message.content)
+    const responseData = JSON.parse(aiResponse.choices[0].message.content || '{}')
     console.log('AI response', responseData);
 
-    if (responseData.response_type == 'question') {
-      return NextResponse.json({ error: 'Question asked' }, { status: 500 })
+    if (responseData.response_type === 'question') {
+      // Save the question directly using prisma
+      const message = await prisma.chatMessage.create({
+        data: {
+          userId: req.user.id,
+          taskId: taskData.id,
+          content: responseData.question,
+          role: 'assistant',
+          metadata: {
+            understand_percentage: responseData.understand_percentage || 0,
+            type: "question"
+          }
+        }
+      })
+      
+      // Return a 200 response with the question as data
+      return NextResponse.json({ 
+        type: 'question',
+        message: message,
+        understand_percentage: responseData.understand_percentage || 0
+      })
     }
     
     const refinedData = responseData.task_details;
@@ -118,7 +164,7 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
 
       for (const tagData of refinedData.tags) {
         // Find existing tag by name
-        let existingTag = allTags.find((t: Tag) => t.name.toLowerCase() === tagData.name.toLowerCase())
+        let existingTag = allTags.find((t) => t.name.toLowerCase() === tagData.name.toLowerCase())
         
         if (!existingTag) {
           console.log('creating tag', tagData);
@@ -127,7 +173,7 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
           
           if (tagData.category) {
             // Find existing category
-            let category = allCategories.find((c: TagCategory) => c.name.toLowerCase() === tagData.category.toLowerCase())
+            let category = allCategories.find((c) => c.name.toLowerCase() === tagData.category.toLowerCase())
             
             if (!category) {
               console.log('creating category', tagData);
@@ -157,11 +203,28 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
     // Update the task with the refined data
     const task = await TaskService.updateTask(updates)
 
+    // Save a success message directly using prisma
+    await prisma.chatMessage.create({
+      data: {
+        userId: req.user.id,
+        taskId: taskData.id,
+        content: "Task has been successfully refined with AI assistance.",
+        role: ChatMessageRole.system,
+        metadata: {
+          type: "info",
+          refinement: true
+        }
+      }
+    })
+
     return NextResponse.json({
-      ...task,
-      date: task.date.toISOString(),
-      deadline: task.deadline?.toISOString() || null,
-      dateAdded: task.dateAdded.toISOString(),
+      type: 'task_details',
+      task: {
+        ...task,
+        date: task.date.toISOString(),
+        deadline: task.deadline?.toISOString() || null,
+        dateAdded: task.dateAdded.toISOString(),
+      }
     })
   } catch (error) {
     const errorMessage: string = error instanceof Error ? error.message : 'Unknown error'

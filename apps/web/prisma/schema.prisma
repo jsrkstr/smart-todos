@@ -495,6 +495,7 @@ model ChatMessage {
   externalId        String?            
   content           String            @db.Text
   role              ChatMessageRole
+  metadata          Json?             // Adding metadata field to store additional info
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   userId            String
@@ -506,4 +507,5 @@ model ChatMessage {
 enum ChatMessageRole {
   user
   assistant
+  system
 }

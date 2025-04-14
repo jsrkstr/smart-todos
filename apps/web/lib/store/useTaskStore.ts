@@ -311,7 +311,19 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         throw new Error('Failed to refine task')
       }
 
-      const updatedTask = await response.json()
+      const responseData = await response.json()
+      
+      // Check if the response contains a question
+      if (responseData.type === 'question') {
+        // Return null if it's a question response
+        // The useTasks hook will handle this case
+        return null;
+      }
+      
+      // Otherwise, handle a successful task update
+      const updatedTask = responseData.type === 'task_details' 
+        ? responseData.task 
+        : responseData;
       
       set(state => ({
         tasks: state.tasks.map(task => task.id === taskId ? updatedTask : task)

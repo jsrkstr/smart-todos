@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useCallback, useRef } from "react"
+import { useEffect, useCallback, useRef, useState } from "react"
 import { useNotifications } from "@/hooks/use-notifications"
 import { useTaskStore } from "@/lib/store/useTaskStore"
 import type { Task, Notification } from "@/types/task"
@@ -8,6 +8,12 @@ import { useTagStore } from "@/lib/store/useTagStore"
 
 export function useTasks() {
   const { scheduleTaskReminder } = useNotifications()
+  const [lastQuestionAsked, setLastQuestionAsked] = useState<{
+    taskId: string;
+    question: string;
+    understandPercentage: number;
+  } | null>(null);
+  
   const {
     loading,
     initialized,
@@ -87,9 +93,71 @@ export function useTasks() {
   }
 
   const refineTask = async (taskId: string): Promise<Task | null> => {
-    const updatedTask: Task | null = await storeRefineTask(taskId)
-    await fetchTags(true);
-    return updatedTask;
+    try {
+      // Reset the last question state when starting a new refine operation
+      setLastQuestionAsked(null);
+      
+      const updatedTask: Task | null = await storeRefineTask(taskId);
+      
+      // If the task is null, check if it was due to a question
+      if (!updatedTask) {
+        // Try to fetch the task details to see if we have a task
+        const task = tasks.find(t => t.id === taskId);
+        if (task) {
+          // const { messages: chatMessages, loading: messagesLoading, loadMessages } = useChatMessages(taskId)
+          // Try to fetch the latest message for this task to see if it's a question
+          // try {
+          //   const response = await fetch(`/api/chat-messages?taskId=${taskId}&latest=true`);
+          //   if (response.ok) {
+          //     const messages = await response.json();
+          //     const latestMessage = messages[0];
+              
+          //     if (latestMessage && latestMessage.metadata?.type === "question") {
+          //       // Set the last question asked
+          //       setLastQuestionAsked({
+          //         taskId,
+          //         question: latestMessage.content,
+          //         understandPercentage: latestMessage.metadata?.understand_percentage || 0
+          //       });
+          //     }
+          //   }
+          // } catch (error) {
+          //   console.error("Error fetching chat messages:", error);
+          // }
+        }
+      }
+
+      if (updatedTask) {
+        await fetchTags(true);
+      }
+
+      return updatedTask;
+    } catch (error) {
+      console.error("Error in refineTask:", error);
+      return null;
+    }
+  }
+  
+  const respondToQuestion = async (taskId: string, response: string): Promise<void> => {
+    try {
+      // First save the user's response as a chat message
+      await fetch('/api/chat-messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          taskId,
+          content: response,
+          role: "user"
+        })
+      });
+      
+      // Then try refining the task again with the new context
+      await refineTask(taskId);
+    } catch (error) {
+      console.error("Error responding to question:", error);
+    }
   }
 
   return {
@@ -102,6 +170,8 @@ export function useTasks() {
     deleteTask,
     updateTask,
     refineTask,
+    lastQuestionAsked,
+    respondToQuestion,
   }
 }
 
