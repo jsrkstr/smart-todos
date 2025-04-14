@@ -64,7 +64,11 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
       messages: [
         { 
           role: "system", 
-          content: "You are a task optimization assistant. Your job is to improve task descriptions, suggest appropriate tags, refine deadlines, and estimate time better. Provide output in JSON format only with these fields: title, description, priority (must be 'low', 'medium', or 'high'), deadline (ISO string or null), estimatedTimeMinutes (number), location (string), why (string), tags (max 2, object with fields name (string) and category (string))"
+          content: `You are a task optimization assistant.
+            Your job is to improve task descriptions, suggest appropriate tags, refine deadlines, and estimate time better.
+            Start by understanding the task, if you less than 90% sure about the task, ask a question to the user.
+            Provide output in JSON format only with these fields: response_type (must be 'task_details', 'question'), question (if response_type=question), understand_percentage (if response_type=question), task_details (if response_type=task_details, nested fields: title, description, priority (must be 'low', 'medium', or 'high'), deadline (ISO string or null), estimatedTimeMinutes (number), location (string), why (string), tags (max 2, object with fields name (string) and category (string))).
+          `
         },
         {
           role: "user",
@@ -75,10 +79,14 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
     })
 
     // Parse the AI response
-    const refinedData = JSON.parse(aiResponse.choices[0].message.content)
-    console.log('AI response', refinedData);
+    const responseData = JSON.parse(aiResponse.choices[0].message.content)
+    console.log('AI response', responseData);
 
+    if (responseData.response_type == 'question') {
+      return NextResponse.json({ error: 'Question asked' }, { status: 500 })
+    }
     
+    const refinedData = responseData.task_details;
     
     // Prepare the update data with proper type validation
     const updates: UpdateTaskInput = {

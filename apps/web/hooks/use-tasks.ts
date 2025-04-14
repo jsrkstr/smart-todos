@@ -88,7 +88,6 @@ export function useTasks() {
 
   const refineTask = async (taskId: string): Promise<Task | null> => {
     const updatedTask: Task | null = await storeRefineTask(taskId)
-    debugger;
     await fetchTags(true);
     return updatedTask;
   }

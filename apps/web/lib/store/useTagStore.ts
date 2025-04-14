@@ -25,7 +25,6 @@ export const useTagStore = create<TagStore>((set, get) => ({
   error: null,
 
   fetchTags: async (force: boolean): Promise<void> => {
-    debugger;
     // Skip if already loaded or loading
     if (!force && (get().tags.length > 0 || get().loading)) return
 

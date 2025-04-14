@@ -166,7 +166,7 @@ export function TaskItem({
               {task.title}
             </div>
           )}
-          <div className={cn("flex flex-wrap gap-1 text-gray-500", showDetails && 'mt-2')} style={{ minHeight: '1.25rem' }}>
+          <div className={cn("flex flex-wrap gap-1 text-gray-400", showDetails && 'mt-2')} style={{ minHeight: '1.25rem' }}>
             <div className="flex items-center gap-1 -ml-2">
               {task.children && task.children.length > 0 && (
                 <div className="flex items-center gap-1 ml-2">

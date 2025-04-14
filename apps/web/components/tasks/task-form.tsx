@@ -67,7 +67,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     
     try {
       setIsRefining(true)
-      await refineTask(task?.id);
+      const task: Task | null = await refineTask(task?.id);
       toast({ title: 'Task successfully refined!' });
     } catch (error) {
       console.error('Error refining task:', error)
