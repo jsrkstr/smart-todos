@@ -83,7 +83,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       priority: task.priority || "Medium" as TaskPriority,
       location: task.location,
       why: task.why,
-      reminderTime: task.reminderTime
+      reminderTime: task.reminderTime,
+      parentId: task.parentId,
     };
 
     // Format children for API

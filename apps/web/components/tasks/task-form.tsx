@@ -11,6 +11,7 @@ import { Button } from "../ui/button"
 import ChatBox from "../chat/chat-box"
 import { useToast } from "@/hooks/use-toast"
 import { useTasks } from "@/hooks/use-tasks"
+import { TasksList } from "./tasks-list"
 
 interface TaskFormProps {
   taskId?: string
@@ -130,6 +131,11 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
         onSetActivePicker={setActivePicker}
         showDetails
       />
+      <div className="flex-1 grow p-4 overflow-x-scroll">
+        { !task.parentId &&
+          <TasksList parentId={taskId} showSidebar={true} />
+        }
+      </div>
       <div className="py-4">
         {task.stage === 'Planning' &&
           <Button
@@ -141,9 +147,6 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
             Refine <Wand2 className={`h-5 w-5 ${isRefining ? 'animate-pulse' : ''}`} />
           </Button>
         }
-      </div>
-      <div className="flex-1 grow p-4 overflow-x-scroll">
-        Subtasks here
       </div>
       <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true}>
         <DrawerTrigger asChild>

@@ -152,18 +152,20 @@ export function TaskItem({
               className={cn(showDetails ? 'text-2xl' : 'text-base')}
               autoFocus
               style={{ border: 'none', outline: 'none', width: '100%' }}
+              placeholder="Add title..."
             />
           ) : (
             <div
               className={cn(
                 "text-gray-800 cursor-pointer",
-                isCompleted && "line-through text-gray-500",
-                showDetails ? 'text-2xl' : 'text-base'
+                isCompleted && "line-through",
+                showDetails ? 'text-2xl' : 'text-base',
+                task.title ? 'text-gray-500' : 'text-gray-400'
               )}
               style={{ minHeight: '1.5rem' }}
               onClick={handleTitleClick}
             >
-              {task.title}
+              {task.title || 'Add title...'}
             </div>
           )}
           <div className={cn("flex flex-wrap gap-1 text-gray-400", showDetails && 'mt-2')} style={{ minHeight: '1.25rem' }}>

@@ -66,6 +66,7 @@ export interface CreateTaskInput {
   estimatedTimeMinutes?: number;
   location?: string;
   why?: string;
+  parentId?: string;
   tagIds?: string[];
   children?: {
     title: string;
@@ -129,13 +130,18 @@ export interface ProcessTaskResponse {
 
 export class TaskService {
   static async createTask(input: CreateTaskInput): Promise<Task> {
-    const { userId, children, tagIds, notifications, ...taskData } = input
+    const { userId, children, tagIds, notifications, parentId, ...taskData } = input
 
     // Create the task with its children (subtasks) and tags first
     const newTask = await prisma.task.create({
       data: {
         ...taskData,
         user: { connect: { id: userId } },
+        parent: parentId ? {
+          connect: {
+            id: parentId,
+          }
+        }: undefined,
         children: children ? {
           create: children.map(child => ({
             ...child,

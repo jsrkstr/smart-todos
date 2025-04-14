@@ -62,6 +62,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextR
         estimatedTimeMinutes: payload.estimatedTimeMinutes,
         location: payload.location,
         why: payload.why,
+        parentId: payload.parentId,
         notifications: payload.notifications?.map((notification: NotificationPayload) => ({
           mode: notification.mode,
           type: notification.type,

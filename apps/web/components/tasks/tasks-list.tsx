@@ -9,6 +9,7 @@ import { EditTaskForm } from "./edit-task-form"
 import { TaskItem } from "./task-item"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Skeleton } from "../ui/skeleton"
+import { cn } from "@/lib/utils"
 
 interface TaskGroup {
   title: string;
@@ -17,7 +18,12 @@ interface TaskGroup {
   completed: boolean;
 }
 
-export function TasksList() {
+interface TasksListProps {
+  parentId?: string;
+  showSidebar?: boolean;
+}
+
+export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
   const router = useRouter()
   const searchParams = useSearchParams();
   const { initialized: storeInitialized, loading, tasks, updateTask, addTask } = useTasks()
@@ -25,11 +31,16 @@ export function TasksList() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
 
+  // Filter tasks based on parentId
+  const filteredTasks = parentId 
+    ? tasks.filter(task => task.parentId === parentId)
+    : tasks.filter(task => !task.parentId); // Root tasks only when no parentId
+
   // Group tasks by priority
-  const highPriorityTasks = tasks.filter(task => task.priority === "high" && !task.completed)
-  const mediumPriorityTasks = tasks.filter(task => task.priority === "medium" && !task.completed)
-  const lowPriorityTasks = tasks.filter(task => task.priority === "low" && !task.completed)
-  const completedTasks = tasks.filter(task => task.completed)
+  const highPriorityTasks = filteredTasks.filter(task => task.priority === "high" && !task.completed)
+  const mediumPriorityTasks = filteredTasks.filter(task => task.priority === "medium" && !task.completed)
+  const lowPriorityTasks = filteredTasks.filter(task => task.priority === "low" && !task.completed)
+  const completedTasks = filteredTasks.filter(task => task.completed)
 
   React.useEffect(() => {
     if (!searchParams.get('task-id') && selectedTaskId) {
@@ -78,6 +89,7 @@ export function TasksList() {
       title: '',
       priority: group.priority,
       completed: group.completed,
+      parentId: parentId, // Set parentId if provided
       notifications: [{
         mode: 'Push',
         type: 'Reminder',
@@ -100,6 +112,7 @@ export function TasksList() {
   }
 
   const onOpenSidebar = (id: string) => {
+    if (!showSidebar) return;
     router.push(`?task-id=${id}`);
     setSelectedTaskId(id);
   }
@@ -111,28 +124,43 @@ export function TasksList() {
     setSelectedTaskId(open ? selectedTaskId : null);
   }
 
+  // Don't show groups with no tasks
+  const visibleTaskGroups = taskGroups;//.filter(group => group.tasks.length > 0);
+
   return (
     <div>
       <div className="max-w-2xl mx-auto">
-        {storeInitialized && !loading ? taskGroups.map((group) => (
-          <div key={group.title} className="">
-            <h4 className="text-xl font-bold mb-4 text-gray-800">{group.title}</h4>
-            <div className="space-y-2">
-              {group.tasks.map((task) => (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  onToggleCompletion={toggleTaskCompletion}
-                  onOpenSidebar={(id) => onOpenSidebar(id)}
-                  activePicker={activePicker}
-                  onSetActivePicker={setActivePicker}
-                  edit={editingTaskId === task.id}
-                />
-              ))}
+        {storeInitialized && !loading ? 
+          visibleTaskGroups.length > 0 ? (
+            visibleTaskGroups.map((group) => (
+              <div key={group.title} className="">
+                <h4 className={cn('text-xl font-bold text-gray-800', group.tasks.length ? 'mb-4' : 'mb-2')}>
+                  {group.title}
+                </h4>
+                <div className="space-y-2">
+                  {group.tasks.map((task) => (
+                    <TaskItem
+                      key={task.id}
+                      task={task}
+                      onToggleCompletion={toggleTaskCompletion}
+                      onOpenSidebar={(id) => onOpenSidebar(id)}
+                      activePicker={activePicker}
+                      onSetActivePicker={setActivePicker}
+                      edit={editingTaskId === task.id}
+                    />
+                  ))}
+                </div>
+                <div className="extra-space text-gray-400 mt-2" style={{ height: '2rem' }} onClick={() => addNewTask(group)}>
+                  +
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center text-gray-500 my-4">
+              No tasks found
             </div>
-            <div className="extra-space" style={{ height: '2rem' }} onClick={() => addNewTask(group)}></div>
-          </div>
-        )) :
+          )
+        :
           <div>
             <Skeleton className="h-10 w-[200px] mb-8" />
             <Skeleton className="h-7 w-full mb-8" />
@@ -144,16 +172,17 @@ export function TasksList() {
             <Skeleton className="h-7 w-full mb-8" />
           </div>
         }
-
       </div>
-      <Sheet open={!!selectedTaskId} onOpenChange={(open) => onOpenChange(open)}>
-        <SheetContent side="right" className="w-[100%] sm:w-[600px]">
-          <SheetHeader className="h-4">
-            {/* <SheetTitle>Task Details</SheetTitle> */}
-          </SheetHeader>
-          {selectedTaskId && <EditTaskForm taskId={selectedTaskId} />}
-        </SheetContent>
-      </Sheet>
+      {showSidebar && (
+        <Sheet open={!!selectedTaskId} onOpenChange={(open) => onOpenChange(open)}>
+          <SheetContent side="right" className="w-[100%] sm:w-[600px]">
+            <SheetHeader className="h-4">
+              {/* <SheetTitle>Task Details</SheetTitle> */}
+            </SheetHeader>
+            {selectedTaskId && <EditTaskForm taskId={selectedTaskId} />}
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   )
 }
