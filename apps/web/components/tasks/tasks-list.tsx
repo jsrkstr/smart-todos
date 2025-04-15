@@ -4,7 +4,7 @@ import * as React from "react"
 import { useState } from "react"
 import { useTasks } from "@/hooks/use-tasks"
 import type { Task, TaskPriority } from "@/types/task"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { EditTaskForm } from "./edit-task-form"
 import { TaskItem } from "./task-item"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -56,7 +56,7 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
       {
         title: "Sub Tasks",
         tasks: filteredTasks,
-        priority: 'high',
+        priority: 'medium',
         completed: false,
       }
     ] :
@@ -188,7 +188,10 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
         <Sheet open={!!selectedTaskId} onOpenChange={(open) => onOpenChange(open)}>
           <SheetContent side="right" className="w-[100%] sm:w-[600px]">
             <SheetHeader className="h-4">
-              {/* <SheetTitle>Task Details</SheetTitle> */}
+              <SheetTitle id="task-details-title" className="sr-only">Task Details</SheetTitle>
+              <SheetDescription className="sr-only">
+                Detailed view and editing options for the selected task.
+              </SheetDescription>
             </SheetHeader>
             {selectedTaskId && <EditTaskForm taskId={selectedTaskId} />}
           </SheetContent>
