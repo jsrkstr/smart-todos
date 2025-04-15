@@ -37,7 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-col flex-1 overflow-y-auto">
         <Header onMenuClick={() => setSidebarOpen(true)} currentPage={currentPage} />
-        <main className="flex-1 pb-8 px-8">{children}</main>
+        <main className="flex-1 pb-8 px-6 lg:px-8">{children}</main>
       </div>
     </div>
   )

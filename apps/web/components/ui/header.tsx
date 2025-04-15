@@ -84,7 +84,7 @@ export function Header({ onMenuClick, currentPage = "Smart Todos" }: HeaderProps
 
   return (
     <header className="sticky top-0 z-10 border-b bg-background">
-      <div className="flex h-16 items-center px-4 md:px-6">
+      <div className="flex h-16 items-center px-2 lg:px-4 md:px-6">
         <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={onMenuClick}>
           <Menu className="h-5 w-5" />
           <span className="sr-only">Toggle menu</span>

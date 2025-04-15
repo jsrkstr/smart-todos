@@ -165,6 +165,14 @@ export function TaskItem({
   return (
     <div className="relative" {...swipeHandlers} >
       <div className="flex items-start gap-3">
+        
+        <CheckboxPrimitive.Checkbox
+          className={cn('mt-1 border-[1px] border-gray-400', showDetails ? 'h-5 w-5' : 'h-4 w-4')}
+          checked={task.completed}
+          onCheckedChange={() => onToggleCompletion(task.id)}
+        />
+      
+
         <div className="flex-1">
           {isTitleEditing ? (
             <input
@@ -255,19 +263,14 @@ export function TaskItem({
           </div>
         </div>
 
-        {showDetails ?
-          <CheckboxPrimitive.Checkbox
-            className="mt-1 h-5 w-5 border-2"
-            checked={task.completed}
-            onCheckedChange={() => onToggleCompletion(task.id)}
-          /> :
+        {!showDetails &&
           <ButtonPrimitive.Button
             variant="ghost"
             size="sm"
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 -mt-2"
             onClick={() => onOpenSidebar(task.id)}
           >
-            <ChevronRight className='h-4 w-4' />
+            <ChevronRight className='h-4 w-4 text-gray-400' />
           </ButtonPrimitive.Button>
         }
       </div>
