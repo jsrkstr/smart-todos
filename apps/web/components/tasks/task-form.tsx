@@ -131,7 +131,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
         onSetActivePicker={setActivePicker}
         showDetails
       />
-      <div className="flex-1 grow p-4 overflow-x-scroll">
+      <div className="flex-1 grow py-4 mt-4 overflow-x-scroll">
         { !task.parentId &&
           <TasksList parentId={taskId} showSidebar={true} />
         }

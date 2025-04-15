@@ -359,7 +359,6 @@ export class TaskService {
     return prisma.task.findMany({
       where: {
         userId,
-        parentId: null
       },
       include: {
         children: true,

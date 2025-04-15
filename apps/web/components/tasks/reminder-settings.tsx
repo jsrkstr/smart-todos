@@ -7,6 +7,7 @@ import * as SelectPrimitive from "@/components/ui/select"
 import * as InputPrimitive from "@/components/ui/input"
 import * as ButtonPrimitive from "@/components/ui/button"
 import type { Task, Notification as OriginalNotification } from '@/types/task'
+import { generateUUID } from "@/lib/utils"
 
 interface NotificationSettingsProps {
   value: Notification[],
@@ -33,7 +34,7 @@ export function ReminderSettings({ value, onChange }: NotificationSettingsProps)
 
   const handleAddNotification = () => {
     const newNotification: Notification = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       mode: 'Push',
       type: 'Reminder',
       relativeTimeValue: 15,

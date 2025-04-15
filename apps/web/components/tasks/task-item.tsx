@@ -50,17 +50,24 @@ export function TaskItem({
   const [isDescriptionEditing, setIsDescriptionEditing] = useState<boolean>(false)
   const [editedTitle, setEditedTitle] = useState<string>(task.title)
   const [editedDescription, setEditedDescription] = useState<string>(task.description || '')
+  const [subtasks, setSubtasks] = useState<Task[]>([]);
+  const { tasks } = useTasks();
 
   const isCompleted = task.completed
   const currentStage = task.stage
 
-  const childrenCompleted: number = task.children?.filter(child => child.completed).length || 0
-  const childrenTotal: number = task.children?.length || 0
-  const childrenProgress: number = childrenTotal > 0 ? Math.round((childrenCompleted / childrenTotal) * 100) : 0
-
   React.useEffect(() => {
     setIsTitleEditing(!!edit);
   }, [edit]);
+
+  React.useEffect(() => {
+    setEditedTitle(task.title);
+    setEditedDescription(task.description || '');
+  }, [task]);
+  
+  React.useEffect(() => {
+    setSubtasks(tasks.filter(subtask => subtask.parentId === task.id));
+  }, [tasks]);
 
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => {
@@ -160,27 +167,27 @@ export function TaskItem({
                 "text-gray-800 cursor-pointer",
                 isCompleted && "line-through",
                 showDetails ? 'text-2xl' : 'text-base',
-                task.title ? 'text-gray-500' : 'text-gray-400'
+                task.title ? 'text-gray-600' : 'text-gray-400'
               )}
               style={{ minHeight: '1.5rem' }}
               onClick={handleTitleClick}
             >
-              {task.title || 'Add title...'}
+              {editedTitle || 'Add title...'}
             </div>
           )}
           <div className={cn("flex flex-wrap gap-1 text-gray-400", showDetails && 'mt-2')} style={{ minHeight: '1.25rem' }}>
             <div className="flex items-center gap-1 -ml-2">
-              {task.children && task.children.length > 0 && (
+              {subtasks && subtasks.length > 0 && (
                 <div className="flex items-center gap-1 ml-2">
-                  {task.children.every(child => child.completed) ?
+                  {subtasks.every(child => child.completed) ?
                     <CircleCheck className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} /> :
-                    task.children.some(child => child.completed) ?
+                    subtasks.some(child => child.completed) ?
                       <CircleDot className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} /> :
                       <Circle className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} />}
                   <div
                   >
                     <span className="text-sm">
-                      {task.children.filter(child => child.completed).length}/{task.children.length}
+                      {subtasks.filter(child => child.completed).length}/{subtasks.length}
                     </span>
                   </div>
                 </div>
@@ -250,9 +257,9 @@ export function TaskItem({
             className="w-full min-h-[100px] outline-none"
             autoFocus
           /> :
-          <div
+          <div className="text-gray-500"
             onClick={handleDescriptionClick}>
-            { !!task.description ? task.description : <span className="text-gray-400">Add description...</span> }
+            { !!editedDescription ? editedDescription : <span className="text-gray-400">Add description...</span> }
           </div>
           }
         </div>

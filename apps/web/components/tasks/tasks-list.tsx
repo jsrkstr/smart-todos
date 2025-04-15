@@ -30,9 +30,10 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
   const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const isSubtaskList = !!parentId;
 
   // Filter tasks based on parentId
-  const filteredTasks = parentId 
+  const filteredTasks = parentId
     ? tasks.filter(task => task.parentId === parentId)
     : tasks.filter(task => !task.parentId); // Root tasks only when no parentId
 
@@ -51,30 +52,40 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
 
   // Create task groups
   const taskGroups: TaskGroup[] = [
-    {
-      title: "High Priority",
-      tasks: highPriorityTasks,
-      priority: 'high',
-      completed: false,
-    },
-    {
-      title: "Medium Priority",
-      tasks: mediumPriorityTasks,
-      priority: 'medium',
-      completed: false,
-    },
-    {
-      title: "Low Priority",
-      tasks: lowPriorityTasks,
-      priority: 'low',
-      completed: false,
-    },
-    {
-      title: "Completed",
-      tasks: completedTasks,
-      priority: 'high',
-      completed: true,
-    },
+    ...(isSubtaskList ? [
+      {
+        title: "Sub Tasks",
+        tasks: filteredTasks,
+        priority: 'high',
+        completed: false,
+      }
+    ] :
+    [
+      {
+        title: "High Priority",
+        tasks: highPriorityTasks,
+        priority: 'high',
+        completed: false,
+      },
+      {
+        title: "Medium Priority",
+        tasks: mediumPriorityTasks,
+        priority: 'medium',
+        completed: false,
+      },
+      {
+        title: "Low Priority",
+        tasks: lowPriorityTasks,
+        priority: 'low',
+        completed: false,
+      },
+      {
+        title: "Completed",
+        tasks: completedTasks,
+        priority: 'high',
+        completed: true,
+      },
+    ])
   ]
 
   const toggleTaskCompletion = (taskId: string) => {
@@ -130,11 +141,11 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
   return (
     <div>
       <div className="max-w-2xl mx-auto">
-        {storeInitialized && !loading ? 
+        {storeInitialized && !loading ?
           visibleTaskGroups.length > 0 ? (
             visibleTaskGroups.map((group) => (
               <div key={group.title} className="">
-                <h4 className={cn('text-xl font-bold text-gray-800', group.tasks.length ? 'mb-4' : 'mb-2')}>
+                <h4 className={cn(isSubtaskList ? 'text-l' : 'text-xl font-bold', group.tasks.length ? 'mb-4' : 'mb-2', 'text-gray-600')}>
                   {group.title}
                 </h4>
                 <div className="space-y-2">
@@ -160,7 +171,7 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
               No tasks found
             </div>
           )
-        :
+          :
           <div>
             <Skeleton className="h-10 w-[200px] mb-8" />
             <Skeleton className="h-7 w-full mb-8" />

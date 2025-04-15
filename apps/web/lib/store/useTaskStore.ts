@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Task, TaskPriority, TaskStage, Notification } from '@/types/task'
 import type { NotificationCreateinput, NotificationUpdateInput } from '@/lib/services/taskService'
+import { generateUUID } from '../utils'
 
 type SetupNotificationsFunction = (tasks: Task[]) => void
 
@@ -72,7 +73,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
   addTask: async (task: Partial<Task>): Promise<Task | null> => {
     const validatedTask: any = {
-      id: task.id || crypto.randomUUID(),
+      id: task.id || generateUUID(),
       title: task.title || '',
       date: task.date || new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
       time: task.time,
