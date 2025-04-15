@@ -778,7 +778,7 @@ export class TaskService {
             replace (must be boolean, this tells is existing subtasks are removed or not),
             question (if response_type=question),
             sub_tasks (if response_type=sub_tasks, it must be an array of objects, each object having fields: title (string, required), description (string, optional), estimatedTimeMinutes (number, optional, default to 10 if not specified))
-            task_details (if response_type=sub_tasks, nested fields: estimatedTimeMinutes (number).
+            task_details (if response_type=sub_tasks, nested fields: estimatedTimeMinutes (number, it should be sum of the estimatedTimeMinutes of all subtasks).
           Example sub_tasks array: [{ "title": "Draft initial email", "estimatedTimeMinutes": 10 }, { "title": "Find recipient contact info", "description": "Check CRM and LinkedIn", "estimatedTimeMinutes": 5 }]
         `
       },
