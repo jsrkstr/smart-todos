@@ -147,6 +147,15 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
             Refine <Wand2 className={`h-5 w-5 ${isRefining ? 'animate-pulse' : ''}`} />
           </Button>
         }
+        {task.stage === 'Refinement' && task.stageStatus === 'Completed' &&
+          <Button
+            variant="outline"
+            disabled={isRefining}
+            title="Refine task with AI"
+          >
+            Breakdown <Wand2 className={`h-5 w-5 ${isRefining ? 'animate-pulse' : ''}`} />
+          </Button>
+        }
       </div>
       <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true}>
         <DrawerTrigger asChild>

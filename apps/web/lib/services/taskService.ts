@@ -342,7 +342,7 @@ export class TaskService {
         return result;
       }
 
-      if (originalTask.stageStatus === 'QuestionAsked') {
+      if (originalTask.stageStatus === 'QuestionAsked' || originalTask.stageStatus === 'Completed') {
         console.log('continueRefinement');
         const result = await TaskService.continueRefinement(originalTask);
         return result;

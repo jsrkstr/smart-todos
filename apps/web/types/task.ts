@@ -24,6 +24,8 @@ export type TaskPriority = 'low' | 'medium' | 'high';
 
 export type TaskStage = "Refinement" | "Breakdown" | "Planning" | "Execution" | "Reflection";
 
+export type TaskStageStatus = "NotStarted" | "InProgress" | "QuestionAsked" | "Completed";
+
 export interface Tag {
   id?: string
   name: string
@@ -60,6 +62,7 @@ export interface Task {
   dateAdded: string
   completed: boolean
   stage: TaskStage
+  stageStatus: TaskStageStatus
   priority: TaskPriority
   position?: number
   tags?: Tag[]
