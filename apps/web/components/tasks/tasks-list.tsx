@@ -142,7 +142,7 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
 
   return (
     <div>
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto flex flex-col gap-8">
         {storeInitialized && !loading ?
           visibleTaskGroups.length > 0 ? (
             visibleTaskGroups.map((group) => (
