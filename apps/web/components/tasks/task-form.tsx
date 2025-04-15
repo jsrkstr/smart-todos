@@ -12,6 +12,7 @@ import ChatBox from "../chat/chat-box"
 import { useToast } from "@/hooks/use-toast"
 import { useTasks } from "@/hooks/use-tasks"
 import { TasksList } from "./tasks-list"
+import { useChatMessages } from "@/hooks/use-chat-messages"
 
 interface TaskFormProps {
   taskId?: string
@@ -38,6 +39,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const [userResponse, setUserResponse] = useState("")
   const { toast } = useToast()
   const isSubtask = !!task?.parentId;
+  const { loadMessages } = useChatMessages(taskId)
 
   // useEffect(() => {
   //   // If a question was asked, open the drawer
@@ -47,22 +49,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   // }, [lastQuestionAsked, taskId])
 
   useEffect(() => {
-    const onResize = () => {
-      const height = window.innerHeight - (window.visualViewport?.height ?? 0);
-      if (height > 150) { // heuristically assuming keyboard is open
-        document.documentElement.style.setProperty('--screen-keyboard-height', `${height}px`);
-        document.documentElement.classList.add('keyboard-open');
-      } else {
-        document.documentElement.style.setProperty('--screen-keyboard-height', `0px`);
-        document.documentElement.classList.remove('keyboard-open');
-      }
-    };
-
-    window.visualViewport?.addEventListener("resize", onResize);
-
-    return () => {
-      window.visualViewport?.removeEventListener("resize", onResize);
-    };
+    loadMessages()
   }, []);
 
   if (isEditing && !task) {
@@ -160,7 +147,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   };
 
   return task ? (
-    <div className="flex flex-col justify-betweennnn h-full pb-4">
+    <div className="flex flex-col h-full pb-4">
       <TaskItem
         task={task}
         onToggleCompletion={handleToggleCompletion}
@@ -198,9 +185,15 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
       </div>
       <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true}>
         <DrawerTrigger asChild>
-          <div className="flex gap-2 mb-4 pt-2">
-            <div style={{}} className="w-full h-full absolute"></div>
-            <Input
+          <div className="flex gap-2 mb-4 pt-2 justify-center">
+            <Button
+              variant="secondary"
+              className="rounded-lg h-10 px-8"
+            >
+              Chat with Coach
+            </Button>
+            {/* <div style={{}} className="w-full h-full absolute"></div> */}
+            {/* <Input
               placeholder="Type a message..."
               className="flex-1 rounded-full border-gray-300 focus:border-primary focus:ring-primary"
             />
@@ -210,7 +203,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
               className="rounded-full h-10 w-10 flex items-center justify-center"
             >
               <Send className="h-5 w-5" />
-            </Button>
+            </Button> */}
           </div>
         </DrawerTrigger>
         <DrawerContent className="max-h-[70vh]">

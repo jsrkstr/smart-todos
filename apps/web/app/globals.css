@@ -93,9 +93,14 @@ body {
   }
 }
 
-.keyboard-open .mobile-input {
+.keyboard-open .chat-scroll-area {
+  padding-bottom: 150px;
+}
+
+.mobile-input {
   position: fixed;
-  bottom: var(--screen-keyboard-height,0);
+  /* bottom: var(--screen-keyboard-height,0); */
+  bottom: 0px;
   left: 0;
   width: 100%;
 }

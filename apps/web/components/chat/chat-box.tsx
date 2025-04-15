@@ -19,6 +19,7 @@ interface ChatBoxProps {
 export default function ChatBox({ taskId }: ChatBoxProps) {
   const { messages: chatMessages, loading: messagesLoading, loadMessages } = useChatMessages(taskId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messageAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { fetchTasks } = useTaskStore();
   const { fetchTags } = useTagStore();
@@ -47,7 +48,7 @@ export default function ChatBox({ taskId }: ChatBoxProps) {
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
     console.log('data', data);
     const anno = messages[messages.length-1]?.annotations
     console.log('messages anno', messages[messages.length-1]?.annotations)
@@ -59,18 +60,40 @@ export default function ChatBox({ taskId }: ChatBoxProps) {
   }, [messages])
 
   useEffect(() => {
-    if (inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 10);
-      inputRef.current.focus();
-    }
+    const onResize = () => {
+      const height = window.innerHeight - (window.visualViewport?.height ?? 0);
+      if (height > 150) { // heuristically assuming keyboard is open
+        document.documentElement.style.setProperty('--screen-keyboard-height', `${height}px`);
+        document.documentElement.classList.add('keyboard-open');
+        setTimeout(() => {
+          messageAreaRef?.current?.scrollTo({ top: 10000 });
+        }, 10);
+      } else {
+        document.documentElement.style.setProperty('--screen-keyboard-height', `0px`);
+        document.documentElement.classList.remove('keyboard-open');
+      }
+    };
+
+    window.visualViewport?.addEventListener("resize", onResize);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    // if (inputRef.current) {
+    //   setTimeout(() => {
+    //     inputRef.current?.focus();
+    //   }, 0);
+    //   inputRef.current.focus();
+    // }
   }, [])
 
   return (
     <div className="flex flex-col bg-gray-100 mmmax-h-[50vh] h-[500px]">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll-area" ref={messageAreaRef}>
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-400">
             <p>Send a message to start chatting with the bot</p>
@@ -121,13 +144,15 @@ export default function ChatBox({ taskId }: ChatBoxProps) {
       </div>
 
       {/* Input area */}
-      <div className="bg-white p-3 border-t">
+      <div className="min-h-[65px]">
+      <div className="bg-white p-3 border-t mobile-input">
         <form onSubmit={handleSubmit} className="flex items-center space-x-2">
           <Input
             ref={inputRef}
             value={input}
             onChange={handleInputChange}
             placeholder="Type a message..."
+            type="text"
             className="flex-1 rounded-full border-gray-300 focus:border-primary focus:ring-primary"
           />
           <Button
@@ -139,6 +164,7 @@ export default function ChatBox({ taskId }: ChatBoxProps) {
             <Send className="h-5 w-5" />
           </Button>
         </form>
+      </div>
       </div>
     </div>
   )
