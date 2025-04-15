@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { TaskItem } from "./task-item"
 import type { Task } from "@/types/task"
@@ -20,13 +20,21 @@ interface TaskFormProps {
 
 export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const router = useRouter()
-  const { tasks, updateTask, refineTask, lastQuestionAsked, respondToQuestion } = useTasks()
+  const {
+    tasks,
+    updateTask,
+    refineTask,
+    breakdownTask,
+    lastQuestionAsked,
+    respondToQuestion
+  } = useTasks()
   const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
   const task = tasks.find(t => t.id === taskId)
   const [openChat, setOpenChat] = useState<boolean>(false)
   const snapPoints = ['148px', '355px', 1];
   const [snap, setSnap] = useState<number | string | null>(snapPoints[0]);
   const [isRefining, setIsRefining] = useState(false)
+  const [isBreakingDown, setIsBreakingDown] = useState(false)
   const [userResponse, setUserResponse] = useState("")
   const { toast } = useToast()
 
@@ -95,6 +103,35 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     }
   }
 
+  const handleBreakdownTask = async () => {
+    if (!task?.id) return
+
+    try {
+      setIsBreakingDown(true)
+      const updatedTask: Task | null = await breakdownTask(task.id);
+
+      // Check if we received a question (task will be null)
+      if (updatedTask === null) {
+        toast({
+          title: 'AI needs more information',
+          description: 'Please answer the question in the chat to continue breaking down the task.'
+        });
+        // Potentially open the chat drawer if needed
+        // setOpenChat(true)
+      } else {
+        toast({ title: 'Task successfully broken down into sub-tasks!' });
+      }
+    } catch (error) {
+      console.error('Error breaking down task:', error)
+      toast({
+        title: 'Failed to break down task',
+        variant: "destructive",
+      });
+    } finally {
+      setIsBreakingDown(false)
+    }
+  }
+
   // const handleSubmitResponse = async (e: React.FormEvent) => {
   //   e.preventDefault();
   //   if (!userResponse.trim() || !task?.id) return;
@@ -150,10 +187,11 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
         {task.stage === 'Refinement' && task.stageStatus === 'Completed' &&
           <Button
             variant="outline"
-            disabled={isRefining}
-            title="Refine task with AI"
+            onClick={handleBreakdownTask}
+            disabled={isBreakingDown}
+            title="Break down task with AI"
           >
-            Breakdown <Wand2 className={`h-5 w-5 ${isRefining ? 'animate-pulse' : ''}`} />
+            Breakdown <Wand2 className={`h-5 w-5 ${isBreakingDown ? 'animate-pulse' : ''}`} />
           </Button>
         }
       </div>

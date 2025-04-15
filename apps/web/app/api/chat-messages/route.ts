@@ -13,7 +13,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
     const taskId = url.searchParams.get('taskId')
     const latest = url.searchParams.get('latest') === 'true'
 
-    let messages = await ChatMessageService.getMessages(taskId || undefined, true)
+    let messages = await ChatMessageService.getMessages(taskId || undefined, false)
 
     // If latest=true is specified, return only the most recent message
     if (latest && messages.length > 0) {

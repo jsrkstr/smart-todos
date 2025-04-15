@@ -21,6 +21,7 @@ interface TaskStore {
   updateTask: (taskId: string, updates: Partial<Task>) => Promise<Task | null>,
   refineTask: (taskId: string) => Promise<Task | null>
   updateTaskStage: (taskId: string, stage: TaskStage) => Promise<void>
+  breakdownTask: (taskId: string) => Promise<Task | null>
 }
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
@@ -332,6 +333,64 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     } catch (error) {
       console.error('Error refining task:', error)
       set({ error: error instanceof Error ? error.message : 'Failed to refine task' })
+      return null
+    }
+  },
+
+  breakdownTask: async (taskId: string): Promise<Task | null> => {
+    const task = get().tasks.find(t => t.id === taskId);
+    if (!task) return null;
+    
+    // Check if the task is in the correct stage to be broken down
+    // Typically, this follows refinement completion
+    if (!(task.stage === 'Refinement' && task.stageStatus === 'Completed') && task.stage !== 'Breakdown') {
+      console.warn("Task is not in the correct stage for breakdown.");
+      // Optionally update the task stage first if needed, or just return
+      // For now, just return null if not ready
+      // Or should we force the stage update here? Let's keep it strict for now.
+      // await get().updateTask(taskId, { stage: 'Breakdown', stageStatus: 'NotStarted' });
+      return null;
+    }
+    
+    try {
+      const response = await fetch('/api/tasks/breakdown', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: task.id,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to breakdown task')
+      }
+
+      const responseData = await response.json()
+      
+      // Check if the response contains a task or just a message (e.g., question)
+      if (!responseData.task) {
+        // Return null if it's a message/question response
+        // The useTasks hook will handle this, potentially showing the message
+        console.log("Breakdown resulted in a message/question: ", responseData.message);
+        // Update the task locally if stageStatus changed (e.g., to QuestionAsked)
+        // The API response doesn't guarantee the task object here, so fetch it or rely on subsequent updates
+        // For now, return null and let useTasks handle state.
+        return null; 
+      }
+      
+      // Handle successful task update with sub-tasks
+      const updatedTask = responseData.task;
+      
+      set(state => ({
+        tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
+      }))
+      return updatedTask;
+    } catch (error) {
+      console.error('Error breaking down task:', error)
+      set({ error: error instanceof Error ? error.message : 'Failed to breakdown task' })
       return null
     }
   }

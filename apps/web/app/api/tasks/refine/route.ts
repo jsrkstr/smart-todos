@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { AuthenticatedApiRequest, withAuth } from '@/lib/api-middleware'
 import { TaskService } from '@/lib/services/taskService'
-import type { RefineTaskInput, UpdateTaskInput } from '@/lib/services/taskService'
+import type { ProcessTaskInput, UpdateTaskInput } from '@/lib/services/taskService'
 import OpenAI from 'openai'
 import { Tag } from '@/types/tag'
 import { TaskPriority, TaskStage } from '@/types/task'
@@ -43,7 +43,7 @@ const openai = new OpenAI({
 // PUT /api/tasks/refine
 export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextResponse> => {
   try {
-    let taskData: RefineTaskInput
+    let taskData: ProcessTaskInput
     try {
       const payload = await req.json()
       if (!payload || !payload.id) {
@@ -69,6 +69,7 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
     const response = await TaskService.processTask({
       id: taskData.id,
       userId: taskData.userId,
+      nextStage: 'Refinement',
     })
 
     const updatedTask = response.task;

@@ -24,9 +24,11 @@ export function useTasks() {
     deleteTask, 
     updateTask: storeUpdateTask,
     refineTask: storeRefineTask,
+    breakdownTask: storeBreakdownTask,
   } = useTaskStore()
 
   const { fetchTags } = useTagStore()
+  const { fetchTasks } = useTaskStore()
   
   // Use a ref to track if we've already set up the notification handler
   const handlerSetupRef = useRef<boolean>(false)
@@ -160,6 +162,37 @@ export function useTasks() {
     }
   }
 
+  // Function to initiate task breakdown
+  const breakdownTask = async (taskId: string): Promise<Task | null> => {
+    try {
+      // Reset question state if needed, similar to refine
+      setLastQuestionAsked(null);
+      
+      const updatedTask: Task | null = await storeBreakdownTask(taskId);
+      
+      // If null, check if it was due to a question (similar logic to refineTask)
+      if (!updatedTask) {
+        const task = tasks.find(t => t.id === taskId);
+        if (task) {
+          // Potentially check latest chat message here if needed
+          // For now, rely on the store/API to update task status to QuestionAsked
+          // and the UI to react accordingly.
+        }
+      }
+      
+      // // If task updated (sub-tasks added), the store handles the state update.
+      // // No need to call fetchTags here unless breakdown modifies tags (currently it doesn't).
+      fetchTasks(true);
+      fetchTags(true);
+      
+      return updatedTask;
+    } catch (error) {
+      console.error("Error in useTasks breakdownTask:", error);
+      // Error state is handled within the store
+      return null;
+    }
+  };
+
   return {
     loading,
     initialized,
@@ -172,6 +205,7 @@ export function useTasks() {
     refineTask,
     lastQuestionAsked,
     respondToQuestion,
+    breakdownTask,
   }
 }
 
