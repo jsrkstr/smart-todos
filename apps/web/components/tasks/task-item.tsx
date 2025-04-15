@@ -51,7 +51,7 @@ export function TaskItem({
   const [editedTitle, setEditedTitle] = useState<string>(task.title)
   const [editedDescription, setEditedDescription] = useState<string>(task.description || '')
   const [subtasks, setSubtasks] = useState<Task[]>([]);
-  const [backspaceCount, setBackspaceCount] = useState<number>(0);
+  const [backspaceTimestamp, setBackspaceTimestamp] = useState<number>(0);
   const { tasks } = useTasks();
 
   const isCompleted = task.completed
@@ -130,12 +130,13 @@ export function TaskItem({
       setEditedTitle(task.title)
       setIsTitleEditing(false)
     } else if ((e.key === 'Backspace' || e.key === 'Delete') && editedTitle === '') {
-      setBackspaceCount(prev => {
-        if (prev === 1 && subtasks.length === 0) {
+      let isDeleting = false;
+      setBackspaceTimestamp(prev => {
+        if (Date.now() - prev < 500 && subtasks.length === 0 && !isDeleting) {
           handleDelete();
-          return 0;
+          isDeleting = true;
         }
-        return prev + 1;
+        return Date.now();
       });
     }
   }
@@ -143,7 +144,7 @@ export function TaskItem({
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setEditedTitle(e.target.value);
     if (e.target.value !== '') {
-      setBackspaceCount(0);
+      setBackspaceTimestamp(Date.now());
     }
   }
 
