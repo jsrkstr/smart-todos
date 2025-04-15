@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, CircleDot, Circle, CircleCheck, Tag, ChevronRight, Repeat } from "lucide-react"
+import { Calendar, CircleDot, Circle, CircleCheck, Tag, ChevronRight, Repeat, Hourglass } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useTasks } from "@/hooks/use-tasks"
@@ -182,7 +182,7 @@ export function TaskItem({
               className={cn(
                 "text-gray-800 cursor-pointer",
                 isCompleted && "line-through",
-                showDetails ? 'text-2xl' : 'text-base',
+                showDetails ? 'text-xl' : 'text-base',
                 task.title ? 'text-gray-600' : 'text-gray-400'
               )}
               style={{ minHeight: '1.5rem' }}
@@ -191,7 +191,7 @@ export function TaskItem({
               {editedTitle || 'Add title...'}
             </div>
           )}
-          <div className={cn("flex flex-wrap gap-1 text-gray-400", showDetails && 'mt-2')} style={{ minHeight: '1.25rem' }}>
+          <div className={cn("flex flex-wrap gap-1 text-gray-400 text-sm", showDetails && 'mt-2 text-base')} style={{ minHeight: '1.25rem' }}>
             <div className="flex items-center gap-1 -ml-2">
               {subtasks && subtasks.length > 0 && (
                 <div className="flex items-center gap-1 ml-2">
@@ -202,7 +202,7 @@ export function TaskItem({
                       <Circle className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} />}
                   <div
                   >
-                    <span className="text-sm">
+                    <span className="">
                       {subtasks.filter(child => child.completed).length}/{subtasks.length}
                     </span>
                   </div>
@@ -215,18 +215,29 @@ export function TaskItem({
                 onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'dateTime' } : null)}
               >
                 <div className="flex items-center gap-1 px-2">
-                  <Calendar className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3', showDetails && task.deadline && 'text-gray-800')} />
+                  <Calendar className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} />
                   {task.deadline && (
-                    <span className="text-sm">{format(new Date(task.deadline), 'MMM dd')}</span>
+                    <span className="">{format(new Date(task.deadline), 'MMM dd')}</span>
                   )}
                   {task.time && (
-                    <span className="text-sm">{task.time}</span>
+                    <span className="">{task.time}</span>
                   )}
                   {task.repeats && (
-                    <Repeat className={cn('ml-1 p-1 rounded-[2vw] bg-gray-200', showDetails ? 'h-5 w-5 text-gray-800' : 'h-4 w-4')} />
+                    <Repeat className={cn('ml-1 p-1 rounded-[2vw] bg-gray-200', showDetails ? 'h-5 w-5' : 'h-4 w-4')} />
                   )}
                 </div>
               </DateTimeRepeatReminderPicker>
+
+              { task.estimatedTimeMinutes ?
+                <div className="flex items-center gap-1 mr-2">
+                  <Hourglass className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} />
+                  <span className="">
+                    { task.estimatedTimeMinutes > 60 ? 
+                      `${(task.estimatedTimeMinutes / 60).toFixed(1).replace('.0', '')} h` : 
+                      `${task.estimatedTimeMinutes} m`}
+                  </span>
+                </div> : null
+              }
             </div>
 
             <TagPicker
@@ -235,9 +246,9 @@ export function TaskItem({
               onOpenChange={(open) => onSetActivePicker(open ? { taskId: task.id, type: 'tag' } : null)}
             >
               <div className="flex items-center gap-1">
-                <Tag className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3', showDetails && task.tags?.length && 'text-gray-800')} />
+                <Tag className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} />
                 {task.tags && task.tags.length > 0 && (
-                  <span className="text-sm">{task.tags.map((tag) => tag.name).join(', ')}</span>
+                  <span className="">{task.tags.map((tag) => tag.name).join(', ')}</span>
                 )}
               </div>
             </TagPicker>

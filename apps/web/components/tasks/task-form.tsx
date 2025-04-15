@@ -37,6 +37,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
   const [isBreakingDown, setIsBreakingDown] = useState(false)
   const [userResponse, setUserResponse] = useState("")
   const { toast } = useToast()
+  const isSubtask = !!task?.parentId;
 
   // useEffect(() => {
   //   // If a question was asked, open the drawer
@@ -169,12 +170,12 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
         showDetails
       />
       <div className="flex-1 grow py-4 mt-4 overflow-x-scroll">
-        { !task.parentId &&
+        { !isSubtask &&
           <TasksList parentId={taskId} showSidebar={true} />
         }
       </div>
       <div className="py-4">
-        {task.stage === 'Planning' &&
+        {!isSubtask && task.stage === 'Planning' &&
           <Button
             variant="outline"
             onClick={handleRefineTask}
@@ -184,7 +185,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
             Refine <Wand2 className={`h-5 w-5 ${isRefining ? 'animate-pulse' : ''}`} />
           </Button>
         }
-        {task.stage === 'Refinement' && task.stageStatus === 'Completed' &&
+        {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'Completed' &&
           <Button
             variant="outline"
             onClick={handleBreakdownTask}

@@ -42,6 +42,9 @@ export interface TaskBreakdownSubTask {
 export interface TaskBreakdownData {
   replace: boolean;
   sub_tasks: TaskBreakdownSubTask[];
+  task_details: {
+    estimatedTimeMinutes?: number;
+  }
 }
 
 export interface NotificationCreateinput {
@@ -770,7 +773,12 @@ export class TaskService {
           Your job is to break down a given task into smaller, actionable sub-tasks.
           Aim for sub-tasks that can be completed in roughly 10-15 minutes each (the '10-minute task' strategy), but be flexible based on the task complexity.
           If the task seems too complex or ambiguous to break down effectively, ask a clarifying question to the user.
-          Provide output in JSON format only with these fields: response_type (must be 'sub_tasks', 'question'), replace (must be boolean, this tells is existing subtasks are removed or not), question (if response_type=question), sub_tasks (if response_type=sub_tasks, it must be an array of objects, each object having fields: title (string, required), description (string, optional), estimatedTimeMinutes (number, optional, default to 10 if not specified)).
+          Provide output in JSON format only with these fields:
+            response_type (must be 'sub_tasks', 'question'),
+            replace (must be boolean, this tells is existing subtasks are removed or not),
+            question (if response_type=question),
+            sub_tasks (if response_type=sub_tasks, it must be an array of objects, each object having fields: title (string, required), description (string, optional), estimatedTimeMinutes (number, optional, default to 10 if not specified))
+            task_details (if response_type=sub_tasks, nested fields: estimatedTimeMinutes (number).
           Example sub_tasks array: [{ "title": "Draft initial email", "estimatedTimeMinutes": 10 }, { "title": "Find recipient contact info", "description": "Check CRM and LinkedIn", "estimatedTimeMinutes": 5 }]
         `
       },
@@ -933,6 +941,7 @@ export class TaskService {
       userId: task.userId,
       stage: 'Breakdown',
       stageStatus: 'Completed',
+      estimatedTimeMinutes: breakdownData.task_details?.estimatedTimeMinutes,
       children: {
         create: breakdownData.sub_tasks.map(sub => ({
           title: sub.title,
