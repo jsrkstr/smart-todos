@@ -92,7 +92,7 @@ export function Header({ onMenuClick, currentPage = "Smart Todos" }: HeaderProps
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <span className="text-primary text-xl">{currentPage}</span>
         </Link>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 pr-4">
           <form className="hidden md:flex relative w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input type="search" placeholder="Search tasks..." className="w-full pl-8" />

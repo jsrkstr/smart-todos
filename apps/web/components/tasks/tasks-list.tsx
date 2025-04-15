@@ -184,7 +184,6 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
           </div>
         }
       </div>
-      {showSidebar && (
         <Sheet open={!!selectedTaskId} onOpenChange={(open) => onOpenChange(open)}>
           <SheetContent side="right" className="w-[100%] sm:w-[600px]">
             <SheetHeader className="h-4">
@@ -196,7 +195,6 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
             {selectedTaskId && <EditTaskForm taskId={selectedTaskId} />}
           </SheetContent>
         </Sheet>
-      )}
     </div>
   )
 }
