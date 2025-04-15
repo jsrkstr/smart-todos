@@ -10,6 +10,8 @@ import { TaskItem } from "./task-item"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Skeleton } from "../ui/skeleton"
 import { cn } from "@/lib/utils"
+import { PlusSquare } from "lucide-react"
+import { Button } from "../ui/button"
 
 interface TaskGroup {
   title: string;
@@ -145,9 +147,18 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
           visibleTaskGroups.length > 0 ? (
             visibleTaskGroups.map((group) => (
               <div key={group.title} className="">
-                <h4 className={cn(isSubtaskList ? 'text-l' : 'text-xl font-bold', group.tasks.length ? 'mb-4' : 'mb-2', 'text-gray-600')}>
-                  {group.title}
-                </h4>
+                <div className={cn('flex justify-between', group.tasks.length ? 'mb-4' : 'mb-2')}>
+                  <h4 className={cn(isSubtaskList ? 'text-l' : 'text-xl font-bold', 'text-gray-600')}>
+                    {group.title}
+                  </h4>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-7 h-7"
+                    onClick={() => addNewTask(group)}>
+                    <PlusSquare className="h-4 w-4" />
+                  </Button>
+                </div>
                 <div className="space-y-2">
                   {group.tasks.map((task) => (
                     <TaskItem
@@ -161,7 +172,7 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
                     />
                   ))}
                 </div>
-                <div className="extra-space text-gray-400 mt-2" style={{ height: '2rem' }} onClick={() => addNewTask(group)}>
+                <div className="extra-space text-gray-400 mt-2 hidden" style={{ height: '2rem' }} onClick={() => addNewTask(group)}>
                   +
                 </div>
               </div>
