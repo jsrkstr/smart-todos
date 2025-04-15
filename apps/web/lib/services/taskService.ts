@@ -317,6 +317,7 @@ export class TaskService {
           title: task?.title
         }
       })
+
     })
   }
 

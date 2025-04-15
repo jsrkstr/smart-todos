@@ -51,6 +51,7 @@ export function TaskItem({
   const [editedTitle, setEditedTitle] = useState<string>(task.title)
   const [editedDescription, setEditedDescription] = useState<string>(task.description || '')
   const [subtasks, setSubtasks] = useState<Task[]>([]);
+  const [backspaceCount, setBackspaceCount] = useState<number>(0);
   const { tasks } = useTasks();
 
   const isCompleted = task.completed
@@ -128,6 +129,21 @@ export function TaskItem({
     } else if (e.key === 'Escape') {
       setEditedTitle(task.title)
       setIsTitleEditing(false)
+    } else if ((e.key === 'Backspace' || e.key === 'Delete') && editedTitle === '') {
+      setBackspaceCount(prev => {
+        if (prev === 1 && subtasks.length === 0) {
+          handleDelete();
+          return 0;
+        }
+        return prev + 1;
+      });
+    }
+  }
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    setEditedTitle(e.target.value);
+    if (e.target.value !== '') {
+      setBackspaceCount(0);
     }
   }
 
@@ -153,7 +169,7 @@ export function TaskItem({
           {isTitleEditing ? (
             <input
               value={editedTitle}
-              onChange={(e) => setEditedTitle(e.target.value)}
+              onChange={handleTitleChange}
               onBlur={handleTitleBlur}
               onKeyDown={handleTitleKeyDown}
               className={cn(showDetails ? 'text-2xl' : 'text-base')}
