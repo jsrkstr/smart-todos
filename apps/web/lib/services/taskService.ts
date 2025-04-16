@@ -522,11 +522,12 @@ export class TaskService {
           Your job is to improve task descriptions, suggest appropriate tags, refine deadlines, and estimate time better.
           Start by understanding the task, if you less than 90% sure about the task, ask a question to the user.
           Provide output in JSON format only with these fields: response_type (must be 'task_details', 'question'), question (if response_type=question), understand_percentage (if response_type=question), task_details (if response_type=task_details, nested fields: title, description, priority (must be 'low', 'medium', or 'high'), deadline (ISO string or null), estimatedTimeMinutes (number), location (string), why (string), tags (max 2, object with fields name (string) and category (string))).
+          Task:\n${JSON.stringify(taskForAI, null, 2)}
         `
       },
       {
         role: "user",
-        content: `Please refine this task by providing a more detailed description, better tags, and more accurate time estimates and deadlines if needed:\n${JSON.stringify(taskForAI, null, 2)}`
+        content: `Please refine this task by providing a more detailed description, better tags, and more accurate time estimates and deadlines if needed`
       }
     ];
 
@@ -714,7 +715,7 @@ export class TaskService {
           userId: task.userId,
           taskId: task.id,
           content: "Task has been successfully refined with AI assistance.",
-          role: ChatMessageRole.system,
+          role: ChatMessageRole.assistant,
           metadata: {
             type: "info",
             refinement: true
@@ -767,11 +768,12 @@ export class TaskService {
             sub_tasks (if response_type=sub_tasks, it must be an array of objects, each object having fields: title (string, required), description (string, optional), estimatedTimeMinutes (number, optional, default to 10 if not specified))
             task_details (if response_type=sub_tasks, nested fields: estimatedTimeMinutes (number, it should be sum of the estimatedTimeMinutes of all subtasks).
           Example sub_tasks array: [{ "title": "Draft initial email", "estimatedTimeMinutes": 10 }, { "title": "Find recipient contact info", "description": "Check CRM and LinkedIn", "estimatedTimeMinutes": 5 }]
+          Task:\n${JSON.stringify(taskForAI, null, 2)}
         `
       },
       {
         role: "user",
-        content: `Please break down this task into smaller sub-tasks using the 10-minute strategy where appropriate:\n${JSON.stringify(taskForAI, null, 2)}`
+        content: `Please break down this task into smaller sub-tasks using the 10-minute strategy where appropriate`
       }
     ];
 
@@ -955,7 +957,7 @@ export class TaskService {
           userId: task.userId,
           taskId: task.id,
           content: `Task successfully broken down into ${breakdownData.sub_tasks.length} sub-tasks.`, // Corrected template literal
-          role: ChatMessageRole.system,
+          role: ChatMessageRole.assistant,
           metadata: {
             type: "info",
             breakdown: true,

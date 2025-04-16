@@ -181,7 +181,7 @@ export function TaskItem({
               onChange={handleTitleChange}
               onBlur={handleTitleBlur}
               onKeyDown={handleTitleKeyDown}
-              className={cn(showDetails ? 'text-2xl' : 'text-base')}
+              className={cn(showDetails ? 'text-xl' : 'text-base')}
               autoFocus
               style={{ border: 'none', outline: 'none', width: '100%' }}
               placeholder="Add title..."

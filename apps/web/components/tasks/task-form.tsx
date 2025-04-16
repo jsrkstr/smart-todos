@@ -6,7 +6,7 @@ import { TaskItem } from "./task-item"
 import type { Task } from "@/types/task"
 import { Drawer, DrawerContent, DrawerHeader, DrawerOverlay, DrawerTitle, DrawerTrigger } from "../ui/drawer"
 import { Input } from "../ui/input"
-import { Send, Wand2 } from "lucide-react"
+import { Loader2, Send, Wand2 } from "lucide-react"
 import { Button } from "../ui/button"
 import ChatBox from "../chat/chat-box"
 import { useToast } from "@/hooks/use-toast"
@@ -169,7 +169,15 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
             disabled={isRefining}
             title="Refine task with AI"
           >
-            Refine <Wand2 className={`h-5 w-5 ${isRefining ? 'animate-pulse' : ''}`} />
+            {isRefining ? (
+              <>
+                Refining <Loader2 className="h-5 w-5 animate-spin" />
+              </>
+            ) : (
+              <>
+                Refine <Wand2 className="h-5 w-5" />
+              </>
+            )}
           </Button>
         }
         {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'Completed' &&
@@ -179,7 +187,15 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
             disabled={isBreakingDown}
             title="Break down task with AI"
           >
-            Breakdown <Wand2 className={`h-5 w-5 ${isBreakingDown ? 'animate-pulse' : ''}`} />
+            {isBreakingDown ? (
+              <>
+                Breaking Down <Loader2 className="h-5 w-5 animate-spin" />
+              </>
+            ) : (
+              <>
+                Breakdown <Wand2 className="h-5 w-5" />
+              </>
+            )}
           </Button>
         }
       </div>
