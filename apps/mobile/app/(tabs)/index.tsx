@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKGROUND_FETCH_TASK = 'POMODORO_TIMER';
 const TASK_NOTIFICATION_TASK = 'TASK_NOTIFICATIONS';
-const webviewUri = 'https://da64-2a02-8429-91a1-4601-d0bd-9b9-535d-1625.ngrok-free.app';
+const webviewUri = 'https://smart-todos-web.vercel.app';
 
 // Configure notifications
 Notifications.setNotificationHandler({
