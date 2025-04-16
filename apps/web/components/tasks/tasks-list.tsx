@@ -5,13 +5,13 @@ import { useState } from "react"
 import { useTasks } from "@/hooks/use-tasks"
 import type { Task, TaskPriority } from "@/types/task"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
-import { EditTaskForm } from "./edit-task-form"
 import { TaskItem } from "./task-item"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Skeleton } from "../ui/skeleton"
 import { cn } from "@/lib/utils"
 import { PlusSquare } from "lucide-react"
 import { Button } from "../ui/button"
+import { TaskForm } from "./task-form"
 
 interface TaskGroup {
   title: string;
@@ -203,7 +203,7 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
                 Detailed view and editing options for the selected task.
               </SheetDescription>
             </SheetHeader>
-            {selectedTaskId && <EditTaskForm taskId={selectedTaskId} />}
+            {selectedTaskId && <TaskForm taskId={selectedTaskId} editing={true} />}
           </SheetContent>
         </Sheet>
     </div>
