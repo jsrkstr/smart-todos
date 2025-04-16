@@ -16,11 +16,9 @@ interface TaskStore {
   setNotificationHandler: (handler: SetupNotificationsFunction) => void
   fetchTasks: (force: boolean) => Promise<void>
   addTask: (task: Partial<Task>) => Promise<Task | null>
-  toggleTaskCompletion: (taskId: string) => Promise<void>
   deleteTask: (taskId: string) => Promise<void>
   updateTask: (taskId: string, updates: Partial<Task>) => Promise<Task | null>,
   refineTask: (taskId: string) => Promise<Task | null>
-  updateTaskStage: (taskId: string, stage: TaskStage) => Promise<void>
   breakdownTask: (taskId: string) => Promise<Task | null>
 }
 
@@ -141,26 +139,6 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 
-  toggleTaskCompletion: async (taskId: string): Promise<void> => {
-    const task = get().tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    const updatedTask: Task = {
-      ...task,
-      completed: !task.completed,
-      stage: (!task.completed ? "Reflection" : "Execution") as TaskStage
-    };
-
-    try {
-      await get().updateTask(taskId, updatedTask);
-      set(state => ({
-        tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
-      }));
-    } catch (error) {
-      console.error('Failed to toggle task completion:', error);
-    }
-  },
-
   deleteTask: async (taskId: string): Promise<void> => {
     try {
       const response: Response = await fetch('/api/tasks', {
@@ -272,26 +250,6 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       console.error("Failed to update task:", error)
       set({ error: error instanceof Error ? error.message : 'Failed to update task' })
       return null
-    }
-  },
-
-  updateTaskStage: async (taskId: string, stage: TaskStage): Promise<void> => {
-    const task = get().tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    const updatedTask: Task = {
-      ...task,
-      stage,
-      completed: stage === "Reflection" // Auto-complete when moved to Reflection stage
-    };
-
-    try {
-      await get().updateTask(taskId, updatedTask);
-      set(state => ({
-        tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
-      }));
-    } catch (error) {
-      console.error('Failed to update task stage:', error);
     }
   },
 

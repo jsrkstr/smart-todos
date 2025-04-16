@@ -44,7 +44,7 @@ export function TaskItem({
   onSetActivePicker
 }: TaskItemProps) {
   const router = useRouter()
-  const { toggleTaskCompletion, deleteTask, updateTask } = useTasks()
+  const { deleteTask, updateTask } = useTasks()
   const [expanded, setExpanded] = useState<boolean>(false)
   const [isTitleEditing, setIsTitleEditing] = useState<boolean>(false)
   const [isDescriptionEditing, setIsDescriptionEditing] = useState<boolean>(false)
