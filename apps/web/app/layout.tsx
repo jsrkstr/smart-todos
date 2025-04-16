@@ -20,6 +20,9 @@ export default function RootLayout({
 }): React.ReactElement {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.variable)}>
         <Providers>
           {children}
