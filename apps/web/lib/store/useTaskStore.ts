@@ -109,6 +109,11 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       }));
     }
 
+    // Optimistically update the state with the new task
+    const optimisticTask = validatedTask as Task;
+    const previousTasks = get().tasks;
+    set(state => ({ tasks: [optimisticTask, ...state.tasks] }));
+
     try {
       // Validate task data before sending
       if (!validatedTask) {
@@ -126,20 +131,37 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       
       if (!response.ok) {
         const errorData: { error: string } = await response.json();
+        // Rollback optimistic update on error
+        set({ tasks: previousTasks });
         throw new Error(errorData.error || 'Failed to add task');
       }
       
       const newTask: Task = await response.json();
-      set(state => ({ tasks: [newTask, ...state.tasks] }));
+      // Replace the optimistic task with the server response
+      set(state => ({ 
+        tasks: state.tasks.map(t => t.id === optimisticTask.id ? newTask : t) 
+      }));
       return newTask;
     } catch (error) {
       console.error("Failed to add task:", error);
-      set({ error: error instanceof Error ? error.message : 'Failed to add task' });
+      // Ensure the optimistic update is rolled back
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to add task',
+        tasks: previousTasks
+      });
       return null;
     }
   },
 
   deleteTask: async (taskId: string): Promise<void> => {
+    // Save current state for potential rollback
+    const previousTasks = get().tasks;
+    
+    // Optimistically remove the task
+    set(state => ({
+      tasks: state.tasks.filter(task => task.id !== taskId)
+    }));
+
     try {
       const response: Response = await fetch('/api/tasks', {
         method: 'DELETE',
@@ -147,25 +169,43 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         body: JSON.stringify({ id: taskId }),
       })
       if (!response.ok) {
+        // Rollback on error
+        set({ tasks: previousTasks });
         throw new Error('Failed to delete task')
       }
-      set(state => ({
-        tasks: state.tasks.filter(task => task.id !== taskId)
-      }))
+      // Task is already removed from state, so no need to update again
     } catch (error) {
       console.error("Failed to delete task:", error)
-      set({ error: error instanceof Error ? error.message : 'Failed to delete task' })
+      // Rollback to previous state
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to delete task',
+        tasks: previousTasks 
+      })
     }
   },
 
   updateTask: async (taskId: string, updates: Partial<Task>): Promise<Task | null> => {
+    // Find current task
+    const currentTask = get().tasks.find(t => t.id === taskId);
+    if (!currentTask) return null;
+    
+    // Create optimistic updated task
+    const optimisticTask = { ...currentTask, ...updates };
+    
+    // Save current state for potential rollback
+    const previousTasks = get().tasks;
+    
+    // Optimistically update the task
+    set(state => ({
+      tasks: state.tasks.map(task => task.id === taskId ? optimisticTask : task)
+    }));
+
     try {
       const payload: any = { id: taskId, ...updates };
       
       // Format children for API if provided
       if (updates.children) {
         // Extract current task to compare children
-        const currentTask = get().tasks.find(t => t.id === taskId);
         const currentChildren = currentTask?.children || [];
         
         // Sort children into create, update, and remove arrays
@@ -192,7 +232,6 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       // Format notifications for API if provided
       if (updates.notifications) {
         // Extract current task to compare notifications
-        const currentTask = get().tasks.find(t => t.id === taskId);
         const currentNotifications = currentTask?.notifications || [];
 
         updates.notifications = updates.notifications.map(n => {
@@ -239,16 +278,23 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         body: JSON.stringify(payload),
       })
       if (!response.ok) {
+        // Rollback on error
+        set({ tasks: previousTasks });
         throw new Error('Failed to update task')
       }
       const updatedTask: Task = await response.json()
+      // Replace the optimistic task with the server response
       set(state => ({
         tasks: state.tasks.map(task => task.id === taskId ? updatedTask : task)
       }))
       return updatedTask
     } catch (error) {
       console.error("Failed to update task:", error)
-      set({ error: error instanceof Error ? error.message : 'Failed to update task' })
+      // Rollback to previous state
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to update task',
+        tasks: previousTasks 
+      })
       return null
     }
   },
