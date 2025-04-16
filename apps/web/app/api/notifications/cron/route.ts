@@ -54,7 +54,7 @@ export async function GET() {
           continue
         }
 
-        const taskDate = task.date
+        const taskDate = task.deadline
         const taskTime = task.time
 
         // Process recurrence rules if task repeats
