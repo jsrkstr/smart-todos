@@ -48,6 +48,28 @@ export class ChatMessageService {
     const message = await prisma.chatMessage.create({
       data: input
     })
+
+    // if (input.role === 'assistant') {
+    //     const user = await prisma.user.findUnique({ where: { id: input.userId }});
+    //     const message = {
+    //         to: `${user?.expoPushToken}`,
+    //         sound: 'default',
+    //         title: 'Message from coach',
+    //         body: input.content,
+    //         data: { someData: 'goes here' },
+    //       };
+
+    //       const response = await fetch('https://exp.host/--/api/v2/push/send', {
+    //         method: 'POST',
+    //         headers: {
+    //           Accept: 'application/json',
+    //           'Accept-Encoding': 'gzip, deflate',
+    //           'Content-Type': 'application/json',
+    //         },
+    //         body: JSON.stringify(message),
+    //       });
+    //       console.log('send push', response);
+    // }
     
     return message
   }

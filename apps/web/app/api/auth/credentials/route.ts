@@ -83,6 +83,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'Authentication successful',
+      token: token,
       user: userWithoutPassword,
     })
   } catch (error) {

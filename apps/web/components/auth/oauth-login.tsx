@@ -10,6 +10,7 @@ import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { useToast } from "@/hooks/use-toast"
+import { isMobileApp, sendToMobile } from "@/lib/mobileBridge"
 
 
 interface OAuthLoginProps {
@@ -40,12 +41,22 @@ export function OAuthLogin({ onLogin, redirectUrl }: OAuthLoginProps) {
     setIsLoading(true)
     try {
       // Use auth context instead of directly setting cookies
-      await login(email, password)
+      const response = await login(email, password)
       
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in"
       })
+
+      console.log('auth loginn', isMobileApp(), response);
+
+      if (isMobileApp() && response.token) {
+        // console.log('sending token', response.token);
+        sendToMobile({
+          type: 'AUTH_TOKEN',
+          token: response.token,
+        })
+      }
       
       // Redirect to the requested page or dashboard
       router.push(redirectUrl)

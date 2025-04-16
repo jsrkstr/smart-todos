@@ -52,6 +52,7 @@
     "cmdk": "1.0.4",
     "date-fns": "latest",
     "embla-carousel-react": "8.5.1",
+    "expo-server-sdk": "^3.14.0",
     "framer-motion": "^12.6.3",
     "google-auth-library": "^9.15.1",
     "input-otp": "1.4.1",

@@ -16,7 +16,8 @@ type MessageType =
   | 'START_POMODORO' 
   | 'STOP_POMODORO' 
   | 'SEND_NOTIFICATION' 
-  | 'UPDATE_TASKS';
+  | 'UPDATE_TASKS'
+  | 'AUTH_TOKEN';
 
 interface BaseMessage {
   type: MessageType;
@@ -44,11 +45,17 @@ interface PomodoroStopMessage extends BaseMessage {
   type: 'STOP_POMODORO';
 }
 
+interface AuthTokenMessage extends BaseMessage {
+  type: 'AUTH_TOKEN';
+  token: string;
+}
+
 type BridgeMessage = 
   | TaskUpdateMessage 
   | NotificationMessage 
   | PomodoroStartMessage 
-  | PomodoroStopMessage;
+  | PomodoroStopMessage
+  | AuthTokenMessage;
 
 export function sendToMobile(message: BridgeMessage): void {
   if (isMobileApp()) {

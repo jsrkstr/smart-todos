@@ -553,16 +553,14 @@ export class TaskService {
 
     if (responseData.response_type === 'question') {
       // Save the question directly using prisma
-      const storedMessage = await prisma.chatMessage.create({
-        data: {
-          userId: task.userId,
-          taskId: task.id,
-          content: responseData.question,
-          role: 'assistant',
-          metadata: {
-            understand_percentage: responseData.understand_percentage || 0,
-            type: "question"
-          }
+      const storedMessage = await ChatMessageService.createMessage({
+        userId: task.userId,
+        taskId: task.id,
+        content: responseData.question,
+        role: 'assistant',
+        metadata: {
+          understand_percentage: responseData.understand_percentage || 0,
+          type: "question"
         }
       })
 
@@ -609,16 +607,14 @@ export class TaskService {
 
       if (responseData.response_type === 'question') {
         // Save the question directly using prisma
-        const storedMessage = await prisma.chatMessage.create({
-          data: {
-            userId: task.userId,
-            taskId: task.id,
-            content: responseData.question,
-            role: 'assistant',
-            metadata: {
-              understand_percentage: responseData.understand_percentage || 0,
-              type: "question"
-            }
+        const storedMessage = await ChatMessageService.createMessage({
+          userId: task.userId,
+          taskId: task.id,
+          content: responseData.question,
+          role: 'assistant',
+          metadata: {
+            understand_percentage: responseData.understand_percentage || 0,
+            type: "question"
           }
         })
 
@@ -710,16 +706,14 @@ export class TaskService {
     const updatedTask = await TaskService.updateTask(updates)
 
     if (updatedTask) {
-      await prisma.chatMessage.create({
-        data: {
-          userId: task.userId,
-          taskId: task.id,
-          content: "Task has been successfully refined with AI assistance.",
-          role: ChatMessageRole.assistant,
-          metadata: {
-            type: "info",
-            refinement: true
-          }
+      await ChatMessageService.createMessage({
+        userId: task.userId,
+        taskId: task.id,
+        content: "Task has been successfully refined with AI assistance.",
+        role: ChatMessageRole.assistant,
+        metadata: {
+          type: "info",
+          refinement: true
         }
       })
     }
@@ -800,16 +794,14 @@ export class TaskService {
 
     if (responseData.response_type === 'question') {
       // Save the question
-      await prisma.chatMessage.create({
-        data: {
-          userId: task.userId,
-          taskId: task.id,
-          content: responseData.question,
-          role: 'assistant',
-          metadata: {
-            type: "question",
-            stage: "Breakdown" // Add stage context
-          }
+      await ChatMessageService.createMessage({
+        userId: task.userId,
+        taskId: task.id,
+        content: responseData.question,
+        role: 'assistant',
+        metadata: {
+          type: "question",
+          stage: "Breakdown" // Add stage context
         }
       })
 
@@ -863,16 +855,14 @@ export class TaskService {
 
       if (responseData.response_type === 'question') {
         // Save the question
-        await prisma.chatMessage.create({
-          data: {
-            userId: task.userId,
-            taskId: task.id,
-            content: responseData.question,
-            role: 'assistant',
-            metadata: {
-              type: "question",
-              stage: "Breakdown"
-            }
+        await ChatMessageService.createMessage({
+          userId: task.userId,
+          taskId: task.id,
+          content: responseData.question,
+          role: 'assistant',
+          metadata: {
+            type: "question",
+            stage: "Breakdown"
           }
         })
         // Task status remains QuestionAsked
@@ -952,17 +942,15 @@ export class TaskService {
 
     // Add a system message confirming breakdown
     if (updatedTask) {
-      await prisma.chatMessage.create({
-        data: {
-          userId: task.userId,
-          taskId: task.id,
-          content: `Task successfully broken down into ${breakdownData.sub_tasks.length} sub-tasks.`, // Corrected template literal
-          role: ChatMessageRole.assistant,
-          metadata: {
-            type: "info",
-            breakdown: true,
-            subTaskCount: breakdownData.sub_tasks.length
-          }
+      await ChatMessageService.createMessage({
+        userId: task.userId,
+        taskId: task.id,
+        content: `Task successfully broken down into ${breakdownData.sub_tasks.length} sub-tasks.`, // Corrected template literal
+        role: ChatMessageRole.assistant,
+        metadata: {
+          type: "info",
+          breakdown: true,
+          subTaskCount: breakdownData.sub_tasks.length
         }
       });
     }

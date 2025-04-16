@@ -14,6 +14,7 @@ export function useAuth()  {
         if (!response.ok) {
             throw new Error('Login failed');
         }
+        return await response.json();
     };
 
     // Login with provider (Google, Telegram, etc.)

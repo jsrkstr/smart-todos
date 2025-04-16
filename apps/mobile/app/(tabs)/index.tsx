@@ -5,10 +5,11 @@ import * as Notifications from 'expo-notifications';
 import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storeAuthToken } from '../api/auth';
 
 const BACKGROUND_FETCH_TASK = 'POMODORO_TIMER';
 const TASK_NOTIFICATION_TASK = 'TASK_NOTIFICATIONS';
-const webviewUri = 'https://smart-todos-web.vercel.app';
+const webviewUri = 'https://fd5f-2a02-8429-91a1-4601-ec6b-6113-8a6e-f425.ngrok-free.app';// 'https://smart-todos-web.vercel.app';
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -162,6 +163,8 @@ export default function HomeScreen() {
         await AsyncStorage.removeItem('pomodoroMode');
       } else if (data.type === 'UPDATE_TASKS') {
         await AsyncStorage.setItem('tasks', JSON.stringify(data.tasks));
+      } else if (data.type === 'AUTH_TOKEN') {
+        storeAuthToken(data.token)
       }
     } catch (error) {
       console.error('Error handling message:', error);
