@@ -299,19 +299,3 @@ export function TaskItem({
     </div>
   )
 }
-
-function getStageVariant(stage: TaskStage): "default" | "secondary" | "outline" {
-  switch (stage) {
-    case "Refinement":
-      return "default";
-    case "Breakdown":
-    case "Planning":
-      return "secondary";
-    case "Execution":
-    case "Reflection":
-      return "outline";
-    default:
-      return "default";
-  }
-}
-

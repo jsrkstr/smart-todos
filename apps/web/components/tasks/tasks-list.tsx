@@ -203,7 +203,7 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
                 Detailed view and editing options for the selected task.
               </SheetDescription>
             </SheetHeader>
-            {selectedTaskId && <TaskForm taskId={selectedTaskId} editing={true} />}
+            {selectedTaskId && <TaskForm taskId={selectedTaskId} />}
           </SheetContent>
         </Sheet>
     </div>

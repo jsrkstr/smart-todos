@@ -16,10 +16,9 @@ import { useChatMessages } from "@/hooks/use-chat-messages"
 
 interface TaskFormProps {
   taskId?: string
-  isEditing?: boolean
 }
 
-export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
+export function TaskForm({ taskId }: TaskFormProps) {
   const router = useRouter()
   const {
     tasks,
@@ -52,7 +51,7 @@ export function TaskForm({ taskId, isEditing = false }: TaskFormProps) {
     loadMessages()
   }, []);
 
-  if (isEditing && !task) {
+  if (!task) {
     return <div>Loading...</div>
   }
 
