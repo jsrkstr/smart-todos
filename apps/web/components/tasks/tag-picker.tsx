@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useTasks } from "@/hooks/use-tasks"
 import type { Tag, Task } from "@/types/task"
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "../ui/drawer"
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "../ui/drawer"
 import { ScrollArea } from "@radix-ui/react-scroll-area"
 import { Input } from "../ui/input"
 import { useTagStore } from "@/lib/store/useTagStore"
@@ -84,6 +84,7 @@ export function TagPicker({
           {children}
         </DrawerTrigger>
         <DrawerContent className="max-h-[60vh]">
+          <DrawerDescription className="sr-only">Task tags settings</DrawerDescription>
           <DrawerHeader className="px-4">
             <DrawerTitle>Select Tags</DrawerTitle>
             <div className="mt-4">

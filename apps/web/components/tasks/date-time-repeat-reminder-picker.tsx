@@ -15,7 +15,7 @@ import * as InputPrimitive from "@/components/ui/input"
 import * as SelectPrimitive from "@/components/ui/select"
 import * as LabelPrimitive from "@/components/ui/label"
 import * as TabsPrimitive from "@/components/ui/tabs"
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "../ui/drawer"
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "../ui/drawer"
 import { RepeatSettings } from "./repeat-settings"
 import { ReminderSettings } from "./reminder-settings"
 import { useToast } from "@/hooks/use-toast"
@@ -72,6 +72,7 @@ export function DateTimeRepeatReminderPicker({
           {children}
         </DrawerTrigger>
         <DrawerContent className="max-h-[85vh]" aria-describedby="date-description">
+          <DrawerDescription className="sr-only">task date settings</DrawerDescription>
           <DrawerHeader className="px-4">
             <DrawerTitle>Select Date</DrawerTitle>
           </DrawerHeader>

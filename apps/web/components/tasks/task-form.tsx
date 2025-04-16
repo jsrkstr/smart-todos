@@ -4,7 +4,7 @@ import { useEffect, useState, ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { TaskItem } from "./task-item"
 import type { Task } from "@/types/task"
-import { Drawer, DrawerContent, DrawerHeader, DrawerOverlay, DrawerTitle, DrawerTrigger } from "../ui/drawer"
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerOverlay, DrawerTitle, DrawerTrigger } from "../ui/drawer"
 import { Input } from "../ui/input"
 import { Loader2, Send, Wand2 } from "lucide-react"
 import { Button } from "../ui/button"
@@ -222,6 +222,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
           </div>
         </DrawerTrigger>
         <DrawerContent className="max-h-[70vh]">
+            <DrawerDescription className="sr-only">chat about task</DrawerDescription>
           <DrawerHeader className="px-4">
             <DrawerTitle>Chat</DrawerTitle>
           </DrawerHeader>
