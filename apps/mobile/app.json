@@ -25,6 +25,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-modules-core",
       [
         "expo-splash-screen",
         {
