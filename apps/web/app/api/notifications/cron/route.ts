@@ -3,9 +3,21 @@ import { prisma } from '@/lib/prisma'
 import { NotificationMode, NotificationTrigger } from '@prisma/client'
 import { RRule, RRuleSet, rrulestr } from 'rrule'
 import { addMinutes, addHours, addDays, isAfter, isBefore, parseISO, format } from 'date-fns'
+import { toZonedTime } from 'date-fns-tz'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+const TIMEZONE = 'Europe/Paris'
+
+// Helper function to convert UTC to Paris time
+const toParisTime = (date: Date) => toZonedTime(date, TIMEZONE)
+
+// Helper function to convert Paris time to UTC
+const toUTC = (date: Date) => {
+  const parisDate = toZonedTime(date, TIMEZONE)
+  return new Date(parisDate.getTime() - (parisDate.getTimezoneOffset() * 60000))
+}
 
 export async function GET() {
   try {
@@ -50,7 +62,7 @@ export async function GET() {
       
       for (const task of userTasks) {
         // Skip if task has no notifications or user has no push token
-        if (!task.notifications.length || !task.user.expoPushToken) {
+        if (!task.notifications.length || !task.user.expoPushToken || !task.deadline) {
           continue
         }
 
@@ -63,7 +75,7 @@ export async function GET() {
           try {
             // Parse RRULE string
             const rruleObj = rrulestr(task.repeats)
-            const now = new Date()
+            const now = toParisTime(new Date())
             
             // Check if the task occurs today based on recurrence rule
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -77,8 +89,8 @@ export async function GET() {
           }
         } else {
           // For non-recurring tasks, check if it's scheduled for today
-          const taskDateTime = new Date(taskDate)
-          const today = new Date()
+          const taskDateTime = toParisTime(taskDate)
+          const today = toParisTime(new Date())
           isTaskDueToday = 
             taskDateTime.getDate() === today.getDate() && 
             taskDateTime.getMonth() === today.getMonth() && 
@@ -97,8 +109,8 @@ export async function GET() {
             continue
           }
 
-          const now = new Date()
-          let taskDateTime = new Date(taskDate)
+          const now = toParisTime(new Date())
+          let taskDateTime = toParisTime(taskDate)
           
           // Add time component if available
           if (taskTime) {
@@ -151,10 +163,10 @@ export async function GET() {
 
               if (response.ok) {
                 // Mark notification as read (sent)
-                await prisma.notification.update({
-                  where: { id: notification.id },
-                  data: { read: true }
-                })
+                // await prisma.notification.update({
+                //   where: { id: notification.id },
+                //   data: { read: true }
+                // })
                 
                 notifications.push({
                   taskId: task.id,
