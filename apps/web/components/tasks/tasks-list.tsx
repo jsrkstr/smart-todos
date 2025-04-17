@@ -18,6 +18,7 @@ interface TaskGroup {
   tasks: Task[];
   priority: TaskPriority;
   completed: boolean;
+  date?: string;
 }
 
 interface TasksListProps {
@@ -44,6 +45,12 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
   const mediumPriorityTasks = filteredTasks.filter(task => task.priority === "medium" && !task.completed)
   const lowPriorityTasks = filteredTasks.filter(task => task.priority === "low" && !task.completed)
   const completedTasks = filteredTasks.filter(task => task.completed)
+  const todayTasks = filteredTasks.filter(task => {
+    if (!task.date) return false;
+    const taskDate = new Date(task.date);
+    const today = new Date();
+    return taskDate.toDateString() === today.toDateString() && !task.completed;
+  });
 
   React.useEffect(() => {
     if (!searchParams.get('task-id') && selectedTaskId) {
@@ -60,9 +67,16 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
         tasks: filteredTasks,
         priority: 'medium',
         completed: false,
+        date: (new Date()).toDateString(),
       }
     ] :
     [
+      {
+        title: "Today",
+        tasks: todayTasks,
+        priority: 'high',
+        completed: false,
+      },
       {
         title: "High Priority",
         tasks: highPriorityTasks,
@@ -103,6 +117,9 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
       priority: group.priority,
       completed: group.completed,
       parentId: parentId, // Set parentId if provided
+      ...(group.date ? {
+        date: group.date
+      }: {}),
       notifications: [{
         mode: 'Push',
         type: 'Reminder',
