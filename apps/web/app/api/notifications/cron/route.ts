@@ -146,7 +146,7 @@ export async function GET() {
                 to: task.user.expoPushToken,
                 sound: 'default',
                 title: `Task reminder: ${task.title}`,
-                body: notification.message || `Your task is due ${notification.relativeTimeValue} ${notification.relativeTimeUnit.toLowerCase()} from now`,
+                body: `Your task is due ${notification.relativeTimeValue} ${notification.relativeTimeUnit.toLowerCase()} from now`,
                 data: { taskId: task.id },
               }
 
