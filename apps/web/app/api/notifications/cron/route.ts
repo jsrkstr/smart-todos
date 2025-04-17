@@ -101,8 +101,6 @@ export async function GET() {
           continue
         }
 
-        console.log('task today', task);
-
         // Process each notification for the task
         for (const notification of task.notifications) {
           if (!notification.relativeTimeValue || !notification.relativeTimeUnit) {
@@ -110,12 +108,16 @@ export async function GET() {
           }
 
           const now = toParisTime(new Date())
-          let taskDateTime = toParisTime(taskDate)
+          // since task is due today, we take today's date
+          let taskDateTime = toParisTime(new Date())
           
           // Add time component if available
           if (taskTime) {
             const [hours, minutes] = taskTime.split(':').map(num => parseInt(num, 10))
             taskDateTime.setHours(hours, minutes, 0, 0)
+          } else {
+            // default to 10 am
+            taskDateTime.setHours(10, 0, 0, 0)
           }
 
           // Calculate notification time based on relative settings
