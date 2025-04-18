@@ -17,7 +17,7 @@ type TaskWithRelations = Prisma.TaskGetPayload<{
   }
 }>
 
-// PUT /api/tasks/breakdown
+// PUT /api/tasks/prioritize
 export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextResponse> => {
   try {
     let taskData: ProcessTaskInput
@@ -38,39 +38,13 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
     }
 
     // TaskService.processTask will handle the breakdown logic based on the task's stage
-    const response = await TaskService.processTask({
-      id: taskData.id,
+    const tasks = await TaskService.prioritizeTasks({
       userId: taskData.userId,
-      nextStage: 'Breakdown',
     })
 
-    // Use the specific type here
-    const updatedTask = response.task as TaskWithRelations | null;
-
-    // Return the updated task if successful, otherwise indicate processing (e.g., question asked)
-    if (response.response_type === 'task_details' && updatedTask) {
-      // Ensure dates are serialized correctly
-      return NextResponse.json({
-        task: {
-          ...updatedTask,
-          date: updatedTask.date.toISOString(),
-          deadline: updatedTask.deadline?.toISOString() || null,
-          // Include children if they were added/updated
-          children: updatedTask.children?.map((child: Task) => ({
-            ...child,
-            date: child.date.toISOString(),
-            deadline: child.deadline?.toISOString() || null,
-          })) || [],
-        }
-      })
-    } else {
-      // Indicate that processing is ongoing (e.g., a question was asked)
-      // The client-side useTasks hook will handle polling or checking messages
-      return NextResponse.json({
-        task: null,
-        message: response.message // Forward the message (e.g., the question)
-      })
-    }
+    return NextResponse.json({
+      tasks,
+    })
   } catch (error) {
     const errorMessage: string = error instanceof Error ? error.message : 'Unknown error'
     console.error('Failed to breakdown task:', error, errorMessage)

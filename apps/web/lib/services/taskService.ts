@@ -8,7 +8,7 @@ import { TagService } from './tagService'
 import { ChatMessageService } from './chatMessageService'
 import { JsonObject } from '@prisma/client/runtime/library'
 import { metadata } from '@/app/layout'
-import { CreateTaskInput, ProcessTaskInput, ProcessTaskResponse, TaskRefinedData, UpdateTaskInput } from './interfaces'
+import { CreateTaskInput, PrioritizeTasksInput, ProcessTaskInput, ProcessTaskResponse, TaskRefinedData, UpdateTaskInput } from './interfaces'
 import { breakdownTaskInstruction, refineTaskInstruction } from './consts'
 
 // Initialize OpenAI client
@@ -785,5 +785,9 @@ export class TaskService {
     }
 
     return updatedTask;
+  }
+
+  static async prioritizeTasks(input: PrioritizeTasksInput): Promise<Task[]> {
+    return [];
   }
 } 

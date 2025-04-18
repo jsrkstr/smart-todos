@@ -161,3 +161,7 @@ export interface ProcessTaskResponse {
   task: Task | null;
   message: string;
 }
+
+export interface PrioritizeTasksInput {
+  userId: string;
+}
