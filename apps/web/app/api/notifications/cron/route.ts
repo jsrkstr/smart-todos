@@ -62,7 +62,7 @@ export async function GET() {
       
       for (const task of userTasks) {
         // Skip if task has no notifications or user has no push token
-        if (!task.notifications.length || !task.user.expoPushToken || !task.deadline) {
+        if (!task.notifications.length || !task.user.expoPushToken || !task.date) {
           continue
         }
 
