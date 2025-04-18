@@ -165,3 +165,7 @@ export interface ProcessTaskResponse {
 export interface PrioritizeTasksInput {
   userId: string;
 }
+
+export interface ContinuePrioritizeTasksInput {
+  userId: string;
+}

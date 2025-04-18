@@ -4,7 +4,7 @@ import { notEqual } from 'assert';
 
 export interface ChatMessageCreateInput {
   userId: string;
-  taskId: string;
+  taskId?: string;
   content: string;
   role: ChatMessageRole;
   metadata?: Record<string, any>;
@@ -18,7 +18,7 @@ export interface ChatMessageUpdateInput {
 }
 
 export class ChatMessageService {
-  static async getMessages(taskId?: string, filter = false): Promise<ChatMessage[]> {
+  static async getMessages(userId: string, taskId?: string, filter = false): Promise<ChatMessage[]> {
     const whereClause = {
         ...(taskId ? { taskId } : {}),
         ...(filter ? { role: { in: [ChatMessageRole.assistant, ChatMessageRole.user] } } : {}),
