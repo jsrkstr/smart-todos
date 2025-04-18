@@ -203,7 +203,15 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     if (!currentTask) return null;
     
     // Create optimistic updated task
-    const optimisticTask = { ...currentTask, ...updates };
+    const { notifications, ...otherUpdates } = updates;
+    const optimisticTask = {
+      ...currentTask,
+      ...otherUpdates,
+      notifications: notifications?.map(n => ({
+        ...n,
+        id: n.id ?? generateUUID(),
+      }))
+    };
     
     // Save current state for potential rollback
     const previousTasks = get().tasks;
