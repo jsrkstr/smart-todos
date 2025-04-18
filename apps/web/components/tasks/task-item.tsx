@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Calendar, CircleDot, Circle, CircleCheck, Tag, ChevronRight, Repeat, Hourglass, Clock } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { Calendar, CircleDot, Circle, CircleCheck, Tag, ChevronRight, Repeat, Hourglass, Clock, GripVertical } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useTasks } from "@/hooks/use-tasks"
@@ -10,6 +10,7 @@ import { DateTimeRepeatReminderPicker } from "./date-time-repeat-reminder-picker
 import { TagPicker } from "./tag-picker"
 import { useSwipeable } from 'react-swipeable'
 import { Input } from "@/components/ui/input"
+import { useDrag } from 'react-dnd'
 
 // Import React 19 compatible components
 import * as React from "react"
@@ -19,6 +20,9 @@ import * as ButtonPrimitive from "@/components/ui/button"
 import * as ProgressPrimitive from "@/components/ui/progress"
 import * as BadgePrimitive from "@/components/ui/badge"
 import { format } from "date-fns"
+
+// Define drag item type constant
+export const TASK_ITEM_TYPE = 'TASK_ITEM'
 
 interface TaskItemProps {
   task: Task
@@ -56,6 +60,23 @@ export function TaskItem({
 
   const isCompleted = task.completed
   const currentStage = task.stage
+
+  // Set up drag source
+  const dragRef = useRef<HTMLDivElement>(null);
+  const [{ isDragging }, dragConnector] = useDrag({
+    type: TASK_ITEM_TYPE,
+    item: { taskId: task.id, priority: task.priority, date: task.date },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging(),
+    }),
+  });
+
+  // Connect the drag ref
+  useEffect(() => {
+    if (dragRef.current) {
+      dragConnector(dragRef);
+    }
+  }, [dragConnector]);
 
   React.useEffect(() => {
     setIsTitleEditing(!!edit);
@@ -164,16 +185,19 @@ export function TaskItem({
   }
 
   return (
-    <div className="relative" {...swipeHandlers} >
+    <div 
+      className={cn("relative", isDragging && "opacity-50")} 
+      {...swipeHandlers}
+      ref={dragRef} 
+    >
       <div className="flex items-start gap-3">
-        
+        {/* <div className="cursor-grab active:cursor-grabbing mr-1">
+        </div> */}
         <CheckboxPrimitive.Checkbox
           className={cn('mt-1 border-gray-400', showDetails ? 'h-5 w-5 border-[2px]' : 'h-4 w-4 border-[1px]')}
           checked={task.completed}
           onCheckedChange={() => onToggleCompletion(task.id)}
         />
-      
-
         <div className="flex-1">
           {isTitleEditing ? (
             <input

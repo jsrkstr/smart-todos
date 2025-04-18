@@ -1,17 +1,19 @@
 "use client"
 
 import * as React from "react"
-import { useState } from "react"
+import { useState, useCallback, useRef } from "react"
 import { useTasks } from "@/hooks/use-tasks"
 import type { Task, TaskPriority } from "@/types/task"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
-import { TaskItem } from "./task-item"
+import { TaskItem, TASK_ITEM_TYPE } from "./task-item"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Skeleton } from "../ui/skeleton"
 import { cn } from "@/lib/utils"
 import { PlusSquare } from "lucide-react"
 import { Button } from "../ui/button"
 import { TaskForm } from "./task-form"
+import { useDrop } from "react-dnd"
+import { DndContext } from "./dnd-context"
 
 interface TaskGroup {
   title: string;
@@ -26,7 +28,46 @@ interface TasksListProps {
   showSidebar?: boolean;
 }
 
-export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
+// Task Group component that handles dropping tasks
+function TaskGroupContainer({ group, children, onDrop }: { 
+  group: TaskGroup, 
+  children: React.ReactNode,
+  onDrop: (itemId: string, group: TaskGroup) => void
+}) {
+  const dropRef = useRef<HTMLDivElement>(null);
+  
+  const [{ isOver }, dropConnector] = useDrop({
+    accept: TASK_ITEM_TYPE,
+    drop: (item: { taskId: string }) => {
+      onDrop(item.taskId, group);
+      return { moved: true };
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+  });
+  
+  // Connect the drop ref
+  React.useEffect(() => {
+    if (dropRef.current) {
+      dropConnector(dropRef);
+    }
+  }, [dropConnector]);
+
+  return (
+    <div 
+      ref={dropRef} 
+      className={cn(
+        "transition-colors duration-200",
+        isOver && "bg-gray-100 rounded-md p-4 -m-4"
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
   const router = useRouter()
   const searchParams = useSearchParams();
   const { initialized: storeInitialized, loading, tasks, updateTask, addTask } = useTasks()
@@ -54,7 +95,6 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
 
   React.useEffect(() => {
     if (!searchParams.get('task-id') && selectedTaskId) {
-      console.log('set  unll')
       setSelectedTaskId(null);
     }
   }, [searchParams])
@@ -65,7 +105,7 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
       {
         title: "Sub Tasks",
         tasks: filteredTasks,
-        priority: 'medium',
+        priority: 'medium' as TaskPriority,
         completed: false,
       }
     ] :
@@ -73,32 +113,32 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
       {
         title: "Today",
         tasks: todayTasks,
-        priority: 'high',
+        priority: 'high' as TaskPriority,
         completed: false,
-        date: (new Date()).toDateString(),
+        date: (new Date()).toISOString(),
       },
       {
         title: "High Priority",
         tasks: highPriorityTasks,
-        priority: 'high',
+        priority: 'high' as TaskPriority,
         completed: false,
       },
       {
         title: "Medium Priority",
         tasks: mediumPriorityTasks,
-        priority: 'medium',
+        priority: 'medium' as TaskPriority,
         completed: false,
       },
       {
         title: "Low Priority",
         tasks: lowPriorityTasks,
-        priority: 'low',
+        priority: 'low' as TaskPriority,
         completed: false,
       },
       {
         title: "Completed",
         tasks: completedTasks,
-        priority: 'high',
+        priority: 'high' as TaskPriority,
         completed: true,
       },
     ])
@@ -110,6 +150,40 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
       updateTask(taskId, { completed: !task.completed })
     }
   }
+
+  const handleDropTask = useCallback((taskId: string, targetGroup: TaskGroup) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const updates: Partial<Task> = {
+      priority: targetGroup.priority
+    };
+
+    // If dropping into today group, update the date
+    if (targetGroup.title === "Today" && targetGroup.date) {
+      const taskDate = task.date ? new Date(task.date) : new Date(targetGroup.date);
+      const todayDate = new Date(targetGroup.date);
+      
+      // Preserve the time from existing task date, but use today's date
+      if (task.date) {
+        taskDate.setFullYear(todayDate.getFullYear());
+        taskDate.setMonth(todayDate.getMonth());
+        taskDate.setDate(todayDate.getDate());
+      }
+      
+      updates.date = taskDate.toISOString();
+    }
+
+    // If dropping into completed group, mark as completed
+    if (targetGroup.completed && !task.completed) {
+      updates.completed = true;
+    } else if (!targetGroup.completed && task.completed) {
+      // If dropping from completed to non-completed, mark as not completed
+      updates.completed = false;
+    }
+
+    updateTask(taskId, updates);
+  }, [tasks, updateTask]);
 
   const addNewTask = async (group: TaskGroup) => {
     const newTask = await addTask({
@@ -163,36 +237,42 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
         {storeInitialized && !loading ?
           visibleTaskGroups.length > 0 ? (
             visibleTaskGroups.map((group) => (
-              <div key={group.title} className="">
-                <div className={cn('flex justify-between', group.tasks.length ? 'mb-3' : 'mb-2')}>
-                  <h4 className={cn('text-l', !isSubtaskList && 'font-bold', 'text-gray-600')}>
-                    {group.title}
-                  </h4>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-7 h-7 items-baseline"
-                    onClick={() => addNewTask(group)}>
-                    <PlusSquare className="h-4 w-4" />
-                  </Button>
+              <TaskGroupContainer 
+                key={group.title} 
+                group={group}
+                onDrop={handleDropTask}
+              >
+                <div className="">
+                  <div className={cn('flex justify-between', group.tasks.length ? 'mb-3' : 'mb-2')}>
+                    <h4 className={cn('text-l', !isSubtaskList && 'font-bold', 'text-gray-600')}>
+                      {group.title}
+                    </h4>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="w-7 h-7 items-baseline"
+                      onClick={() => addNewTask(group)}>
+                      <PlusSquare className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {group.tasks.map((task) => (
+                      <TaskItem
+                        key={task.id}
+                        task={task}
+                        onToggleCompletion={toggleTaskCompletion}
+                        onOpenSidebar={(id) => onOpenSidebar(id)}
+                        activePicker={activePicker}
+                        onSetActivePicker={setActivePicker}
+                        edit={editingTaskId === task.id}
+                      />
+                    ))}
+                  </div>
+                  <div className="extra-space text-gray-400 mt-2 hidden h-2" onClick={() => addNewTask(group)}>
+                    +
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {group.tasks.map((task) => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                      onToggleCompletion={toggleTaskCompletion}
-                      onOpenSidebar={(id) => onOpenSidebar(id)}
-                      activePicker={activePicker}
-                      onSetActivePicker={setActivePicker}
-                      edit={editingTaskId === task.id}
-                    />
-                  ))}
-                </div>
-                <div className="extra-space text-gray-400 mt-2 hidden h-2" onClick={() => addNewTask(group)}>
-                  +
-                </div>
-              </div>
+              </TaskGroupContainer>
             ))
           ) : (
             <div className="text-center text-gray-500 my-4">
@@ -224,6 +304,14 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
           </SheetContent>
         </Sheet>
     </div>
+  )
+}
+
+export function TasksList(props: TasksListProps) {
+  return (
+    <DndContext>
+      <TasksListContent {...props} />
+    </DndContext>
   )
 }
 
