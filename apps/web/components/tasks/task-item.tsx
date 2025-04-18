@@ -168,7 +168,7 @@ export function TaskItem({
       <div className="flex items-start gap-3">
         
         <CheckboxPrimitive.Checkbox
-          className={cn('mt-1 border-[1px] border-gray-400', showDetails ? 'h-5 w-5' : 'h-4 w-4')}
+          className={cn('mt-1 border-gray-400', showDetails ? 'h-5 w-5 border-[2px]' : 'h-4 w-4 border-[1px]')}
           checked={task.completed}
           onCheckedChange={() => onToggleCompletion(task.id)}
         />
@@ -191,7 +191,7 @@ export function TaskItem({
               className={cn(
                 "text-gray-800 cursor-pointer",
                 isCompleted && "line-through",
-                showDetails ? 'text-xl' : 'text-base',
+                showDetails ? 'text-xl font-bold' : 'text-base',
                 task.title ? 'text-gray-600' : 'text-gray-400'
               )}
               style={{ minHeight: '1.5rem' }}

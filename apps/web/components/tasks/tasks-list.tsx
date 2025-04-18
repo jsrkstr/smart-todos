@@ -159,19 +159,19 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
 
   return (
     <div>
-      <div className="max-w-2xl mx-auto flex flex-col gap-8">
+      <div className="max-w-2xl mx-auto flex flex-col gap-6">
         {storeInitialized && !loading ?
           visibleTaskGroups.length > 0 ? (
             visibleTaskGroups.map((group) => (
               <div key={group.title} className="">
-                <div className={cn('flex justify-between', group.tasks.length ? 'mb-4' : 'mb-2')}>
-                  <h4 className={cn(isSubtaskList ? 'text-l' : 'text-xl font-bold', 'text-gray-600')}>
+                <div className={cn('flex justify-between', group.tasks.length ? 'mb-3' : 'mb-2')}>
+                  <h4 className={cn('text-l', !isSubtaskList && 'font-bold', 'text-gray-600')}>
                     {group.title}
                   </h4>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="w-7 h-7"
+                    className="w-7 h-7 items-baseline"
                     onClick={() => addNewTask(group)}>
                     <PlusSquare className="h-4 w-4" />
                   </Button>
@@ -189,7 +189,7 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
                     />
                   ))}
                 </div>
-                <div className="extra-space text-gray-400 mt-2 hidden" style={{ height: '2rem' }} onClick={() => addNewTask(group)}>
+                <div className="extra-space text-gray-400 mt-2 hidden h-2" onClick={() => addNewTask(group)}>
                   +
                 </div>
               </div>
