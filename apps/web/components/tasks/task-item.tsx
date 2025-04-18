@@ -209,14 +209,15 @@ export function TaskItem({
               autoFocus
               style={{ border: 'none', outline: 'none', width: '100%' }}
               placeholder="Add title..."
+              type="text"
             />
           ) : (
             <div
               className={cn(
-                "text-gray-800 cursor-pointer",
+                "cursor-pointer",
                 isCompleted && "line-through",
                 showDetails ? 'text-xl font-bold' : 'text-base',
-                task.title ? 'text-gray-600' : 'text-gray-400'
+                task.title ? '' : 'opacity-40'
               )}
               style={{ minHeight: '1.5rem' }}
               onClick={handleTitleClick}

@@ -244,7 +244,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
               >
                 <div className="">
                   <div className={cn('flex justify-between', group.tasks.length ? 'mb-3' : 'mb-2')}>
-                    <h4 className={cn('text-l', !isSubtaskList && 'font-bold', 'text-gray-600')}>
+                    <h4 className={cn('text-l', !isSubtaskList && 'font-bold')}>
                       {group.title}
                     </h4>
                     <Button
