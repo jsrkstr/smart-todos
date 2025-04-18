@@ -20,7 +20,7 @@ export interface ChatMessageUpdateInput {
 export class ChatMessageService {
   static async getMessages(userId: string, taskId?: string, filter = false): Promise<ChatMessage[]> {
     const whereClause = {
-        ...(taskId ? { taskId } : {}),
+        taskId: taskId ?? '',
         ...(filter ? { role: { in: [ChatMessageRole.assistant, ChatMessageRole.user] } } : {}),
     }
     
@@ -45,8 +45,22 @@ export class ChatMessageService {
   }
 
   static async createMessage(input: ChatMessageCreateInput): Promise<ChatMessage> {
+    // Create the message with proper user and task relations
     const message = await prisma.chatMessage.create({
-      data: input
+      data: {
+        content: input.content,
+        role: input.role,
+        metadata: input.metadata,
+        externalId: input.externalId,
+        user: {
+          connect: { id: input.userId }
+        },
+        ...(input.taskId ? {
+          task: {
+            connect: { id: input.taskId || '' }
+          }
+        } : {}),
+      }
     })
 
     // if (input.role === 'assistant') {

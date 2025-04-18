@@ -63,13 +63,23 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
     })
 
     const { messages } = payload;
+    let returnMessage = '';
+    let annotationResponseType = '';
 
-    const response = await TaskService.processTask({
-      id: payload.taskId,
-      userId: req.user.id,
-    });
-
-    const returnMessage = response.message;
+    if (payload.taskId) {
+      const response = await TaskService.processTask({
+        id: payload.taskId,
+        userId: req.user.id,
+      });
+      returnMessage = response.message;
+      annotationResponseType = response.response_type;
+    } else {
+      const response = await TaskService.continuePrioritizeTasks({
+        userId: req.user.id,
+      });
+      returnMessage = 'Tasks prioritized!';
+      annotationResponseType = 'task_details';
+    }
 
     // const response = {
     //   response_type: 'task_details',
@@ -80,7 +90,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
         const messageId = crypto.randomUUID();
         dataStream.write(`f:${JSON.stringify({ messageId })}\n`);
         dataStream.write(`0: \"${returnMessage}\"\n`);
-        dataStream.writeMessageAnnotation({ response_type: response.response_type });
+        dataStream.writeMessageAnnotation({ response_type: annotationResponseType });
         // dataStream.writeData('call completed');
         dataStream.write(`e:${JSON.stringify({
           finishReason: "stop",

@@ -14,9 +14,10 @@ import { useTagStore } from "@/lib/store/useTagStore"
 
 interface ChatBoxProps {
   taskId?: string
+  slotContent?: React.ReactNode
 }
 
-export default function ChatBox({ taskId }: ChatBoxProps) {
+export default function ChatBox({ taskId, slotContent }: ChatBoxProps) {
   const { messages: chatMessages, loading: messagesLoading, loadMessages } = useChatMessages(taskId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messageAreaRef = useRef<HTMLDivElement>(null)
@@ -50,14 +51,19 @@ export default function ChatBox({ taskId }: ChatBoxProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
     console.log('data', data);
-    const anno = messages[messages.length-1]?.annotations
-    console.log('messages anno', messages[messages.length-1]?.annotations)
-    if (anno?.[0]?.response_type === 'task_details') {
+    
+    // Check if message contains annotations with a response_type property
+    const latestMessage = messages[messages.length-1];
+    const hasTaskDetailsAnnotation = latestMessage?.annotations?.some(
+      (anno: any) => anno?.response_type === 'task_details'
+    );
+    
+    if (hasTaskDetailsAnnotation) {
       console.log('fetch tasks');
       fetchTasks(true);
       fetchTags(true);
     }
-  }, [messages])
+  }, [messages, fetchTasks, fetchTags, data])
 
   useEffect(() => {
     const onResize = () => {
@@ -140,6 +146,14 @@ export default function ChatBox({ taskId }: ChatBoxProps) {
             </div>
           </div>
         )}
+        
+        {/* Slot area for custom content */}
+        {slotContent && (
+          <div className="mt-4 mb-2">
+            {slotContent}
+          </div>
+        )}
+        
         <div ref={messagesEndRef} />
       </div>
 

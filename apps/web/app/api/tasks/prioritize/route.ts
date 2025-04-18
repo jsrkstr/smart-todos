@@ -30,7 +30,7 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
     })
   } catch (error) {
     const errorMessage: string = error instanceof Error ? error.message : 'Unknown error'
-    console.error('Failed to breakdown task:', error, errorMessage)
-    return NextResponse.json({ error: 'Failed to breakdown task' }, { status: 500 })
+    console.error('Failed to prioritize task:', error, errorMessage)
+    return NextResponse.json({ error: 'Failed to prioritize task' }, { status: 500 })
   }
 }) 

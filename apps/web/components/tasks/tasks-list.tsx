@@ -9,11 +9,16 @@ import { TaskItem, TASK_ITEM_TYPE } from "./task-item"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Skeleton } from "../ui/skeleton"
 import { cn } from "@/lib/utils"
-import { PlusSquare } from "lucide-react"
+import { PlusSquare, Sparkles } from "lucide-react"
 import { Button } from "../ui/button"
 import { TaskForm } from "./task-form"
 import { useDrop } from "react-dnd"
 import { DndContext } from "./dnd-context"
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "../ui/drawer"
+import ChatBox from "../chat/chat-box"
+import { useToast } from "@/hooks/use-toast"
+import { useChatMessages } from "@/hooks/use-chat-messages"
+import { useTaskStore } from "@/lib/store"
 
 interface TaskGroup {
   title: string;
@@ -74,6 +79,11 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
   const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [openChat, setOpenChat] = useState<boolean>(false)
+  const [isPrioritizing, setIsPrioritizing] = useState<boolean>(false)
+  const { toast } = useToast()
+  const { loadMessages } = useChatMessages()
+  const { fetchTasks } = useTaskStore()
   const isSubtaskList = !!parentId;
 
   // Filter tasks based on parentId
@@ -215,7 +225,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
     }
   }
 
-  const onOpenSidebar = (id: string) => {
+  const onOpenTaskDetails = (id: string) => {
     if (!showSidebar) return;
     router.push(`?task-id=${id}`);
     setSelectedTaskId(id);
@@ -227,6 +237,59 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
     }
     setSelectedTaskId(open ? selectedTaskId : null);
   }
+
+  const onOpenChatChange = (open: boolean) => {
+    setOpenChat(open);
+  };
+
+  const handlePrioritizeTasks = async () => {
+    try {
+      setIsPrioritizing(true);
+      
+      const response = await fetch('/api/tasks/prioritize', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to prioritize tasks');
+      }
+      
+      // Refresh tasks
+      await fetchTasks(true);
+      
+      toast({
+        title: 'Tasks prioritized successfully',
+        description: 'Your tasks have been reorganized by priority',
+      });
+    } catch (error) {
+      console.error('Error prioritizing tasks:', error);
+      toast({
+        title: 'Failed to prioritize tasks',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPrioritizing(false);
+    }
+  };
+
+  // Priority Task button to inject into ChatBox
+  const prioritizeButton = (
+    <div className="flex justify-center">
+      <Button 
+        variant="outline" 
+        size="sm"
+        className="flex items-center gap-2"
+        disabled={isPrioritizing}
+        onClick={handlePrioritizeTasks}
+      >
+        <Sparkles className="h-4 w-4" />
+        <span>Prioritize My Tasks</span>
+      </Button>
+    </div>
+  );
 
   // Don't show groups with no tasks
   const visibleTaskGroups = taskGroups;//.filter(group => group.tasks.length > 0);
@@ -261,7 +324,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
                         key={task.id}
                         task={task}
                         onToggleCompletion={toggleTaskCompletion}
-                        onOpenSidebar={(id) => onOpenSidebar(id)}
+                        onOpenSidebar={(id) => onOpenTaskDetails(id)}
                         activePicker={activePicker}
                         onSetActivePicker={setActivePicker}
                         edit={editingTaskId === task.id}
@@ -292,17 +355,41 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
           </div>
         }
       </div>
-        <Sheet open={!!selectedTaskId} onOpenChange={(open) => onOpenChange(open)}>
-          <SheetContent side="right" className="w-[100%] sm:w-[600px]">
-            <SheetHeader className="h-4">
-              <SheetTitle id="task-details-title" className="sr-only">Task Details</SheetTitle>
-              <SheetDescription className="sr-only">
-                Detailed view and editing options for the selected task.
-              </SheetDescription>
-            </SheetHeader>
-            {selectedTaskId && <TaskForm taskId={selectedTaskId} />}
-          </SheetContent>
-        </Sheet>
+
+      {/* Chat with Coach Drawer - only show when no task is selected */}
+      {!selectedTaskId && (
+        <div className="fixed bottom-4 right-4 z-10">
+          <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true}>
+            <DrawerTrigger asChild>
+              <Button
+                variant="secondary"
+                className="rounded-lg h-10 px-8"
+              >
+                Chat with Coach
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="max-h-[70vh]">
+              <DrawerDescription className="sr-only">chat with coach</DrawerDescription>
+              <DrawerHeader className="px-4">
+                <DrawerTitle>Chat</DrawerTitle>
+              </DrawerHeader>
+              <ChatBox slotContent={prioritizeButton} />
+            </DrawerContent>
+          </Drawer>
+        </div>
+      )}
+
+      <Sheet open={!!selectedTaskId} onOpenChange={(open) => onOpenChange(open)}>
+        <SheetContent side="right" className="w-[100%] sm:w-[600px]">
+          <SheetHeader className="h-4">
+            <SheetTitle id="task-details-title" className="sr-only">Task Details</SheetTitle>
+            <SheetDescription className="sr-only">
+              Detailed view and editing options for the selected task.
+            </SheetDescription>
+          </SheetHeader>
+          {selectedTaskId && <TaskForm taskId={selectedTaskId} />}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

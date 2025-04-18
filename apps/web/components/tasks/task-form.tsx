@@ -161,7 +161,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
         }
       </div>
       <div className="py-4">
-        {!isSubtask && task.stage === 'Planning' &&
+        {!isSubtask && task.stage === 'Planning' && (
           <Button
             variant="outline"
             onClick={handleRefineTask}
@@ -178,8 +178,8 @@ export function TaskForm({ taskId }: TaskFormProps) {
               </>
             )}
           </Button>
-        }
-        {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'Completed' &&
+        )}
+        {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'Completed' && (
           <Button
             variant="outline"
             onClick={handleBreakdownTask}
@@ -196,7 +196,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
               </>
             )}
           </Button>
-        }
+        )}
       </div>
       <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true}>
         <DrawerTrigger asChild>
@@ -222,7 +222,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
           </div>
         </DrawerTrigger>
         <DrawerContent className="max-h-[70vh]">
-            <DrawerDescription className="sr-only">chat about task</DrawerDescription>
+          <DrawerDescription className="sr-only">chat about task</DrawerDescription>
           <DrawerHeader className="px-4">
             <DrawerTitle>Chat</DrawerTitle>
           </DrawerHeader>

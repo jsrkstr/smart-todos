@@ -846,6 +846,8 @@ export class TaskService {
 
   static async prioritizeTasks(input: PrioritizeTasksInput): Promise<Task[]> {
     const { userId } = input;
+
+    console.log('prioritize', userId);
     
     // 1. Fetch all tasks and subtasks for the user
     const userTasks = await TaskService.fetchUserTasks(userId);
@@ -853,6 +855,20 @@ export class TaskService {
     // If no tasks, return empty array
     if (userTasks.length === 0) {
       return [];
+    }
+
+    // 2. Get previous messages for context
+    const previousMessages = await ChatMessageService.getMessages(userId);
+
+    // Check if previous messages contain a message about starting prioritization
+    const hasPrioritizationStart = previousMessages.some(msg => 
+      msg.role === 'user' && 
+      msg.content.toLowerCase().includes('Please prioritize these tasks')
+    );
+
+    // If no prioritization start found, call prioritizeTasks instead
+    if (hasPrioritizationStart) {
+      return TaskService.continuePrioritizeTasks({ userId });
     }
 
     // 2. Prepare task data for AI prioritization
@@ -999,6 +1015,18 @@ export class TaskService {
 
     // 2. Get previous messages for context
     const previousMessages = await ChatMessageService.getMessages(userId);
+
+    // Check if previous messages contain a message about starting prioritization
+    const hasPrioritizationStart = previousMessages.some(msg => 
+      msg.role === 'user' && 
+      msg.content.toLowerCase().includes('Please prioritize these tasks')
+    );
+
+    // If no prioritization start found, call prioritizeTasks instead
+    if (!hasPrioritizationStart) {
+      return TaskService.prioritizeTasks({ userId });
+    }
+
     const latestMessage = previousMessages[previousMessages.length - 1];
     
     // Check if the latest message is from the user to continue processing
