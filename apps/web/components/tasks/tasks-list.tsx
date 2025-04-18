@@ -9,7 +9,7 @@ import { TaskItem, TASK_ITEM_TYPE } from "./task-item"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Skeleton } from "../ui/skeleton"
 import { cn } from "@/lib/utils"
-import { PlusSquare, Sparkles } from "lucide-react"
+import { Loader2, PlusSquare, Sparkles } from "lucide-react"
 import { Button } from "../ui/button"
 import { TaskForm } from "./task-form"
 import { useDrop } from "react-dnd"
@@ -285,8 +285,17 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
         disabled={isPrioritizing}
         onClick={handlePrioritizeTasks}
       >
-        <Sparkles className="h-4 w-4" />
-        <span>Prioritize My Tasks</span>
+        {isPrioritizing ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Prioritizing...</span>
+          </>
+        ) : (
+          <>
+            <Sparkles className="h-4 w-4" />
+            <span>Prioritize My Tasks</span>
+          </>
+        )}
       </Button>
     </div>
   );

@@ -20,8 +20,9 @@ export interface ChatMessageUpdateInput {
 export class ChatMessageService {
   static async getMessages(userId: string, taskId?: string, filter = false): Promise<ChatMessage[]> {
     const whereClause = {
-        taskId: taskId ?? '',
+        ...(taskId ? { taskId }: {}),
         ...(filter ? { role: { in: [ChatMessageRole.assistant, ChatMessageRole.user] } } : {}),
+        userId,
     }
     
     const messages = await prisma.chatMessage.findMany({
