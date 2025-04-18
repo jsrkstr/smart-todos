@@ -9,7 +9,7 @@ import { ChatMessageService } from './chatMessageService'
 import { JsonObject } from '@prisma/client/runtime/library'
 import { metadata } from '@/app/layout'
 import { CreateTaskInput, PrioritizeTasksInput, ProcessTaskInput, ProcessTaskResponse, TaskRefinedData, UpdateTaskInput } from './interfaces'
-import { breakdownTaskInstruction, refineTaskInstruction } from './consts'
+import { breakdownTaskInstruction, prioritizationInstructions, refineTaskInstruction } from './consts'
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -401,6 +401,7 @@ export class TaskService {
       }
     ];
 
+    // store the sent messages
     const createdMessages = await prisma.chatMessage.createMany({
       data: refineTaskInstructionMessages.map(({ role, content }) => ({
         role: role as ChatMessageRole,
@@ -788,6 +789,184 @@ export class TaskService {
   }
 
   static async prioritizeTasks(input: PrioritizeTasksInput): Promise<Task[]> {
-    return [];
+    const { userId } = input;
+    
+    // 1. Fetch all tasks and subtasks for the user
+    const userTasks = await prisma.task.findMany({
+      where: {
+        userId,
+        completed: false
+      },
+      include: {
+        children: true,
+        tags: {
+          include: {
+            category: true
+          }
+        },
+        parent: {
+          select: {
+            id: true,
+            title: true,
+            priority: true,
+            deadline: true
+          }
+        }
+      },
+      orderBy: [
+        { deadline: 'asc' },
+        { priority: 'desc' }
+      ]
+    });
+
+    // If no tasks, return empty array
+    if (userTasks.length === 0) {
+      return [];
+    }
+
+    // 2. Prepare task data for AI prioritization
+    const tasksForAI = userTasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      description: task.description || '',
+      stage: task.stage,
+      stageStatus: task.stageStatus,
+      priority: task.priority,
+      deadline: task.deadline,
+      estimatedTimeMinutes: task.estimatedTimeMinutes,
+      hasChildren: task.children.length > 0,
+      isSubtask: !!task.parentId,
+      parentInfo: task.parent ? {
+        id: task.parent.id,
+        title: task.parent.title
+      } : null,
+      tags: Array.isArray(task.tags) 
+        ? task.tags.map(tag => ({
+            name: tag.name,
+            category: tag.category?.name || ''
+          }))
+        : []
+    }));
+
+    // 3. Create system message with prioritization instruction  
+    const messagesForAI = [
+      {
+        role: "system" as const,
+        content: prioritizationInstructions
+      },
+      {
+        role: "user" as const,
+        content: `Please prioritize these tasks in the optimal order:\n${JSON.stringify(tasksForAI, null, 2)}`
+      }
+    ];
+
+    // store the sent messages
+    const createdMessages = await prisma.chatMessage.createMany({
+      data: messagesForAI.map(({ role, content }) => ({
+        role: role as ChatMessageRole,
+        content: content as string,
+        userId: userId,
+        // taskId: task.id,
+      }))
+    })
+
+    // 4. Send to OpenAI for prioritization
+    try {
+      const aiResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: messagesForAI,
+        response_format: { type: "json_object" }
+      });
+
+      // 5. Parse the AI response
+      const responseData = JSON.parse(aiResponse.choices[0].message.content || '{}');
+
+      console.log('response frmo AI', responseData);
+      
+      if (!responseData.prioritized_tasks || !Array.isArray(responseData.prioritized_tasks)) {
+        throw new Error("Invalid AI response format. Expected prioritized_tasks array.");
+      }
+
+      // 6. Update tasks with the AI prioritization
+      const updatedTasks = await Promise.all(
+        responseData.prioritized_tasks.map(async (prioritizedTask: any, index: number) => {
+          // Find the corresponding task
+          const originalTask = userTasks.find(t => t.id === prioritizedTask.id);
+          
+          if (!originalTask) {
+            console.error(`Task not found: ${prioritizedTask.id}`);
+            return null;
+          }
+
+          // Create or update the description with the prioritization reason
+          let updatedDescription = originalTask.description || '';
+          const priorityReasonText = `\n\nPriority Reason: ${prioritizedTask.reason}`;
+          
+          // Check if description already has a priority reason
+          if (updatedDescription.includes('Priority Reason:')) {
+            // Replace existing priority reason
+            updatedDescription = updatedDescription.replace(/\n\nPriority Reason:.*$/, priorityReasonText);
+          } else {
+            // Add new priority reason
+            updatedDescription += priorityReasonText;
+          }
+
+          // Update the task with new priority information
+          return prisma.task.update({
+            where: {
+              id: prioritizedTask.id,
+              userId
+            },
+            data: {
+              // Update position for ordering (if not already set by user)
+              position: index + 1,
+              
+              // Only update priority if AI suggests a change and it's valid
+              ...(prioritizedTask.priority && 
+                  ['low', 'medium', 'high'].includes(prioritizedTask.priority.toLowerCase()) && 
+                  prioritizedTask.priority.toLowerCase() !== originalTask.priority
+                ? { priority: prioritizedTask.priority.toLowerCase() as TaskPriority }
+                : {}),
+              
+              // Update estimated time only if not already set
+              ...(originalTask.estimatedTimeMinutes === 0 && prioritizedTask.estimated_time_minutes
+                ? { estimatedTimeMinutes: prioritizedTask.estimated_time_minutes }
+                : {}),
+              
+              // Store the reason for priority in the description
+              description: updatedDescription
+            },
+            include: {
+              children: true,
+              tags: {
+                include: {
+                  category: true
+                }
+              },
+              notifications: true
+            }
+          });
+        })
+      );
+
+      // Create a log entry for task prioritization
+      await LogService.createLog({
+        type: 'tasks_prioritized',
+        userId,
+        data: {
+          taskCount: updatedTasks.length,
+          timestamp: new Date()
+        },
+        author: 'System'
+      });
+
+      // Filter out null results and return the updated tasks
+      return updatedTasks.filter(task => task !== null) as Task[];
+      
+    } catch (error) {
+      console.error("Error prioritizing tasks:", error);
+      // If AI fails, return the original tasks sorted by deadline and priority
+      return userTasks;
+    }
   }
 } 

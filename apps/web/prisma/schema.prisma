@@ -113,6 +113,7 @@ model Task {
   stage                TaskStage           @default(Refinement)
   stageStatus          TaskStageStatus     @default(NotStarted)
   priority             TaskPriority        @default(medium)
+  priorityReason       String?
   position             Int?
   tags                 Tag[]               @relation("TaskTags")
   estimatedTimeMinutes Int                @default(0)
@@ -361,34 +362,40 @@ enum StreakType {
 }
 
 enum LogType {
+  user_created
+  user_login
+  user_logout
+  user_settings_updated
   task_created
-  task_updated 
+  task_updated
   task_deleted
   task_completed
   task_reactivated
-  
+  pomodoro_started
+  pomodoro_completed
+  pomodoro_cancelled
+  reward_claimed
+  streak_started
+  streak_continued
+  streak_broken
+  streak_reset
+  flash_card_created
+  flash_card_reviewed
+  quiz_started
+  quiz_completed
+  coach_feedback_received
+  accountability_partnership_created
+  tasks_prioritized
   query_asked
   query_answered
   ai_prompted
-  
   reminder_created
   reminder_triggered
   reminder_dismissed
-  
   app_opened
   app_closed
-  
-  pomodoro_started
-  pomodoro_paused
-  pomodoro_resumed
-  pomodoro_cancelled
-  pomodoro_completed
-  
   settings_updated
   profile_updated
-
-  user_login
-  user_logout
   user_register
 }
 
@@ -508,7 +515,7 @@ model ChatMessage {
   userId            String
   taskId            String
   user              User              @relation(fields: [userId], references: [id])
-  task              Task              @relation(fields: [taskId], references: [id])
+  task              Task?             @relation(fields: [taskId], references: [id])
 }
 
 enum ChatMessageRole {

@@ -52,3 +52,32 @@ export const breakdownTaskInstruction = `
             update (an array of subtasks to update, each object having fields: id (string), title (string, required), description (string, optional), estimatedTimeMinutes (number), priority (must be 'low', 'medium', or 'high'), date (ISO string or null, planned date of task execution))
             removeIds (array of subtask ids to delete)          
 `;
+
+export const prioritizationInstructions = `
+    You are an expert task prioritization assistant. Your job is to analyze a list of tasks and determine the optimal order, priority, and time estimates.
+    
+    Guidelines:
+    - Consider deadlines as the most critical factor
+    - Tasks in Refinement or Breakdown stages may need more immediate attention for planning
+    - High priority tasks should generally be completed before medium and low priority tasks
+    - Consider dependencies between parent tasks and subtasks
+    - Improve time estimates for tasks that don't have them
+    - Break ties using the estimated time (shorter tasks first)
+    - Provide a clear reason for each task's placement in the priority order
+    
+    Today is ${new Date().toISOString()}.
+
+    Your response should be a JSON object with the following structure:
+    {
+    "prioritized_tasks": [
+        {
+        "id": "task-id",
+        "position": 1,
+        "priority": "high|medium|low",
+        "estimated_time_minutes": 30,
+        "reason": "Clear explanation of why this task has this priority and position"
+        },
+        ...
+    ]
+    }
+`;
