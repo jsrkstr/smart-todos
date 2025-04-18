@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarIcon, ClockIcon, RepeatIcon, BellIcon, XIcon, PlusCircleIcon } from "lucide-react"
+import { CalendarIcon, ClockIcon, RepeatIcon, BellIcon, XIcon, PlusCircleIcon, Hourglass } from "lucide-react"
 import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
@@ -36,35 +36,70 @@ export function DateTimeRepeatReminderPicker({
 }: DateTimeRepeatReminderPickerProps) {
   const { updateTask } = useTasks()
   const { toast } = useToast()
-  const [date, setDate] = React.useState<Date | undefined>(task.deadline ? new Date(task.deadline) : undefined)
-  const [time, setTime] = React.useState<string>(task.time || "")
-
+  const [deadline, setDeadline] = React.useState<Date | undefined>(
+    task.deadline ? new Date(task.deadline) : undefined
+  )
+  const [taskDate, setTaskDate] = React.useState<Date>(new Date(task.date))
+  const [selectedTab, setSelectedTab] = React.useState<string>('date')
 
   React.useEffect(() => {
     // Reset date/time when task changes or picker opens
-    setDate(task.deadline ? new Date(task.deadline) : undefined)
-    setTime(task.time || "")
-  }, [task.deadline, task.time, open])
+    setDeadline(task.deadline ? new Date(task.deadline) : undefined)
+    setTaskDate(new Date(task.date))
+  }, [task.deadline, task.date, open])
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
-    setDate(selectedDate)
+    setDeadline(selectedDate)
     updateTask(task.id, { deadline: selectedDate?.toISOString() })
     // Potentially close popover or move to time tab
   }
 
+  const handleTaskDateSelect = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+      // Preserve the time from the current taskDate
+      const currentTaskDate = new Date(taskDate)
+      selectedDate.setHours(currentTaskDate.getHours())
+      selectedDate.setMinutes(currentTaskDate.getMinutes())
+      
+      setTaskDate(selectedDate)
+      updateTask(task.id, { date: selectedDate.toISOString() })
+    }
+  }
+
   const handleTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = event.target.value
-    setTime(newTime)
-    updateTask(task.id, { time: newTime })
+    const timeValue = event.target.value
+    if (timeValue) {
+      const [hours, minutes] = timeValue.split(':').map(Number)
+      const newDate = new Date(taskDate)
+      newDate.setHours(hours)
+      newDate.setMinutes(minutes)
+      
+      setTaskDate(newDate)
+      updateTask(task.id, { date: newDate.toISOString() })
+    }
   }
 
   const handleClear = () => {
-    setDate(undefined)
-    setTime("")
-    updateTask(task.id, { deadline: undefined, time: undefined })
+    setDeadline(undefined)
+    // We shouldn't clear the task date completely, but reset to default time (start of day)
+    const defaultDate = new Date(taskDate)
+    defaultDate.setHours(0)
+    defaultDate.setMinutes(0)
+    defaultDate.setSeconds(0)
+    defaultDate.setMilliseconds(0)
+    
+    setTaskDate(defaultDate)
+    updateTask(task.id, { 
+      deadline: undefined,
+      date: defaultDate.toISOString()
+    })
     onOpenChange(false)
   }
 
+  // Format the time value for the time input field
+  const getTimeString = (date: Date) => {
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+  }
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -74,36 +109,49 @@ export function DateTimeRepeatReminderPicker({
         <DrawerContent className="max-h-[85vh]" aria-describedby="date-description">
           <DrawerDescription className="sr-only">task date settings</DrawerDescription>
           <DrawerHeader className="px-4">
-            <DrawerTitle>Select Date</DrawerTitle>
+            <DrawerTitle>Set {selectedTab}</DrawerTitle>
           </DrawerHeader>
           <div id="date-description" className="sr-only">
             Select a date and time for the task. You can also set repeat and reminder options.
           </div>
-          <TabsPrimitive.Tabs defaultValue="date">
+          <TabsPrimitive.Tabs defaultValue="date" onValueChange={(tab) => setSelectedTab(tab)}>
           <TabsPrimitive.TabsList className="grid w-full grid-cols-4">
             <TabsPrimitive.TabsTrigger value="date"><CalendarIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
-            <TabsPrimitive.TabsTrigger value="time"><ClockIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
+            <TabsPrimitive.TabsTrigger value="deadline"><Hourglass className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
             <TabsPrimitive.TabsTrigger value="repeat"><RepeatIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
             <TabsPrimitive.TabsTrigger value="reminder"><BellIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
           </TabsPrimitive.TabsList>
 
           <TabsPrimitive.TabsContent value="date" className="p-3 min-h-[40vh]">
+            <div className="space-y-4">
+              <div>
+                <LabelPrimitive.Label htmlFor="task-date" className="block mb-2">Date</LabelPrimitive.Label>
+                <CalendarPrimitive.Calendar
+                  mode="single"
+                  selected={taskDate}
+                  onSelect={handleTaskDateSelect}
+                  initialFocus
+                />
+              </div>
+              <div>
+                <LabelPrimitive.Label htmlFor="task-time" className="block mb-2">Time</LabelPrimitive.Label>
+                <InputPrimitive.Input 
+                  id="task-time"
+                  type="time"
+                  value={getTimeString(taskDate)}
+                  onChange={handleTimeChange}
+                />
+              </div>
+            </div>
+          </TabsPrimitive.TabsContent>
+
+          <TabsPrimitive.TabsContent value="deadline" className="p-3 space-y-3 min-h-[40vh]">
             <CalendarPrimitive.Calendar
               mode="single"
-              selected={date}
+              selected={deadline}
               onSelect={handleDateSelect}
               initialFocus
             />
-          </TabsPrimitive.TabsContent>
-
-          <TabsPrimitive.TabsContent value="time" className="p-3 space-y-3 min-h-[40vh]">
-             <LabelPrimitive.Label htmlFor="time">Set Time</LabelPrimitive.Label>
-             <InputPrimitive.Input 
-                id="time"
-                type="time"
-                value={time}
-                onChange={handleTimeChange}
-             />
           </TabsPrimitive.TabsContent>
           
           <TabsPrimitive.TabsContent value="repeat" className="p-3 min-h-[40vh]">
@@ -125,7 +173,7 @@ export function DateTimeRepeatReminderPicker({
                 variant="ghost" 
                 size="sm" 
                 onClick={handleClear}
-                disabled={!date && !time}
+                disabled={!deadline}
              >
                 Clear
              </ButtonPrimitive.Button>

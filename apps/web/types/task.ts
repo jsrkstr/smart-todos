@@ -56,10 +56,9 @@ export interface Task {
   id: string
   title: string
   description?: string
-  date: string // Date for the task
-  time?: string // Time for the task
+  date: string // Date and time for the task
   deadline?: string // Optional deadline
-  dateAdded: string
+  createdAt: string
   completed: boolean
   stage: TaskStage
   stageStatus: TaskStageStatus

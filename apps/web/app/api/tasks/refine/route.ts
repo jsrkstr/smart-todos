@@ -80,7 +80,6 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
           ...updatedTask,
           date: updatedTask.date.toISOString(),
           deadline: updatedTask.deadline?.toISOString() || null,
-          dateAdded: updatedTask.dateAdded.toISOString(),
         }
       })
     } else {

@@ -8,8 +8,7 @@ import type { Task } from "@/types/task"
 interface TaskReminder {
   id: string;
   title: string;
-  date: string;
-  time?: string;
+  date: string; // ISO date string including time
   reminderTime?: string;
 }
 
@@ -80,22 +79,18 @@ export function useNotifications() {
   }
 
   const scheduleTaskReminder = (task: TaskReminder): void => {
-    if (!settings.notificationsEnabled) return
+    if (!permissionGranted) {
+      console.warn("Notification permission not granted")
+      return
+    }
 
-    if (isMobileApp()) {
-      const storedTasks: Task[] = JSON.parse(localStorage.getItem('smartTodos-tasks') || '[]')
-      sendToMobile({
-        type: 'UPDATE_TASKS',
-        tasks: storedTasks
-      })
+    // Ensure we have a valid date
+    if (!task.date) {
+      console.warn("Task has no date, cannot schedule reminder")
       return
     }
 
     const taskDate: Date = new Date(task.date)
-    if (task.time) {
-      const [hours, minutes]: number[] = task.time.split(":").map(Number)
-      taskDate.setHours(hours, minutes, 0, 0)
-    }
 
     let reminderTime: Date
     if (task.reminderTime) {

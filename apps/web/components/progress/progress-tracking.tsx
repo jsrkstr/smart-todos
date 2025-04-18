@@ -16,7 +16,7 @@ export function ProgressTracking() {
     if (completedTasks.length === 0) return 0
 
     const totalDays = completedTasks.reduce((sum, task) => {
-      const created = new Date(task.dateAdded).getTime()
+      const created = new Date(task.createdAt).getTime()
       const completed = new Date().getTime() // In a real app, we'd store completion date
       const days = Math.round((completed - created) / (1000 * 60 * 60 * 24))
       return sum + days

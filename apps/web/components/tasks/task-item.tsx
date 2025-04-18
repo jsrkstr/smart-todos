@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, CircleDot, Circle, CircleCheck, Tag, ChevronRight, Repeat, Hourglass } from "lucide-react"
+import { Calendar, CircleDot, Circle, CircleCheck, Tag, ChevronRight, Repeat, Hourglass, Clock } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useTasks } from "@/hooks/use-tasks"
@@ -225,11 +225,17 @@ export function TaskItem({
               >
                 <div className="flex items-center gap-1 px-2">
                   <Calendar className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} />
-                  {task.deadline && (
-                    <span className="">{format(new Date(task.deadline), 'MMM dd')}</span>
+                  {task.date && (
+                    <span className="">
+                      {format(new Date(task.date), 'MMM dd ')}
+                      {format(new Date(task.date), 'HH:mm') !== '00:00' && format(new Date(task.date), 'HH:mm')}
+                    </span>
                   )}
-                  {task.time && (
-                    <span className="">{task.time}</span>
+                  {task.deadline && (
+                    <div className="flex items-center gap-1">
+                      <Hourglass className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} />
+                      <span className="">{format(new Date(task.deadline), 'MMM dd')}</span>
+                    </div>
                   )}
                   {task.repeats && (
                     <Repeat className={cn('ml-1 p-1 rounded-[2vw] bg-gray-200', showDetails ? 'h-5 w-5' : 'h-4 w-4')} />
@@ -239,7 +245,7 @@ export function TaskItem({
 
               { task.estimatedTimeMinutes ?
                 <div className="flex items-center gap-1 mr-2">
-                  <Hourglass className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} />
+                  <Clock className={cn(showDetails ? 'h-5 w-5' : 'h-3 w-3')} />
                   <span className="">
                     { task.estimatedTimeMinutes > 60 ? 
                       `${(task.estimatedTimeMinutes / 60).toFixed(1).replace('.0', '')} h` : 

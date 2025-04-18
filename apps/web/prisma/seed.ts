@@ -117,7 +117,6 @@ const sampleTasks = [
     date: new Date(),
     time: "14:00",
     deadline: new Date(Date.now() + 86400000), // Tomorrow
-    dateAdded: new Date(),
     completed: false,
     stage: TaskStage.Refinement,
     priority: TaskPriority.high,
@@ -137,7 +136,6 @@ const sampleTasks = [
     date: new Date(),
     time: "08:00",
     deadline: new Date(),
-    dateAdded: new Date(Date.now() - 86400000), // Yesterday
     completed: false,
     stage: TaskStage.Planning,
     priority: TaskPriority.medium,
@@ -156,7 +154,6 @@ const sampleTasks = [
     date: new Date(),
     time: "20:00",
     deadline: new Date(),
-    dateAdded: new Date(Date.now() - 172800000), // 2 days ago
     completed: true,
     stage: TaskStage.Reflection,
     priority: TaskPriority.low,

@@ -107,10 +107,8 @@ model Task {
   id                   String              @id @default(cuid())
   title                String
   description          String?             @db.Text
-  date                 DateTime
-  time                 String?
+  date                 DateTime?
   deadline             DateTime?
-  dateAdded            DateTime            @default(now())
   completed            Boolean             @default(false)
   stage                TaskStage           @default(Refinement)
   stageStatus          TaskStageStatus     @default(NotStarted)

@@ -67,7 +67,6 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
         tasks: filteredTasks,
         priority: 'medium',
         completed: false,
-        date: (new Date()).toDateString(),
       }
     ] :
     [
@@ -76,6 +75,7 @@ export function TasksList({ parentId, showSidebar = true }: TasksListProps) {
         tasks: todayTasks,
         priority: 'high',
         completed: false,
+        date: (new Date()).toDateString(),
       },
       {
         title: "High Priority",

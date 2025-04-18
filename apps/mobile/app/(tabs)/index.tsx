@@ -29,8 +29,8 @@ TaskManager.defineTask(TASK_NOTIFICATION_TASK, async () => {
   for (const task of tasks) {
     if (task.status === "completed") continue;
 
-    // Assuming task.date is a date string and task.time is a time string
-    const taskDateTime = new Date(`${task.date}T${task.time}`).getTime();
+    // Using task.date which now includes both date and time
+    const taskDateTime = new Date(task.date).getTime();
     const reminderTimeInMs = (task.reminderTime || 0) * 60 * 1000; // Convert minutes to milliseconds
 
     // Calculate the notification time

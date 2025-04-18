@@ -31,12 +31,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
   try {
     const tasks = await TaskService.getTasks(req.user.id)
 
-    return NextResponse.json(tasks.map(task => ({
-      ...task,
-      date: task.date.toISOString(),
-      deadline: task.deadline?.toISOString() || null,
-      dateAdded: task.dateAdded.toISOString(),
-    })))
+    return NextResponse.json(tasks)
   } catch (error) {
     const errorMessage: string = error instanceof Error ? error.message : 'Unknown error'
     console.error('Failed to get tasks:', errorMessage)
@@ -54,8 +49,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextR
         userId: req.user.id,
         title: payload.title,
         description: payload.description,
-        date: new Date(payload.date),
-        time: payload.time,
+        date: payload.date ? new Date(payload.date) : undefined,
         deadline: payload.deadline ? new Date(payload.deadline) : undefined,
         priority: payload.priority || 'medium',
         stage: payload.stage || 'Refinement',
@@ -91,12 +85,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<NextR
 
     const newTask = await TaskService.createTask(taskData)
 
-    return NextResponse.json({
-      ...newTask,
-      date: newTask.date.toISOString(),
-      deadline: newTask.deadline?.toISOString() || null,
-      dateAdded: newTask.dateAdded.toISOString(),
-    })
+    return NextResponse.json(newTask)
   } catch (error) {
     const errorMessage: string = error instanceof Error ? error.message : 'Unknown error'
     console.error('Failed to create task:', errorMessage)
@@ -144,12 +133,7 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
 
     const task = await TaskService.updateTask(taskData)
 
-    return NextResponse.json({
-      ...task,
-      date: task.date.toISOString(),
-      deadline: task.deadline?.toISOString() || null,
-      dateAdded: task.dateAdded.toISOString(),
-    })
+    return NextResponse.json(task)
   } catch (error) {
     const errorMessage: string = error instanceof Error ? error.message : 'Unknown error'
     console.error('Failed to update task:', errorMessage)

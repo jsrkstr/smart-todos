@@ -71,13 +71,26 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   addTask: async (task: Partial<Task>): Promise<Task | null> => {
+    // Create a full date with time if we have date but no time component
+    let taskDate: Date | null = null;
+    if (task.date) {
+      taskDate = new Date(task.date);
+      // If the date doesn't have time information (ends with T00:00:00.000Z)
+      if (task.date.includes('T00:00:00')) {
+        // Set a default time - 9am
+        taskDate.setHours(9, 0, 0, 0);
+      }
+    } else {
+      taskDate = null;
+    }
+
     const validatedTask: any = {
       id: task.id || generateUUID(),
       title: task.title || '',
-      date: task.date || new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
-      time: task.time,
+      ...(taskDate ? {
+        date: taskDate.toISOString(), // ISO string includes both date and time
+      } : {}),
       deadline: task.deadline,
-      dateAdded: task.dateAdded || new Date().toISOString(),
       stage: task.stage || "Planning" as TaskStage,
       completed: task.completed || false,
       priority: task.priority || "Medium" as TaskPriority,

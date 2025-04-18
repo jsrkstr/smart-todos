@@ -75,7 +75,6 @@ export class TaskService {
       taskId: newTask.id,
       data: {
         title: newTask.title,
-        date: newTask.date,
         priority: newTask.priority,
         childrenCount: children?.length || 0,
         notificationsCount: notifications?.length || 0
@@ -271,7 +270,7 @@ export class TaskService {
         },
         notifications: true
       },
-      orderBy: { dateAdded: 'desc' }
+      orderBy: { createdAt: 'desc' }
     })
   }
 

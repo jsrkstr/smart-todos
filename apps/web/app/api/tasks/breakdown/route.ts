@@ -55,13 +55,11 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest): Promise<NextRe
           ...updatedTask,
           date: updatedTask.date.toISOString(),
           deadline: updatedTask.deadline?.toISOString() || null,
-          dateAdded: updatedTask.dateAdded.toISOString(),
           // Include children if they were added/updated
           children: updatedTask.children?.map((child: Task) => ({
             ...child,
             date: child.date.toISOString(),
             deadline: child.deadline?.toISOString() || null,
-            dateAdded: child.dateAdded.toISOString(),
           })) || [],
         }
       })

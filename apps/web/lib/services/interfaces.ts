@@ -92,8 +92,7 @@ export interface CreateTaskInput {
   userId: string;
   title: string;
   description?: string;
-  date: Date;
-  time?: string;
+  date?: Date;
   deadline?: Date;
   priority?: TaskPriority;
   stage?: "Refinement" | "Breakdown" | "Planning" | "Execution" | "Reflection";

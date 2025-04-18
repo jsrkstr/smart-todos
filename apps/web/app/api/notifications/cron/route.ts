@@ -66,8 +66,7 @@ export async function GET() {
           continue
         }
 
-        const taskDate = task.deadline
-        const taskTime = task.time
+        const taskDate = task.date
 
         // Process recurrence rules if task repeats
         let isTaskDueToday = false
@@ -108,17 +107,8 @@ export async function GET() {
           }
 
           const now = toParisTime(new Date())
-          // since task is due today, we take today's date
-          let taskDateTime = toParisTime(new Date())
-          
-          // Add time component if available
-          if (taskTime) {
-            const [hours, minutes] = taskTime.split(':').map(num => parseInt(num, 10))
-            taskDateTime.setHours(hours, minutes, 0, 0)
-          } else {
-            // default to 10 am
-            taskDateTime.setHours(10, 0, 0, 0)
-          }
+          // Get task date and time from the task.date field
+          const taskDateTime = toParisTime(new Date(task.date))
 
           // Calculate notification time based on relative settings
           let notificationTime: Date

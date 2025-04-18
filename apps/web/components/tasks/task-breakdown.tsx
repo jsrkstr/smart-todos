@@ -34,7 +34,7 @@ export function TaskBreakdown({ task, onComplete }: TaskBreakdownProps) {
   const [activeTab, setActiveTab] = useState("breakdown")
   const [reminderDialog, setReminderDialog] = useState(false)
   const [reminderDate, setReminderDate] = useState<Date | undefined>(task.deadline ? new Date(task.deadline) : undefined)
-  const [reminderTime, setReminderTime] = useState<string>(task.time || "")
+  const [taskDateTime, setTaskDateTime] = useState<Date>(new Date(task.date))
   const [reminderType, setReminderType] = useState<string>("time")
   const [reminderLocation, setReminderLocation] = useState<string>(task.location || "")
   const [scheduleDialog, setScheduleDialog] = useState(false)
@@ -132,7 +132,6 @@ export function TaskBreakdown({ task, onComplete }: TaskBreakdownProps) {
     try {
       await updateTask(task.id, {
         deadline: reminderDate,
-        time: reminderTime,
         location: reminderType === "location" ? reminderLocation : undefined
       })
       
@@ -154,7 +153,7 @@ export function TaskBreakdown({ task, onComplete }: TaskBreakdownProps) {
     
     try {
       await updateTask(task.id, {
-        date: scheduledDate
+        date: scheduledDate?.toISOString()
       })
       
       toast({
@@ -456,7 +455,6 @@ export function TaskBreakdown({ task, onComplete }: TaskBreakdownProps) {
                       <div className="text-sm">
                         <span className="font-medium">Deadline: </span>
                         {new Date(task.deadline).toLocaleDateString()}
-                        {task.time && ` at ${task.time}`}
                       </div>
                     )}
                     {task.location && (
@@ -645,8 +643,8 @@ export function TaskBreakdown({ task, onComplete }: TaskBreakdownProps) {
                 <div className="space-y-2">
                   <Label htmlFor="deadlineTime">Time (Optional)</Label>
                   <TimePicker
-                    value={reminderTime}
-                    onChange={setReminderTime}
+                    value={taskDateTime.toISOString().split('T')[1]}
+                    onChange={(time) => setTaskDateTime(new Date(taskDateTime.toISOString().split('T')[0] + 'T' + time))}
                   />
                 </div>
               </>
