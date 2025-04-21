@@ -200,7 +200,6 @@ export function TaskForm({ taskId }: TaskFormProps) {
       </div>
       <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true}>
         <DrawerTrigger asChild>
-          <div className="flex gap-2 mb-4 pt-2 justify-center">
           <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white z-10">
             <Button
               variant="secondary"
