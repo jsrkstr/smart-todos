@@ -366,8 +366,8 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
       </div>
 
       {/* Chat with Coach Drawer - only show when no task is selected */}
-      {!selectedTaskId && (
-        <div className="fixed bottom-4 right-4 z-10">
+      {!isSubtaskList && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white z-10">
           <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true}>
             <DrawerTrigger asChild>
               <Button

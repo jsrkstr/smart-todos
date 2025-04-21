@@ -201,24 +201,13 @@ export function TaskForm({ taskId }: TaskFormProps) {
       <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true}>
         <DrawerTrigger asChild>
           <div className="flex gap-2 mb-4 pt-2 justify-center">
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white z-10">
             <Button
               variant="secondary"
               className="rounded-lg h-10 px-8"
             >
               Chat with Coach
             </Button>
-            {/* <div style={{}} className="w-full h-full absolute"></div> */}
-            {/* <Input
-              placeholder="Type a message..."
-              className="flex-1 rounded-full border-gray-300 focus:border-primary focus:ring-primary"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              className="rounded-full h-10 w-10 flex items-center justify-center"
-            >
-              <Send className="h-5 w-5" />
-            </Button> */}
           </div>
         </DrawerTrigger>
         <DrawerContent className="max-h-[70vh]">
@@ -227,30 +216,6 @@ export function TaskForm({ taskId }: TaskFormProps) {
             <DrawerTitle>Chat</DrawerTitle>
           </DrawerHeader>
           <ChatBox taskId={taskId} />
-          {/* {lastQuestionAsked && lastQuestionAsked.taskId === taskId ? (
-            <div className="px-4 pb-4">
-              <div className="p-3 mb-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="font-medium text-amber-800">AI needs more information</p>
-                <p className="text-amber-700">{lastQuestionAsked.question}</p>
-              </div>
-              <form onSubmit={handleSubmitResponse} className="flex gap-2">
-                <Input
-                  value={userResponse}
-                  onChange={(e) => setUserResponse(e.target.value)}
-                  placeholder="Type your answer..."
-                  className="flex-1"
-                />
-                <Button 
-                  type="submit" 
-                  disabled={!userResponse.trim() || isRefining}
-                >
-                  Send
-                </Button>
-              </form>
-            </div>
-          ) : (
-            <ChatBox taskId={taskId} />
-          )} */}
         </DrawerContent>
       </Drawer>
     </div>
