@@ -41,6 +41,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
   const isSubtask = !!task?.parentId;
   const { loadMessages } = useChatMessages(taskId)
   const chatboxRef = useRef<ChatBoxHandle>(null);
+  const [chatLoading, setChatLoading] = useState(false);
 
   // useEffect(() => {
   //   // If a question was asked, open the drawer
@@ -68,8 +69,12 @@ export function TaskForm({ taskId }: TaskFormProps) {
     if (!task?.id) return
 
     try {
+      if (!openChat) {
+        setOpenChat(true)
+        await (new Promise(resolve => setTimeout(resolve, 100)))
+      }
       setIsRefining(true)
-      chatboxRef.current?.addMessage({
+      await chatboxRef.current?.addMessage({
         role: 'user',
         content: 'Refine this task and update in database',
       });
@@ -87,9 +92,14 @@ export function TaskForm({ taskId }: TaskFormProps) {
   const handleBreakdownTask = async () => {
     if (!task?.id) return
 
+    if (!openChat) {
+      setOpenChat(true)
+      await (new Promise(resolve => setTimeout(resolve, 100)))
+    }
+
     try {
       setIsBreakingDown(true)
-      chatboxRef.current?.addMessage({
+      await chatboxRef.current?.addMessage({
         role: 'user',
         content: 'Breakdown this task and update in database',
       });
@@ -161,7 +171,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
           <TasksList parentId={taskId} showSidebar={true} />
         }
       </div>
-      <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true}>
+      <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true} dismissible={!chatLoading}>
         <DrawerTrigger asChild>
           <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white z-10">
             <Button
@@ -177,7 +187,11 @@ export function TaskForm({ taskId }: TaskFormProps) {
           <DrawerHeader className="px-4">
             <DrawerTitle>Chat</DrawerTitle>
           </DrawerHeader>
-          <ChatBox taskId={taskId} ref={chatboxRef} slotContent={
+          <ChatBox
+            taskId={taskId}
+            ref={chatboxRef}
+            onLoadingChange={(loading) => setChatLoading(loading)}
+            slotContent={
             <div className="flex justify-center">
               {!isSubtask && task.stage === 'Planning' && (
                 <Button 
@@ -190,7 +204,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
                   {!isRefining && (
                     <>
                       <Sparkles className="h-4 w-4" />
-                      <span>Refine</span>
+                      <span>Refine {isRefining}</span>
                     </>
                   )}
                 </Button>

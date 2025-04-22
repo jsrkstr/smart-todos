@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect, useImperativeHandle, forwardRef } from "react"
+import { useRef, useEffect, useImperativeHandle, forwardRef, useState } from "react"
 import { Send } from "lucide-react"
 import { useChat } from "@ai-sdk/react"
 import { Input } from "../ui/input"
@@ -8,7 +8,7 @@ import { Avatar } from "../ui/avatar"
 import { Button } from "../ui/button"
 import { useChatMessages } from "@/hooks/use-chat-messages"
 import { ChatMessage } from "@/types/chat-message"
-import { ChatRequestOptions, CreateMessage, Message, UIMessage } from "ai"
+import { ChatRequestOptions, CreateMessage, Message, tool, UIMessage } from "ai"
 import { useTaskStore } from "@/lib/store"
 import { useTagStore } from "@/lib/store/useTagStore"
 
@@ -20,16 +20,17 @@ export interface ChatBoxHandle {
 interface ChatBoxProps {
   taskId?: string
   slotContent?: React.ReactNode
-  onInit?: (append: (message: Message | CreateMessage, chatRequestOptions?: ChatRequestOptions) => Promise<string | null | undefined>) => void,
+  onLoadingChange?: (loading: boolean) => void
 }
 
-const ChatBox = forwardRef(({ taskId, slotContent, onInit }: ChatBoxProps, ref) => {
+const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxProps, ref) => {
   const { messages: chatMessages, loading: messagesLoading, loadMessages } = useChatMessages(taskId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messageAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { fetchTasks } = useTaskStore();
   const { fetchTags } = useTagStore();
+  const [toolCallNames, setToolCallNames] = useState<string[]>([]);
   
   // Convert our chat messages to UI messages for the AI SDK
   const initialMessages: UIMessage[] = chatMessages.map(msg => ({
@@ -48,15 +49,22 @@ const ChatBox = forwardRef(({ taskId, slotContent, onInit }: ChatBoxProps, ref) 
     },
     onToolCall: ({toolCall}) => {
       console.log('onToolcall', toolCall);
-      if (['update_task', 'update_tasks_many'].includes(toolCall.toolName)) {
+      setToolCallNames((names: string[]) => ([...names, toolCall.toolName]));
+    },
+    onFinish: async (message: Message) => {
+      console.log('onfinish', message);
+      await (new Promise(resolve => setTimeout(resolve, 100)))
+      if (toolCallNames.includes('update_task') || toolCallNames.includes('update_tasks_many')) {
         fetchTasks(true);
         fetchTags(true);
+        setToolCallNames([]);
       }
-    },
-    onFinish: (message: Message) => {
-      console.log('onfinish', message);
     }
   })
+
+  useEffect(() => {
+    onLoadingChange && onLoadingChange(isLoading);
+  }, [isLoading])
 
   // Load messages when component mounts
   useEffect(() => {
