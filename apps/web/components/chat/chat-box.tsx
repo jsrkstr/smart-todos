@@ -36,7 +36,7 @@ export default function ChatBox({ taskId, slotContent }: ChatBoxProps) {
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
     initialMessages: initialMessages.length > 0 ? initialMessages : [],
-    api: '/api/chat-messages',
+    // api: '/api/chat-messages',
     body: {
       taskId
     }

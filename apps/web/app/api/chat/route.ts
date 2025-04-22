@@ -25,6 +25,42 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
       });
     }
 
+    const storedMessages = await ChatMessageService.getMessages(userId, taskId);
+
+    const isSystemPromptSend = storedMessages.some(m => m.role === 'system');
+
+    // Modify the system prompt to ensure tool calls are always followed by a user-visible message
+    const systemPrompt = `
+      You are an AI assistant specializing in task management, helping users organize and complete their to-do list.
+      You have access to the user's tasks, profile information, and activity logs.
+
+      Your capabilities include:
+      1. Refining tasks - improving titles, descriptions, and adding details like priority, deadlines, etc.
+      2. Breaking down tasks into smaller logical units (subtasks)
+      3. Prioritizing tasks based on deadlines, complexity, and the user's preferences
+      4. Answering questions about the user's tasks and productivity
+
+      Workflow Rules:
+      1. Understand the user request.
+      2. If necessary, use ONE tool to gather information (like read_task) or perform an action (like update_task).
+      3. **CRITICAL:** After a tool runs and provides you information, your *very next step* MUST be to generate a user-facing text response. Explain what you found, ask clarifying questions, or state what you did.
+      4. NEVER stop generating after a tool call. Always follow up with text for the user.
+      5. If you need to update a task after reading it, do it in a separate step after confirming with the user or getting clarification.
+      6. Use the save_chat_message tool ONLY for your final user-facing text responses.
+
+      When helping users, always consider:
+      - Their psychological profile and preferences to personalize your assistance
+      - Recent activity and task completion patterns
+      - Task deadlines and priorities
+
+      Use a supportive, motivational tone that encourages productivity.
+      Be very concise and direct in your assistance.
+
+      User is talking in context of  ${taskId ? `Task with id: ${taskId}` : `all his tasks`}
+      
+      Today is ${(new Date()).toISOString()}
+    `;
+
     // Define the tools
     const tools = {
       read_task: {
@@ -282,12 +318,13 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
           taskId: z.string().optional().describe("ID of the task this message is related to"),
           metadata: z.record(z.any()).optional().describe("Additional metadata for the message")
         }),
-        execute: async ({ content, role, taskId, metadata }: { 
-          content: string, 
-          role: "assistant" | "system", 
-          taskId?: string, 
-          metadata?: Record<string, any> 
+        execute: async ({ content, role, taskId, metadata }: {
+          content: string,
+          role: "assistant" | "system",
+          taskId?: string,
+          metadata?: Record<string, any>
         }) => {
+          // First create the chat message
           const chatMessage = await ChatMessageService.createMessage({
             userId,
             taskId,
@@ -295,46 +332,22 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
             role: role as ChatMessageRole,
             metadata
           });
-          
+
           return chatMessage;
         }
       }
     };
 
-    // System prompt that instructs the AI assistant how to help users with their tasks
-    const systemPrompt = `
-You are an AI assistant specializing in task management, helping users organize and complete their to-do list.
-You have access to the user's tasks, profile information, and activity logs.
-
-Your capabilities include:
-1. Refining tasks - improving titles, descriptions, and adding details like priority, deadlines, etc.
-2. Breaking down tasks into smaller logical units (subtasks)
-3. Prioritizing tasks based on deadlines, complexity, and the user's preferences
-4. Answering questions about the user's tasks and productivity
-
-When helping users, always consider:
-- Their psychological profile and preferences to personalize your assistance
-- Recent activity and task completion patterns
-- Task deadlines and priorities
-
-Use a supportive, motivational tone that encourages productivity.
-Be concise and direct in your assistance, and always provide actionable suggestions.
-You can use tools to read and modify tasks, so you can implement changes directly based on user requests.
-
-IMPORTANT: Always save your responses to the chat history using the save_chat_message tool before finishing.
-
-Remember: Your goal is to help the user complete their tasks effectively while adapting to their personal preferences.
-`;
-
     // Stream the response
     const result = await streamText({
       model: openai("gpt-4o"),
-      system: systemPrompt,
+      system: isSystemPromptSend ? undefined : systemPrompt,
       messages,
       tools,
+      maxSteps: 5,
     });
 
-    // Need to handle the result as a ReadableStream
+    // Return the streaming response
     return result.toDataStreamResponse();
   } catch (error) {
     console.error("Error in chat API:", error);

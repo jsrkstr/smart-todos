@@ -6,7 +6,7 @@ import { TaskItem } from "./task-item"
 import type { Task } from "@/types/task"
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerOverlay, DrawerTitle, DrawerTrigger } from "../ui/drawer"
 import { Input } from "../ui/input"
-import { Loader2, Send, Wand2 } from "lucide-react"
+import { Loader2, Send, Sparkles, Wand2 } from "lucide-react"
 import { Button } from "../ui/button"
 import ChatBox from "../chat/chat-box"
 import { useToast } from "@/hooks/use-toast"
@@ -161,7 +161,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
         }
       </div>
       <div className="py-4">
-        {!isSubtask && task.stage === 'Planning' && (
+        {/* {!isSubtask && task.stage === 'Planning' && (
           <Button
             variant="outline"
             onClick={handleRefineTask}
@@ -178,7 +178,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
               </>
             )}
           </Button>
-        )}
+        )} */}
         {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'Completed' && (
           <Button
             variant="outline"
@@ -214,7 +214,29 @@ export function TaskForm({ taskId }: TaskFormProps) {
           <DrawerHeader className="px-4">
             <DrawerTitle>Chat</DrawerTitle>
           </DrawerHeader>
-          <ChatBox taskId={taskId} />
+          <ChatBox taskId={taskId} slotContent={
+            <div className="flex justify-center">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-2"
+                disabled={isRefining}
+                onClick={handleRefineTask}
+              >
+                {isRefining ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Refining...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    <span>Refine</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          }/>
         </DrawerContent>
       </Drawer>
     </div>
