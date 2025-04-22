@@ -8,6 +8,7 @@ import { LogService } from "@/lib/services/logService";
 import { prisma } from "@/lib/prisma";
 import { Task, TaskPriority, TaskStage, User, PsychProfile, Settings, ChatMessageRole } from "@prisma/client";
 import { ChatMessageService } from "@/lib/services/chatMessageService";
+import { TagService } from "@/lib/services/tagService";
 
 export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Response> => {
   try {
@@ -170,15 +171,112 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
             repeats: z.string().optional().describe("Recurrence rule for repetitive tasks in RRULE format"),
             why: z.string().optional().describe("Why of the task"),
             points: z.number().optional().describe("Points allotted to user when he completes the task, is based on the estimatedTimeMinutes and priority of task"),
+            tags: z.array(z.object({
+              name: z.string().describe('name of tag'),
+              category: z.string().describe('category of tag'),
+            })).optional().describe('list of tags (max 1)'),
+            notifications: z.object({
+              create: z.array(z.object({
+                // type: z.enum(["low", "medium", "high"]).describe("Type of notification"),
+                trigger: z.enum(["RelativeTime", "FixedTime", "Location"]).describe('When the notification triggered'),
+                // mode: z.enum(["Push", "Email"]).describe('How notification is delivered'),
+                message: z.string().describe('Message shown to user'),
+                relativeTimeValue: z.number().optional().describe('Time before scheduled time of task, if trigger=RelativeTime'),
+                relativeTimeUnit: z.enum(["Minutes", "Hours", "Days"]).optional().describe('Unit of time before scheduled time of task'),
+                fixedTime: z.string().optional().describe("Time of notification delivery, if trigger=FixedTime (ISO string)"),
+                author: z.enum(["User", "Model", "Bot"]),
+              })).describe('List of notifications to add'),
+              update: z.array(z.object({
+                id: z.string().describe('Id of notification to update'),
+                read: z.boolean().optional().describe('status of notification'),
+                // type: z.enum(["low", "medium", "high"]).describe("Type of notification"),
+                trigger: z.enum(["RelativeTime", "FixedTime", "Location"]).optional().describe('When the notification triggered'),
+                // mode: z.enum(["Push", "Email"]).optional().describe('How notification is delivered'),
+                message: z.string().optional().describe('Message shown to user'),
+                relativeTimeValue: z.number().optional().describe('Time before scheduled time of task, if trigger=RelativeTime'),
+                relativeTimeUnit: z.enum(["Minutes", "Hours", "Days"]).optional().describe('Unit of time before scheduled time of task'),
+                fixedTime: z.string().optional().describe("Time of notification delivery, if trigger=FixedTime (ISO string)"),
+              })).describe('List of notifications to update'),
+              removeIds: z.array(z.string()).describe('List of notification ids to remove'),
+            }).optional().describe('Notifications data'),
           }).describe("The task data to update")
         }),
         execute: async ({ taskId, data }: { taskId: string, data: any }) => {
+          const { tags, notifications, ...otherData } = data;
           // Format date fields if they exist
           const formattedData = {
-            ...data,
-            ...(data.deadline ? { deadline: new Date(data.deadline) } : {}),
-            ...(data.date ? { date: new Date(data.date) } : {})
+            ...otherData,
+            ...(otherData.deadline ? { deadline: new Date(otherData.deadline) } : {}),
+            ...(otherData.date ? { date: new Date(otherData.date) } : {}),
+            ...(notifications ? {
+              notifications: {
+                create: notifications.create?.map(notification => ({
+                  message: notification.message,
+                  type: 'Reminder', // notification.type,
+                  trigger: notification.trigger,
+                  mode: 'Push', // notification.mode,
+                  relativeTimeValue: notification.relativeTimeValue,
+                  relativeTimeUnit: notification.relativeTimeUnit,
+                  fixedTime: notification.fixedTime,
+                  author: notification.author,
+                })),
+                update: notifications.update?.map(notification => ({
+                  id: notification.id,
+                  message: notification.message,
+                  type: 'Reminder', // notification.type,
+                  trigger: notification.trigger,
+                  mode: 'Push', // notification.mode,
+                  relativeTimeValue: notification.relativeTimeValue,
+                  relativeTimeUnit: notification.relativeTimeUnit,
+                  fixedTime: notification.fixedTime,
+                  author: notification.author,
+                })),
+                removeIds: [],
+              }
+            } : {}),
           };
+
+          // Handle tags from AI response
+          if (tags && Array.isArray(tags)) {
+            const [allTags, allCategories] = await Promise.all([
+              TagService.getTags(),
+              TagService.getTagCategories()
+            ])
+
+            const tagIds: string[] = []
+
+            for (const tagData of tags) {
+              let existingTag = allTags.find((t) => t.name.toLowerCase() === tagData.name.toLowerCase())
+
+              if (!existingTag) {
+                console.log('creating tag', tagData);
+                let categoryId: string | undefined
+
+                if (tagData.category) {
+                  let category = allCategories.find((c) => c.name.toLowerCase() === tagData.category.toLowerCase())
+
+                  if (!category) {
+                    console.log('creating category', tagData);
+                    category = await TagService.createTagCategory({ name: tagData.category })
+                    allCategories.push(category)
+                  }
+
+                  categoryId = category.id
+                }
+
+                existingTag = await TagService.createTag({
+                  name: tagData.name,
+                  color: '#808080',
+                  categoryId
+                })
+                allTags.push(existingTag)
+              }
+
+              tagIds.push(existingTag.id)
+            }
+
+            formattedData.tagIds = tagIds
+          }
           
           const task = await TaskService.updateTask({
             id: taskId,
