@@ -53,9 +53,9 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
       3. Prioritizing tasks:
         Analyze a list of tasks and determine the optimal order, priority, and time estimates.
         Guidelines:
+        - Ignore the already set priorities
         - Consider deadlines as the most critical factor
         - Tasks in Refinement or Breakdown stages may need more immediate attention for planning
-        - High priority tasks should generally be completed before medium and low priority tasks
         - Consider dependencies between parent tasks and subtasks
         - Improve time estimates for tasks that don't have them
         - Break ties using the estimated time (shorter tasks first)
@@ -197,6 +197,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
               id: z.string().describe("The ID of the task to update"),
               priority: z.enum(["low", "medium", "high"]).optional().describe("New priority level"),
               position: z.number().optional().describe("Position of task in the list"),
+              estimatedTimeMinutes: z.number().optional().describe("New estimated time in minutes"),
               priorityReason: z.string().optional().describe("Clear explanation of why this task has this priority and position"),
             }).describe("The task data to update")
           ),
