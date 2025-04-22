@@ -36,7 +36,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
 
       Your capabilities include:
       1. Refining tasks:
-        Improve task descriptions, suggest appropriate tags, refine deadlines, and estimate time better.
+        Improve task descriptions, suggest appropriate tags, set deadlines, and estimate time.
         Guidelines:
         - Start by understanding the task
         - if you less than 90% sure about the task, ask a simple question to the user
@@ -165,6 +165,10 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
             stage: z.enum(["Refinement", "Breakdown", "Planning", "Execution", "Reflection"]).optional().describe("New task stage"),
             stageStatus: z.enum(["NotStarted", "InProgress", "QuestionAsked", "Completed"]).optional().describe("New stage status"),
             completed: z.boolean().optional().describe("Mark as completed"),
+            location: z.string().optional().describe("Location for the task"),
+            repeats: z.string().optional().describe("Recurrence rule for repetitive tasks in RRULE format"),
+            why: z.string().optional().describe("Why of the task"),
+            points: z.number().optional().describe("Points allotted to user when he completes the task, is based on the estimatedTimeMinutes and priority of task"),
           }).describe("The task data to update")
         }),
         execute: async ({ taskId, data }: { taskId: string, data: any }) => {
