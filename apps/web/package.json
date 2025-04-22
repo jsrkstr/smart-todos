@@ -9,6 +9,7 @@
     "lint": "next lint",
     "clean": "rm -rf .next",
     "seed": "tsx prisma/seed.ts",
+    "cleanup": "tsx prisma/cleanup.ts",
     "postinstall": "prisma generate --schema=./prisma/schema.prisma"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, ReactNode } from "react"
+import { useEffect, useState, ReactNode, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { TaskItem } from "./task-item"
 import type { Task } from "@/types/task"
@@ -8,11 +8,12 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerOverlay, 
 import { Input } from "../ui/input"
 import { Loader2, Send, Sparkles, Wand2 } from "lucide-react"
 import { Button } from "../ui/button"
-import ChatBox from "../chat/chat-box"
+import ChatBox, { ChatBoxHandle } from "../chat/chat-box"
 import { useToast } from "@/hooks/use-toast"
 import { useTasks } from "@/hooks/use-tasks"
 import { TasksList } from "./tasks-list"
 import { useChatMessages } from "@/hooks/use-chat-messages"
+import type { Message } from "ai"
 
 interface TaskFormProps {
   taskId?: string
@@ -39,6 +40,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
   const { toast } = useToast()
   const isSubtask = !!task?.parentId;
   const { loadMessages } = useChatMessages(taskId)
+  const chatboxRef = useRef<ChatBoxHandle>(null);
 
   // useEffect(() => {
   //   // If a question was asked, open the drawer
@@ -67,18 +69,10 @@ export function TaskForm({ taskId }: TaskFormProps) {
 
     try {
       setIsRefining(true)
-      const updatedTask: Task | null = await refineTask(task.id);
-
-      // Check if we received a question
-      if (updatedTask == null) {
-        toast({
-          title: 'AI needs more information',
-          description: 'Please answer the question in the chat to continue refining the task.'
-        });
-        // The drawer will be opened due to the useEffect above
-      } else {
-        toast({ title: 'Task successfully refined!' });
-      }
+      chatboxRef.current?.addMessage({
+        role: 'user',
+        content: 'Refine this task and update in database',
+      });
     } catch (error) {
       console.error('Error refining task:', error)
       toast({
@@ -95,19 +89,10 @@ export function TaskForm({ taskId }: TaskFormProps) {
 
     try {
       setIsBreakingDown(true)
-      const updatedTask: Task | null = await breakdownTask(task.id);
-
-      // Check if we received a question (task will be null)
-      if (updatedTask === null) {
-        toast({
-          title: 'AI needs more information',
-          description: 'Please answer the question in the chat to continue breaking down the task.'
-        });
-        // Potentially open the chat drawer if needed
-        // setOpenChat(true)
-      } else {
-        toast({ title: 'Task successfully broken down into sub-tasks!' });
-      }
+      chatboxRef.current?.addMessage({
+        role: 'user',
+        content: 'Breakdown this task and update in database',
+      });
     } catch (error) {
       console.error('Error breaking down task:', error)
       toast({
@@ -118,28 +103,6 @@ export function TaskForm({ taskId }: TaskFormProps) {
       setIsBreakingDown(false)
     }
   }
-
-  // const handleSubmitResponse = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (!userResponse.trim() || !task?.id) return;
-
-  //   try {
-  //     await respondToQuestion(task.id, userResponse);
-  //     setUserResponse("");
-
-  //     if (!lastQuestionAsked) {
-  //       // If no more questions, show success and close drawer
-  //       toast({ title: 'Task successfully refined!' });
-  //       setOpenChat(false);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error sending response:', error);
-  //     toast({
-  //       title: 'Failed to send response',
-  //       variant: "destructive",
-  //     });
-  //   }
-  // }
 
   const onOpenChatChange = (open: boolean) => {
     setOpenChat(open);
@@ -155,13 +118,8 @@ export function TaskForm({ taskId }: TaskFormProps) {
         onSetActivePicker={setActivePicker}
         showDetails
       />
-      <div className="flex-1 grow py-4 mt-4 overflow-x-scroll">
-        { !isSubtask &&
-          <TasksList parentId={taskId} showSidebar={true} />
-        }
-      </div>
       <div className="py-4">
-        {/* {!isSubtask && task.stage === 'Planning' && (
+        {!isSubtask && task.stage === 'Planning' && (
           <Button
             variant="outline"
             onClick={handleRefineTask}
@@ -178,7 +136,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
               </>
             )}
           </Button>
-        )} */}
+        )}
         {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'Completed' && (
           <Button
             variant="outline"
@@ -198,6 +156,11 @@ export function TaskForm({ taskId }: TaskFormProps) {
           </Button>
         )}
       </div>
+      <div className="flex-1 grow py-4 mt-4 overflow-x-scroll">
+        { !isSubtask &&
+          <TasksList parentId={taskId} showSidebar={true} />
+        }
+      </div>
       <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true}>
         <DrawerTrigger asChild>
           <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white z-10">
@@ -214,27 +177,38 @@ export function TaskForm({ taskId }: TaskFormProps) {
           <DrawerHeader className="px-4">
             <DrawerTitle>Chat</DrawerTitle>
           </DrawerHeader>
-          <ChatBox taskId={taskId} slotContent={
+          <ChatBox taskId={taskId} ref={chatboxRef} slotContent={
             <div className="flex justify-center">
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="flex items-center gap-2"
-                disabled={isRefining}
-                onClick={handleRefineTask}
-              >
-                {isRefining ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Refining...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    <span>Refine</span>
-                  </>
-                )}
-              </Button>
+              {!isSubtask && task.stage === 'Planning' && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-2"
+                  disabled={isRefining}
+                  onClick={handleRefineTask}
+                >
+                  {!isRefining && (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      <span>Refine</span>
+                    </>
+                  )}
+                </Button>
+              )}
+              {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'Completed' && (
+                <Button
+                  variant="outline"
+                  onClick={handleBreakdownTask}
+                  disabled={isBreakingDown}
+                  title="Break down task with AI"
+                >
+                  {!isBreakingDown && (
+                    <>
+                      Breakdownn {isBreakingDown}<Wand2 className="h-5 w-5" />
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           }/>
         </DrawerContent>

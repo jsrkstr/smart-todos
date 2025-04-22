@@ -15,7 +15,7 @@ import { TaskForm } from "./task-form"
 import { useDrop } from "react-dnd"
 import { DndContext } from "./dnd-context"
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "../ui/drawer"
-import ChatBox from "../chat/chat-box"
+import ChatBox, { ChatBoxHandle } from "../chat/chat-box"
 import { useToast } from "@/hooks/use-toast"
 import { useChatMessages } from "@/hooks/use-chat-messages"
 import { useTaskStore } from "@/lib/store"
@@ -85,6 +85,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
   const { loadMessages } = useChatMessages()
   const { fetchTasks } = useTaskStore()
   const isSubtaskList = !!parentId;
+  const chatboxRef = useRef<ChatBoxHandle>(null);
 
   // Filter tasks based on parentId
   const filteredTasks = parentId
@@ -245,17 +246,12 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
   const handlePrioritizeTasks = async () => {
     try {
       setIsPrioritizing(true);
-      
-      const response = await fetch('/api/tasks/prioritize', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      console.log('start send message')
+      await chatboxRef.current?.addMessage({
+        role: 'user',
+        content: 'Prioritize my tasks',
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to prioritize tasks');
-      }
+      console.log('end send message')
       
       // Refresh tasks
       await fetchTasks(true);
@@ -285,12 +281,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
         disabled={isPrioritizing}
         onClick={handlePrioritizeTasks}
       >
-        {isPrioritizing ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Prioritizing...</span>
-          </>
-        ) : (
+        {!isPrioritizing && (
           <>
             <Sparkles className="h-4 w-4" />
             <span>Prioritize My Tasks</span>
@@ -382,7 +373,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
               <DrawerHeader className="px-4">
                 <DrawerTitle>Chat</DrawerTitle>
               </DrawerHeader>
-              <ChatBox slotContent={prioritizeButton} />
+              <ChatBox ref={chatboxRef} slotContent={prioritizeButton} />
             </DrawerContent>
           </Drawer>
         </div>

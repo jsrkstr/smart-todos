@@ -20,7 +20,7 @@ export interface ChatMessageUpdateInput {
 export class ChatMessageService {
   static async getMessages(userId: string, taskId?: string, filter = false): Promise<ChatMessage[]> {
     const whereClause = {
-        ...(taskId ? { taskId }: {}),
+        ...(taskId ? { taskId }: { taskId: null }),
         ...(filter ? { role: { in: [ChatMessageRole.assistant, ChatMessageRole.user] } } : {}),
         userId,
     }

@@ -1,6 +1,6 @@
 import { AuthenticatedApiRequest, withAuth } from "@/lib/api-middleware";
 import { NextResponse } from "next/server";
-import { streamText } from "ai";
+import { appendResponseMessages, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { TaskService } from "@/lib/services/taskService";
@@ -35,18 +35,33 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
       You have access to the user's tasks, profile information, and activity logs.
 
       Your capabilities include:
-      1. Refining tasks - improving titles, descriptions, and adding details like priority, deadlines, etc.
-      2. Breaking down tasks into smaller logical units (subtasks)
-      3. Prioritizing tasks based on deadlines, complexity, and the user's preferences
+      1. Refining tasks:
+        Improve task descriptions, suggest appropriate tags, refine deadlines, and estimate time better.
+        Guidelines:
+        - Start by understanding the task
+        - if you less than 90% sure about the task, ask a simple question to the user
+        - Then update the task in db, also update fields: stage='Refinement', stageStatus='Completed'
+        - Finally, send a very short messsage to user
+      2. Breaking down:
+        Break down a given task into smaller, actionable sub-tasks.
+        Guidelines:
+        - Aim for sub-tasks that can be completed in roughly 10-15 minutes each (the '10-minute task' strategy)
+        - flexible based on the task complexity.
+        - If the task seems too complex or ambiguous to break down effectively, ask a clarifying question to the user
+        - Then update the task in db, also update fields: stage='Breakdown', stageStatus='Completed'
+        - Finally, send a very short messsage to user
+      3. Prioritizing tasks:
+        Analyze a list of tasks and determine the optimal order, priority, and time estimates.
+        Guidelines:
+        - Consider deadlines as the most critical factor
+        - Tasks in Refinement or Breakdown stages may need more immediate attention for planning
+        - High priority tasks should generally be completed before medium and low priority tasks
+        - Consider dependencies between parent tasks and subtasks
+        - Improve time estimates for tasks that don't have them
+        - Break ties using the estimated time (shorter tasks first)
+        - Provide a clear reason for each task's placement in the priority order
+        - Finally, send a very short messsage to user
       4. Answering questions about the user's tasks and productivity
-
-      Workflow Rules:
-      1. Understand the user request.
-      2. If necessary, use ONE tool to gather information (like read_task) or perform an action (like update_task).
-      3. **CRITICAL:** After a tool runs and provides you information, your *very next step* MUST be to generate a user-facing text response. Explain what you found, ask clarifying questions, or state what you did.
-      4. NEVER stop generating after a tool call. Always follow up with text for the user.
-      5. If you need to update a task after reading it, do it in a separate step after confirming with the user or getting clarification.
-      6. Use the save_chat_message tool ONLY for your final user-facing text responses.
 
       When helping users, always consider:
       - Their psychological profile and preferences to personalize your assistance
@@ -54,7 +69,9 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
       - Task deadlines and priorities
 
       Use a supportive, motivational tone that encourages productivity.
-      Be very concise and direct in your assistance.
+      Be very concise and direct in your replies.
+
+      Only send user-facing messages after all required tool invocations are done. Between tools, do not emit type: 'text' steps.
 
       User is talking in context of  ${taskId ? `Task with id: ${taskId}` : `all his tasks`}
       
@@ -92,6 +109,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
           const tasks = await prisma.task.findMany({
             where: {
               userId,
+              parentId: null, // don't fetch subtasks
               ...(completed !== undefined ? { completed } : {}),
               ...(priority ? { priority } : {}),
               ...(estimatedTimeMinutes?.lte ? { estimatedTimeMinutes: { lte: estimatedTimeMinutes.lte } } : {}),
@@ -104,7 +122,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
                   category: true
                 }
               },
-              notifications: true
+              notifications: false
             },
             orderBy: [
               { position: 'asc' },
@@ -161,18 +179,6 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
             id: taskId,
             userId,
             ...formattedData
-          });
-          
-          // Log the update
-          await LogService.createTaskLog({
-            type: 'task_updated',
-            userId,
-            taskId,
-            author: 'Bot',
-            data: { 
-              updatedFields: Object.keys(data),
-              title: task.title
-            }
           });
           
           return task;
@@ -345,6 +351,23 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
       messages,
       tools,
       maxSteps: 5,
+      async onFinish({ response }) {
+        const allmessages = appendResponseMessages({
+          messages,
+          responseMessages: response.messages,
+        });
+
+        // Store the assistant's message to the database
+        const lastMessage = allmessages.findLast((m: any) => m.role === 'assistant');
+        if (lastMessage) {
+          await ChatMessageService.createMessage({
+            userId,
+            taskId: taskId || undefined,
+            content: lastMessage.content,
+            role: ChatMessageRole.assistant
+          });
+        }
+      },
     });
 
     // Return the streaming response

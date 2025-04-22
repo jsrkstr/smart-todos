@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect } from "react"
+import { useRef, useEffect, useImperativeHandle, forwardRef } from "react"
 import { Send } from "lucide-react"
 import { useChat } from "@ai-sdk/react"
 import { Input } from "../ui/input"
@@ -8,16 +8,22 @@ import { Avatar } from "../ui/avatar"
 import { Button } from "../ui/button"
 import { useChatMessages } from "@/hooks/use-chat-messages"
 import { ChatMessage } from "@/types/chat-message"
-import { UIMessage } from "ai"
+import { ChatRequestOptions, CreateMessage, Message, UIMessage } from "ai"
 import { useTaskStore } from "@/lib/store"
 import { useTagStore } from "@/lib/store/useTagStore"
+
+// Define the imperative handle type
+export interface ChatBoxHandle {
+  addMessage: (message: Message | CreateMessage) => Promise<string | null | undefined>;
+}
 
 interface ChatBoxProps {
   taskId?: string
   slotContent?: React.ReactNode
+  onInit?: (append: (message: Message | CreateMessage, chatRequestOptions?: ChatRequestOptions) => Promise<string | null | undefined>) => void,
 }
 
-export default function ChatBox({ taskId, slotContent }: ChatBoxProps) {
+const ChatBox = forwardRef(({ taskId, slotContent, onInit }: ChatBoxProps, ref) => {
   const { messages: chatMessages, loading: messagesLoading, loadMessages } = useChatMessages(taskId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messageAreaRef = useRef<HTMLDivElement>(null)
@@ -34,11 +40,21 @@ export default function ChatBox({ taskId, slotContent }: ChatBoxProps) {
     parts: []
   }))
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, data, append, isLoading } = useChat({
     initialMessages: initialMessages.length > 0 ? initialMessages : [],
     // api: '/api/chat-messages',
     body: {
       taskId
+    },
+    onToolCall: ({toolCall}) => {
+      console.log('onToolcall', toolCall);
+      if (toolCall.toolName === 'update_task') {
+        fetchTasks(true);
+        fetchTags(true);
+      }
+    },
+    onFinish: (message: Message) => {
+      console.log('onfinish', message);
     }
   })
 
@@ -52,17 +68,22 @@ export default function ChatBox({ taskId, slotContent }: ChatBoxProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
     console.log('data', data);
     
-    // Check if message contains annotations with a response_type property
-    const latestMessage = messages[messages.length-1];
-    const hasTaskDetailsAnnotation = latestMessage?.annotations?.some(
-      (anno: any) => anno?.response_type === 'task_details'
-    );
+    // // Check if message contains annotations with a response_type property
+    // const latestMessage = messages[messages.length-1];
+    // // const hasTaskDetailsAnnotation = latestMessage?.annotations?.some(
+    // //   (anno: any) => anno?.response_type === 'task_details'
+    // // );
+
+    // // https://sdk.vercel.ai/docs/ai-sdk-ui/chatbot-tool-usage#client-side-page
+    // const hasToolInvocations = latestMessage?.toolInvocations?.some(
+    //   (ti: any) => ti?.toolName === 'update_task'
+    // );
     
-    if (hasTaskDetailsAnnotation) {
-      console.log('fetch tasks');
-      fetchTasks(true);
-      fetchTags(true);
-    }
+    // if (hasToolInvocations) {
+    //   console.log('fetch tasks');
+    //   // fetchTasks(true);
+    //   // fetchTags(true);
+    // }
   }, [messages, fetchTasks, fetchTags, data])
 
   useEffect(() => {
@@ -87,6 +108,7 @@ export default function ChatBox({ taskId, slotContent }: ChatBoxProps) {
     };
   }, []);
 
+  // focus on input
   useEffect(() => {
     // if (inputRef.current) {
     //   setTimeout(() => {
@@ -95,6 +117,12 @@ export default function ChatBox({ taskId, slotContent }: ChatBoxProps) {
     //   inputRef.current.focus();
     // }
   }, [])
+
+  useImperativeHandle(ref, () => ({
+    addMessage: (message: Message) => {
+      return append(message);
+    }
+  }));
 
   return (
     <div className="flex flex-col bg-gray-100 mmmax-h-[50vh] h-[500px]">
@@ -182,4 +210,6 @@ export default function ChatBox({ taskId, slotContent }: ChatBoxProps) {
       </div>
     </div>
   )
-}
+});
+
+export default ChatBox;
