@@ -93,10 +93,18 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
     : tasks.filter(task => !task.parentId); // Root tasks only when no parentId
 
   // Group tasks by priority
-  const highPriorityTasks = filteredTasks.filter(task => task.priority === "high" && !task.completed)
-  const mediumPriorityTasks = filteredTasks.filter(task => task.priority === "medium" && !task.completed)
-  const lowPriorityTasks = filteredTasks.filter(task => task.priority === "low" && !task.completed)
-  const completedTasks = filteredTasks.filter(task => task.completed)
+  const highPriorityTasks = filteredTasks
+    .filter(task => task.priority === "high" && !task.completed)
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
+  const mediumPriorityTasks = filteredTasks
+    .filter(task => task.priority === "medium" && !task.completed)
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
+  const lowPriorityTasks = filteredTasks
+    .filter(task => task.priority === "low" && !task.completed)
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
+  const completedTasks = filteredTasks
+    .filter(task => task.completed)
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
   const todayTasks = filteredTasks.filter(task => {
     if (!task.date) return false;
     const taskDate = new Date(task.date);
@@ -202,6 +210,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
       priority: group.priority,
       completed: group.completed,
       parentId: parentId, // Set parentId if provided
+      position: 0,
       ...(group.date ? {
         date: group.date
       }: {}),

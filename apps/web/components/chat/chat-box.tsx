@@ -48,7 +48,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onInit }: ChatBoxProps, ref) 
     },
     onToolCall: ({toolCall}) => {
       console.log('onToolcall', toolCall);
-      if (toolCall.toolName === 'update_task') {
+      if (['update_task', 'update_tasks_many'].includes(toolCall.toolName)) {
         fetchTasks(true);
         fetchTags(true);
       }

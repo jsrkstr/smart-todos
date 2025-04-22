@@ -60,6 +60,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
         - Improve time estimates for tasks that don't have them
         - Break ties using the estimated time (shorter tasks first)
         - Provide a clear reason for each task's placement in the priority order
+        - Then update the tasks in db using update_tasks_many tool
         - Finally, send a very short messsage to user
       4. Answering questions about the user's tasks and productivity
 
@@ -186,6 +187,39 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
           });
           
           return task;
+        },
+      },
+      update_tasks_many: {
+        description: "Update many tasks with new data",
+        parameters: z.object({
+          data: z.array(
+            z.object({
+              id: z.string().describe("The ID of the task to update"),
+              priority: z.enum(["low", "medium", "high"]).optional().describe("New priority level"),
+              position: z.number().optional().describe("Position of task in the list"),
+              priorityReason: z.string().optional().describe("Clear explanation of why this task has this priority and position"),
+            }).describe("The task data to update")
+          ),
+        }),
+        execute: async ({ data }: { data: any }) => {
+          // Format date fields if they exist
+          const formattedData = [...data.map(updates => ({
+            ...updates,
+          }))];
+
+          await prisma.$transaction(
+            formattedData.map(updates => {
+              const { id, ...otherUpdates } = updates;
+              return prisma.task.update({
+                where: { id },
+                data: {
+                  ...otherUpdates,
+                },
+              })
+            })
+          );
+          
+          return { ok: true };
         },
       },
       read_logs: {
