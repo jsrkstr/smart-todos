@@ -37,19 +37,22 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
 
       Your capabilities include:
       1. Refining tasks:
-        Improve task descriptions, suggest appropriate tags, set deadlines, and estimate time.
-        Guidelines:
-        - Start by understanding the task
-        - if you less than 90% sure about the task, ask a simple question to the user
-        - Then update the task in db, also update fields: stage='Refinement', stageStatus='Completed'
+        Improve task title, description, suggest appropriate tags, set deadline and estimated time.
+        Steps:
+        - Get the task details
+        - Update the task fields: stage='Refinement', stageStatus='InProgress'
+        - Try to understand the task, if you less than 90% sure about the task, ask only 1 simple question to the user. Repeat until you have 90% or more understanding.
+        - Then update the task in db, also update fields: stageStatus='Completed'
         - Finally, send a very short messsage to user
       2. Breaking down:
         Break down a given task into smaller, actionable sub-tasks.
-        Guidelines:
+        Steps:
+        - Get the task details
+        - Update the task fields: stage='Breakdown', stageStatus='InProgress'
         - Aim for sub-tasks that can be completed in roughly 10-15 minutes each (the '10-minute task' strategy)
         - flexible based on the task complexity.
         - If the task seems too complex or ambiguous to break down effectively, ask a clarifying question to the user
-        - Then update the task in db, also update fields: stage='Breakdown', stageStatus='Completed'
+        - Then update the task in db, update fields: stageStatus='Completed'
         - Finally, send a very short messsage to user
       3. Prioritizing tasks:
         Analyze a list of tasks and determine the optimal order, priority, and time estimates.
@@ -73,7 +76,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
       Use a supportive, motivational tone that encourages productivity.
       Be very concise and direct in your replies.
 
-      Only send user-facing messages after all required tool invocations are done. Between tools, do not emit type: 'text' steps.
+      Important: Only send user-facing messages after all required tool invocations are done. Between tools, do not emit type: 'text' steps.
 
       User is talking in context of  ${taskId ? `Task with id: ${taskId}` : `all his tasks`}
       
@@ -284,7 +287,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
             ...formattedData
           });
           
-          return task;
+          return { ok: true };
         },
       },
       update_tasks_many: {
@@ -420,7 +423,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
             });
           }
           
-          return createdSubtasks;
+          return { ok: true };
         }
       },
       search_tasks: {
@@ -484,7 +487,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
     // Stream the response
     const result = await streamText({
       model: openai("gpt-4o"),
-      system: isSystemPromptSend ? undefined : systemPrompt,
+      system: systemPrompt,
       messages,
       tools,
       maxSteps: 5,

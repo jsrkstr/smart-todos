@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect, useImperativeHandle, forwardRef, useState } from "react"
+import { useRef, useEffect, useImperativeHandle, forwardRef, useState, useCallback } from "react"
 import { Send } from "lucide-react"
 import { useChat } from "@ai-sdk/react"
 import { Input } from "../ui/input"
@@ -30,7 +30,6 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
   const inputRef = useRef<HTMLInputElement>(null)
   const { fetchTasks } = useTaskStore();
   const { fetchTags } = useTagStore();
-  const [toolCallNames, setToolCallNames] = useState<string[]>([]);
 
   // Convert our chat messages to UI messages for the AI SDK
   const initialMessages: UIMessage[] = chatMessages.map(msg => ({
@@ -48,18 +47,18 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
       taskId
     },
     onToolCall: ({ toolCall }) => {
-      console.log('onToolcall', toolCall);
-      setToolCallNames((names: string[]) => ([...names, toolCall.toolName]));
+      console.log('toolcall:', toolCall);
     },
     onFinish: async (message: Message) => {
-      console.log('onfinish', message);
-      await (new Promise(resolve => setTimeout(resolve, 100)))
-      if (toolCallNames.includes('update_task') || toolCallNames.includes('update_tasks_many')) {
+      const toolNames = message.parts?.filter(part => part.type === 'tool-invocation')
+        .map((part) => part.toolInvocation.toolName)
+      
+      console.log('onfinish', message, toolNames);
+      if (toolNames?.includes('update_task') || toolNames?.includes('update_tasks_many') || toolNames?.includes('create_subtasks')) {
         fetchTasks(true);
         fetchTags(true);
-        setToolCallNames([]);
       }
-    }
+    },
   })
 
   useEffect(() => {

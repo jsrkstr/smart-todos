@@ -84,8 +84,9 @@ export function TaskForm({ taskId }: TaskFormProps) {
         title: 'Failed to refine task',
         variant: "destructive",
       });
-    } finally {
       setIsRefining(false)
+    } finally {
+      
     }
   }
 
@@ -109,8 +110,9 @@ export function TaskForm({ taskId }: TaskFormProps) {
         title: 'Failed to break down task',
         variant: "destructive",
       });
-    } finally {
       setIsBreakingDown(false)
+    } finally {
+      
     }
   }
 
@@ -167,7 +169,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
         )}
       </div>
       <div className="flex-1 grow py-4 mt-4 overflow-x-scroll">
-        { !isSubtask &&
+        {!isSubtask &&
           <TasksList parentId={taskId} showSidebar={true} />
         }
       </div>
@@ -192,39 +194,29 @@ export function TaskForm({ taskId }: TaskFormProps) {
             ref={chatboxRef}
             onLoadingChange={(loading) => setChatLoading(loading)}
             slotContent={
-            <div className="flex justify-center">
-              {!isSubtask && task.stage === 'Planning' && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex items-center gap-2"
-                  disabled={isRefining}
-                  onClick={handleRefineTask}
-                >
-                  {!isRefining && (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      <span>Refine {isRefining}</span>
-                    </>
-                  )}
-                </Button>
-              )}
-              {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'Completed' && (
-                <Button
-                  variant="outline"
-                  onClick={handleBreakdownTask}
-                  disabled={isBreakingDown}
-                  title="Break down task with AI"
-                >
-                  {!isBreakingDown && (
-                    <>
-                      Breakdownn {isBreakingDown}<Wand2 className="h-5 w-5" />
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          }/>
+              <div className="flex justify-center">
+                {!isSubtask && task.stage === 'Planning' && !isRefining && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                    onClick={handleRefineTask}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>Refine</span>
+                  </Button>
+                )}
+                {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'Completed' && !isBreakingDown && (
+                  <Button
+                    variant="outline"
+                    onClick={handleBreakdownTask}
+                    title="Break down task with AI"
+                  >
+                    Breakdown<Wand2 className="h-5 w-5" />
+                  </Button>
+                )}
+              </div>
+            } />
         </DrawerContent>
       </Drawer>
     </div>
