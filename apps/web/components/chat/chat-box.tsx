@@ -31,7 +31,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
   const { fetchTasks } = useTaskStore();
   const { fetchTags } = useTagStore();
   const [toolCallNames, setToolCallNames] = useState<string[]>([]);
-  
+
   // Convert our chat messages to UI messages for the AI SDK
   const initialMessages: UIMessage[] = chatMessages.map(msg => ({
     id: msg.id,
@@ -47,7 +47,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
     body: {
       taskId
     },
-    onToolCall: ({toolCall}) => {
+    onToolCall: ({ toolCall }) => {
       console.log('onToolcall', toolCall);
       setToolCallNames((names: string[]) => ([...names, toolCall.toolName]));
     },
@@ -75,7 +75,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
     console.log('data', data);
-    
+
     // // Check if message contains annotations with a response_type property
     // const latestMessage = messages[messages.length-1];
     // // const hasTaskDetailsAnnotation = latestMessage?.annotations?.some(
@@ -86,7 +86,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
     // const hasToolInvocations = latestMessage?.toolInvocations?.some(
     //   (ti: any) => ti?.toolName === 'update_task'
     // );
-    
+
     // if (hasToolInvocations) {
     //   console.log('fetch tasks');
     //   // fetchTasks(true);
@@ -133,9 +133,9 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
   }));
 
   return (
-    <div className="flex flex-col bg-gray-100 mmmax-h-[50vh] h-[500px]">
+    <div className="flex flex-col bg-gray-100 mmmax-h-[50vh] h-[60vh]">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll-area" ref={messageAreaRef}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll-area max-h-[50vh]" ref={messageAreaRef}>
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-400">
             <p>Send a message to start chatting with the bot</p>
@@ -182,39 +182,39 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
             </div>
           </div>
         )}
-        
+
         {/* Slot area for custom content */}
         {slotContent && (
           <div className="mt-4 mb-2">
             {slotContent}
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input area */}
-      <div className="min-h-[65px]">
-      <div className="bg-white p-3 border-t mobile-input">
-        <form onSubmit={handleSubmit} className="flex items-center space-x-2">
-          <Input
-            ref={inputRef}
-            value={input}
-            onChange={handleInputChange}
-            placeholder="Type a message..."
-            type="text"
-            className="flex-1 rounded-full border-gray-300 focus:border-primary focus:ring-primary"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            className="rounded-full h-10 w-10 flex items-center justify-center"
-            disabled={isLoading || !input.trim()}
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-        </form>
-      </div>
+      <div className="min-h-[65px] mobile-box">
+        <div className="bg-white p-3 border-t mobile-input">
+          <form onSubmit={handleSubmit} className="flex items-center space-x-2">
+            <Input
+              ref={inputRef}
+              value={input}
+              onChange={handleInputChange}
+              placeholder="Type a message..."
+              type="text"
+              className="flex-1 rounded-full border-gray-300 focus:border-primary focus:ring-primary"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              className="rounded-full h-10 w-10 flex items-center justify-center"
+              disabled={isLoading || !input.trim()}
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   )
