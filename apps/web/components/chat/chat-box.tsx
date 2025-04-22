@@ -133,7 +133,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
   }));
 
   return (
-    <div className="flex flex-col bg-gray-100 mmmax-h-[50vh] h-[60vh]">
+    <div className="flex flex-col bg-gray-100 mmmax-h-[50vh]">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll-area max-h-[50vh]" ref={messageAreaRef}>
         {messages.length === 0 ? (
