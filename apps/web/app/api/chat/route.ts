@@ -56,14 +56,11 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
         - Then update the task in db, update fields: stageStatus='Completed'
         - Finally, send a very short messsage to user
       3. Prioritizing tasks:
-        Analyze a list of tasks and determine the optimal order, priority, and time estimates.
+        Reorder the tasks of user based on their deadline and priority.
         Guidelines:
-        - Ignore the already set priorities
-        - Consider deadlines as the most critical factor
         - Tasks in Refinement or Breakdown stages may need more immediate attention for planning
         - Consider dependencies between parent tasks and subtasks
         - Improve time estimates for tasks that don't have them
-        - Break ties using the estimated time (shorter tasks first)
         - Provide a clear reason for each task's placement in the priority order
         - Then update the tasks in db using update_tasks_many tool
         - Finally, send a very short messsage to user
@@ -72,7 +69,6 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
       When helping users, always consider:
       - Their psychological profile and preferences to personalize your assistance
       - Recent activity and task completion patterns
-      - Task deadlines and priorities
 
       Use a supportive, motivational tone that encourages productivity.
       Be very concise and direct in your replies.
@@ -92,6 +88,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
           taskId: z.string().describe("The ID of the task to fetch"),
         }),
         execute: async ({ taskId }: { taskId: string }) => {
+          console.log('tool-called: read_task');
           const task = await TaskService.getTask(taskId, userId);
           return task;
         },
@@ -158,7 +155,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
         },
       },
       update_task: {
-        description: "Update a task with new data",
+        description: "Update a single task with new data",
         parameters: z.object({
           taskId: z.string().describe("The ID of the task to update"),
           data: z.object({
@@ -189,7 +186,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
                 relativeTimeUnit: z.enum(["Minutes", "Hours", "Days"]).optional().describe('Unit of time before scheduled time of task'),
                 fixedTime: z.string().optional().describe("Time of notification delivery, if trigger=FixedTime (ISO string)"),
                 author: z.enum(["User", "Model", "Bot"]),
-              })).describe('List of notifications to add'),
+              })).optional().describe('List of notifications to add'),
               update: z.array(z.object({
                 id: z.string().describe('Id of notification to update'),
                 read: z.boolean().optional().describe('status of notification'),
@@ -200,8 +197,8 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
                 relativeTimeValue: z.number().optional().describe('Time before scheduled time of task, if trigger=RelativeTime'),
                 relativeTimeUnit: z.enum(["Minutes", "Hours", "Days"]).optional().describe('Unit of time before scheduled time of task'),
                 fixedTime: z.string().optional().describe("Time of notification delivery, if trigger=FixedTime (ISO string)"),
-              })).describe('List of notifications to update'),
-              removeIds: z.array(z.string()).describe('List of notification ids to remove'),
+              })).optional().describe('List of notifications to update'),
+              removeIds: z.array(z.string()).optional().describe('List of notification ids to remove'),
             }).optional().describe('Notifications data'),
           }).describe("The task data to update")
         }),
@@ -235,7 +232,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
                   fixedTime: notification.fixedTime,
                   author: notification.author,
                 })),
-                removeIds: [],
+                removeIds: notifications.removeIds || [],
               }
             } : {}),
           };
@@ -301,6 +298,8 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
               position: z.number().optional().describe("Position of task in the list"),
               estimatedTimeMinutes: z.number().optional().describe("New estimated time"),
               priorityReason: z.string().optional().describe("Clear explanation of why this task has this priority and position"),
+              deadline: z.string().optional().describe("New deadline (ISO string)"),
+              date: z.string().optional().describe("New planned date (ISO string)"),
             }).describe("The task data to update")
           ),
         }),
@@ -492,6 +491,9 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
       messages,
       tools,
       maxSteps: 5,
+      async onError({ error }) {
+        console.error('Error in streamText:', error);
+      },
       async onFinish({ response }) {
         const allmessages = appendResponseMessages({
           messages,
