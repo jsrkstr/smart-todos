@@ -192,7 +192,7 @@ export function TaskItem({
 
   return (
     <div 
-      className={cn("relative", isDragging && "opacity-50")} 
+      className={cn("relative transition-colors active:bg-gray-100", isDragging && "opacity-50")} 
       {...swipeHandlers}
       ref={dragRef} 
     >

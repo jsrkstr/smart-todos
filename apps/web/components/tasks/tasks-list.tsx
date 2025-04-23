@@ -372,18 +372,19 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
           )
           :
           <div>
-            <Skeleton className="h-10 w-[200px] mb-8" />
-            <Skeleton className="h-7 w-full mb-8" />
-            <Skeleton className="h-7 w-full mb-8" />
-            <Skeleton className="h-7 w-full mb-8" />
-            <Skeleton className="h-10 w-[200px] mb-8 mt-8" />
-            <Skeleton className="h-7 w-full mb-8" />
-            <Skeleton className="h-7 w-full mb-8" />
-            <Skeleton className="h-7 w-full mb-8" />
-            <Skeleton className="h-10 w-[200px] mb-8 mt-8" />
-            <Skeleton className="h-7 w-full mb-8" />
-            <Skeleton className="h-7 w-full mb-8" />
-            <Skeleton className="h-7 w-full mb-8" />
+            <Skeleton className="h-8 w-[150px] mb-8" />
+            <Skeleton className="h-5 w-full mb-5" />
+            <Skeleton className="h-5 w-full mb-5" />
+            <Skeleton className="h-5 w-full mb-5" />
+            <Skeleton className="h-8 w-[150px] mb-8 mt-8" />
+            <Skeleton className="h-5 w-full mb-5" />
+            <Skeleton className="h-5 w-full mb-5" />
+            <Skeleton className="h-5 w-full mb-5" />
+            <Skeleton className="h-8 w-[150px] mb-8 mt-8" />
+            <Skeleton className="h-5 w-full mb-5" />
+            <Skeleton className="h-5 w-full mb-5" />
+            <Skeleton className="h-5 w-full mb-5" />
+            <Skeleton className="h-5 w-full mb-5" />
           </div>
         }
       </div>
