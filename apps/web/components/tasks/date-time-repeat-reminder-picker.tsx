@@ -169,7 +169,28 @@ export function DateTimeRepeatReminderPicker({
               </div>
               <div>
                 <LabelPrimitive.Label htmlFor="quick-select" className="block mb-2">Quick select</LabelPrimitive.Label>
-                <div id="quick-select" className="space-y-3">
+                <div id="quick-select" className="space-y-2">
+                  <ButtonPrimitive.Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const date = new Date();
+                      handleDateSelect(date);
+                    }}
+                  >
+                    Today
+                  </ButtonPrimitive.Button>
+                  <ButtonPrimitive.Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const date = new Date();
+                      date.setDate(date.getDate() + 1);
+                      handleDateSelect(date);
+                    }}
+                  >
+                    Tomorrow
+                  </ButtonPrimitive.Button>
                   <ButtonPrimitive.Button
                     variant="outline"
                     size="sm"
@@ -226,17 +247,6 @@ export function DateTimeRepeatReminderPicker({
                     }}
                   >
                     3 months
-                  </ButtonPrimitive.Button>
-                  <ButtonPrimitive.Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const date = new Date();
-                      date.setMonth(date.getMonth() + 6); // 6 months
-                      handleDateSelect(date);
-                    }}
-                  >
-                    6 months
                   </ButtonPrimitive.Button>
                 </div>
               </div>
