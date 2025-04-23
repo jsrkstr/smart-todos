@@ -58,10 +58,10 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
       3. Prioritizing tasks:
         Reorder the tasks of user based on their deadline and priority.
         Guidelines:
-        - Tasks in Refinement or Breakdown stages may need more immediate attention for planning
         - Consider dependencies between parent tasks and subtasks
         - Improve time estimates for tasks that don't have them
         - Provide a clear reason for each task's placement in the priority order
+        - Set appropriate due dates on subtasks based on due date of parent task
         - Then update the tasks in db using update_tasks_many tool
         - Finally, send a very short messsage to user
       4. Answering questions about the user's tasks and productivity

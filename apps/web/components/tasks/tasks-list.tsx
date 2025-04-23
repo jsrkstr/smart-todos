@@ -34,13 +34,13 @@ interface TasksListProps {
 }
 
 // Task Group component that handles dropping tasks
-function TaskGroupContainer({ group, children, onDrop }: { 
-  group: TaskGroup, 
+function TaskGroupContainer({ group, children, onDrop }: {
+  group: TaskGroup,
   children: React.ReactNode,
   onDrop: (itemId: string, group: TaskGroup) => void
 }) {
   const dropRef = useRef<HTMLDivElement>(null);
-  
+
   const [{ isOver }, dropConnector] = useDrop({
     accept: TASK_ITEM_TYPE,
     drop: (item: { taskId: string }) => {
@@ -51,7 +51,7 @@ function TaskGroupContainer({ group, children, onDrop }: {
       isOver: !!monitor.isOver(),
     }),
   });
-  
+
   // Connect the drop ref
   React.useEffect(() => {
     if (dropRef.current) {
@@ -60,8 +60,8 @@ function TaskGroupContainer({ group, children, onDrop }: {
   }, [dropConnector]);
 
   return (
-    <div 
-      ref={dropRef} 
+    <div
+      ref={dropRef}
       className={cn(
         "transition-colors duration-200",
         isOver && "bg-gray-100 rounded-md p-4 -m-4"
@@ -128,39 +128,39 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
         completed: false,
       }
     ] :
-    [
-      {
-        title: "Today",
-        tasks: todayTasks,
-        priority: 'high' as TaskPriority,
-        completed: false,
-        date: (new Date()).toISOString(),
-      },
-      {
-        title: "High Priority",
-        tasks: highPriorityTasks,
-        priority: 'high' as TaskPriority,
-        completed: false,
-      },
-      {
-        title: "Medium Priority",
-        tasks: mediumPriorityTasks,
-        priority: 'medium' as TaskPriority,
-        completed: false,
-      },
-      {
-        title: "Low Priority",
-        tasks: lowPriorityTasks,
-        priority: 'low' as TaskPriority,
-        completed: false,
-      },
-      {
-        title: "Completed",
-        tasks: completedTasks,
-        priority: 'high' as TaskPriority,
-        completed: true,
-      },
-    ])
+      [
+        {
+          title: "Today",
+          tasks: todayTasks,
+          priority: 'high' as TaskPriority,
+          completed: false,
+          date: (new Date()).toISOString(),
+        },
+        {
+          title: "High Priority",
+          tasks: highPriorityTasks,
+          priority: 'high' as TaskPriority,
+          completed: false,
+        },
+        {
+          title: "Medium Priority",
+          tasks: mediumPriorityTasks,
+          priority: 'medium' as TaskPriority,
+          completed: false,
+        },
+        {
+          title: "Low Priority",
+          tasks: lowPriorityTasks,
+          priority: 'low' as TaskPriority,
+          completed: false,
+        },
+        {
+          title: "Completed",
+          tasks: completedTasks,
+          priority: 'high' as TaskPriority,
+          completed: true,
+        },
+      ])
   ]
 
   const toggleTaskCompletion = (taskId: string) => {
@@ -182,14 +182,14 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
     if (targetGroup.title === "Today" && targetGroup.date) {
       const taskDate = task.date ? new Date(task.date) : new Date(targetGroup.date);
       const todayDate = new Date(targetGroup.date);
-      
+
       // Preserve the time from existing task date, but use today's date
       if (task.date) {
         taskDate.setFullYear(todayDate.getFullYear());
         taskDate.setMonth(todayDate.getMonth());
         taskDate.setDate(todayDate.getDate());
       }
-      
+
       updates.date = taskDate.toISOString();
     }
 
@@ -213,7 +213,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
       position: 0,
       ...(group.date ? {
         date: group.date
-      }: {}),
+      } : {}),
       notifications: [{
         mode: 'Push',
         type: 'Reminder',
@@ -261,10 +261,10 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
         content: 'Prioritize my tasks',
       });
       console.log('end send message')
-      
+
       // Refresh tasks
       await fetchTasks(true);
-      
+
       toast({
         title: 'Tasks prioritized successfully',
         description: 'Your tasks have been reorganized by priority',
@@ -283,20 +283,18 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
   // Priority Task button to inject into ChatBox
   const prioritizeButton = (
     <div className="flex justify-center">
-      <Button 
-        variant="outline" 
-        size="sm"
-        className="flex items-center gap-2"
-        disabled={isPrioritizing}
-        onClick={handlePrioritizeTasks}
-      >
-        {!isPrioritizing && (
-          <>
-            <Sparkles className="h-4 w-4" />
-            <span>Prioritize My Tasks</span>
-          </>
-        )}
-      </Button>
+      {!isPrioritizing && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2"
+          disabled={isPrioritizing}
+          onClick={handlePrioritizeTasks}
+        >
+          <Sparkles className="h-4 w-4" />
+          <span>Prioritize My Tasks</span>
+        </Button>
+      )}
     </div>
   );
 
@@ -309,8 +307,8 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
         {storeInitialized && !loading ?
           visibleTaskGroups.length > 0 ? (
             visibleTaskGroups.map((group) => (
-              <TaskGroupContainer 
-                key={group.title} 
+              <TaskGroupContainer
+                key={group.title}
                 group={group}
                 onDrop={handleDropTask}
               >

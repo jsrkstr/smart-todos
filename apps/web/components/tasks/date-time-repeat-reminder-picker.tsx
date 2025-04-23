@@ -42,7 +42,7 @@ export function DateTimeRepeatReminderPicker({
   const [taskDate, setTaskDate] = React.useState<Date | undefined>(task.date ? new Date(task.date) : undefined)
   const [dateMonth, setDateMonth] = React.useState<Date>(taskDate || new Date())
   const [deadlineMonth, setDeadlineMonth] = React.useState<Date>(deadline || new Date())
-  const [selectedTab, setSelectedTab] = React.useState<string>('date')
+  const [selectedTab, setSelectedTab] = React.useState<string>('Due date')
 
 
 
@@ -121,7 +121,7 @@ export function DateTimeRepeatReminderPicker({
         <div id="date-description" className="sr-only">
           Select a date and time for the task. You can also set repeat and reminder options.
         </div>
-        <TabsPrimitive.Tabs defaultValue="Date" onValueChange={(tab) => setSelectedTab(tab)}>
+        <TabsPrimitive.Tabs defaultValue="Due date" onValueChange={(tab) => setSelectedTab(tab)}>
           <TabsPrimitive.TabsList className="grid w-full grid-cols-4">
             <TabsPrimitive.TabsTrigger value="Date"><CalendarIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
             <TabsPrimitive.TabsTrigger value="Due date"><Hourglass className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
