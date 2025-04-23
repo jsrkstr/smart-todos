@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { Task, TaskPriority, TaskStage, User, PsychProfile, Settings, ChatMessageRole } from "@prisma/client";
 import { ChatMessageService } from "@/lib/services/chatMessageService";
 import { TagService } from "@/lib/services/tagService";
+import { writeFile } from "fs/promises";
 
 export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Response> => {
   try {
@@ -509,6 +510,14 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
         }
       },
     });
+
+    // Log the request body and headers being sent to the provider API
+    // result.request.then((request) => {
+    //   console.log('Provider API Request:', {
+    //     body: request.body,
+    //   });
+    //   writeFile('log.txt', request.body);
+    // });
 
     // Return the streaming response
     return result.toDataStreamResponse();
