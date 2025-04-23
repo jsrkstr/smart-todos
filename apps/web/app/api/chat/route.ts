@@ -296,10 +296,10 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
         parameters: z.object({
           data: z.array(
             z.object({
-              id: z.string().describe("The ID of the task to update"),
+              id: z.string(),
               priority: z.enum(["low", "medium", "high"]).optional().describe("New priority level"),
               position: z.number().optional().describe("Position of task in the list"),
-              estimatedTimeMinutes: z.number().optional().describe("New estimated time in minutes"),
+              estimatedTimeMinutes: z.number().optional().describe("New estimated time"),
               priorityReason: z.string().optional().describe("Clear explanation of why this task has this priority and position"),
             }).describe("The task data to update")
           ),
@@ -325,26 +325,26 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
           return { ok: true };
         },
       },
-      read_logs: {
-        description: "Fetch user activity logs",
-        parameters: z.object({
-          limit: z.number().optional().describe("Number of logs to fetch"),
-          type: z.string().optional().describe("Type of log to filter by"),
-          taskId: z.string().optional().describe("Filter logs by task ID")
-        }),
-        execute: async ({ limit = 20, type, taskId }: { limit?: number, type?: string, taskId?: string }) => {
-          const logs = await prisma.log.findMany({
-            where: {
-              userId,
-              ...(type ? { type: type as any } : {}),
-              ...(taskId ? { taskId } : {})
-            },
-            orderBy: { createdAt: 'desc' },
-            take: limit
-          });
-          return logs;
-        }
-      },
+      // read_logs: {
+      //   description: "Fetch user activity logs",
+      //   parameters: z.object({
+      //     limit: z.number().optional().describe("Number of logs to fetch"),
+      //     type: z.string().optional().describe("Type of log to filter by"),
+      //     taskId: z.string().optional().describe("Filter logs by task ID")
+      //   }),
+      //   execute: async ({ limit = 20, type, taskId }: { limit?: number, type?: string, taskId?: string }) => {
+      //     const logs = await prisma.log.findMany({
+      //       where: {
+      //         userId,
+      //         ...(type ? { type: type as any } : {}),
+      //         ...(taskId ? { taskId } : {})
+      //       },
+      //       orderBy: { createdAt: 'desc' },
+      //       take: limit
+      //     });
+      //     return logs;
+      //   }
+      // },
       create_task: {
         description: "Create a new task",
         parameters: z.object({
@@ -384,8 +384,8 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
         parameters: z.object({
           parentTaskId: z.string().describe("Parent task ID"),
           subtasks: z.array(z.object({
-            title: z.string().describe("Subtask title"),
-            description: z.string().optional().describe("Subtask description"),
+            title: z.string(),
+            description: z.string().optional(),
             estimatedTimeMinutes: z.number().optional().describe("Estimated time in minutes"),
           })).describe("List of subtasks to create")
         }),
@@ -457,32 +457,32 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
           return tasks;
         }
       },
-      save_chat_message: {
-        description: "Save a message to the chat history",
-        parameters: z.object({
-          content: z.string().describe("Content of the message"),
-          role: z.enum(["assistant", "system"]).describe("Role of the message sender"),
-          taskId: z.string().optional().describe("ID of the task this message is related to"),
-          metadata: z.record(z.any()).optional().describe("Additional metadata for the message")
-        }),
-        execute: async ({ content, role, taskId, metadata }: {
-          content: string,
-          role: "assistant" | "system",
-          taskId?: string,
-          metadata?: Record<string, any>
-        }) => {
-          // First create the chat message
-          const chatMessage = await ChatMessageService.createMessage({
-            userId,
-            taskId,
-            content,
-            role: role as ChatMessageRole,
-            metadata
-          });
+      // save_chat_message: {
+      //   description: "Save a message to the chat history",
+      //   parameters: z.object({
+      //     content: z.string().describe("Content of the message"),
+      //     role: z.enum(["assistant", "system"]).describe("Role of the message sender"),
+      //     taskId: z.string().optional().describe("ID of the task this message is related to"),
+      //     metadata: z.record(z.any()).optional().describe("Additional metadata for the message")
+      //   }),
+      //   execute: async ({ content, role, taskId, metadata }: {
+      //     content: string,
+      //     role: "assistant" | "system",
+      //     taskId?: string,
+      //     metadata?: Record<string, any>
+      //   }) => {
+      //     // First create the chat message
+      //     const chatMessage = await ChatMessageService.createMessage({
+      //       userId,
+      //       taskId,
+      //       content,
+      //       role: role as ChatMessageRole,
+      //       metadata
+      //     });
 
-          return chatMessage;
-        }
-      }
+      //     return chatMessage;
+      //   }
+      // }
     };
 
     // Stream the response
