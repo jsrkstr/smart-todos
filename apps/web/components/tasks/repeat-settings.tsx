@@ -142,10 +142,10 @@ export function RepeatSettings({ value, onChange }: RepeatSettingsProps) {
 
   return (
     <div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
         <label
           htmlFor="repeat-checkbox"
-          className="flex flex-1 items-center gap-2 text-sm"
+          className="flex items-center gap-2 text-sm"
         >
           Repeats
         </label>

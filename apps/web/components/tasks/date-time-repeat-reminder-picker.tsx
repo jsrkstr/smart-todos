@@ -114,15 +114,15 @@ export function DateTimeRepeatReminderPicker({
           <div id="date-description" className="sr-only">
             Select a date and time for the task. You can also set repeat and reminder options.
           </div>
-          <TabsPrimitive.Tabs defaultValue="date" onValueChange={(tab) => setSelectedTab(tab)}>
+          <TabsPrimitive.Tabs defaultValue="Date" onValueChange={(tab) => setSelectedTab(tab)}>
           <TabsPrimitive.TabsList className="grid w-full grid-cols-4">
-            <TabsPrimitive.TabsTrigger value="date"><CalendarIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
-            <TabsPrimitive.TabsTrigger value="deadline"><Hourglass className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
-            <TabsPrimitive.TabsTrigger value="repeat"><RepeatIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
-            <TabsPrimitive.TabsTrigger value="reminder"><BellIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
+            <TabsPrimitive.TabsTrigger value="Date"><CalendarIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
+            <TabsPrimitive.TabsTrigger value="Due date"><Hourglass className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
+            <TabsPrimitive.TabsTrigger value="Repeat"><RepeatIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
+            <TabsPrimitive.TabsTrigger value="Reminders"><BellIcon className="h-4 w-4" /></TabsPrimitive.TabsTrigger>
           </TabsPrimitive.TabsList>
 
-          <TabsPrimitive.TabsContent value="date" className="p-3 min-h-[40vh]">
+          <TabsPrimitive.TabsContent value="Date" className="p-3 min-h-[40vh]">
             <div className="space-y-4">
               <div>
                 <LabelPrimitive.Label htmlFor="task-date" className="block mb-2">Date</LabelPrimitive.Label>
@@ -145,16 +145,89 @@ export function DateTimeRepeatReminderPicker({
             </div>
           </TabsPrimitive.TabsContent>
 
-          <TabsPrimitive.TabsContent value="deadline" className="p-3 space-y-3 min-h-[40vh]">
+          <TabsPrimitive.TabsContent value="Due date" className="p-3 space-y-3 min-h-[40vh]">
             <CalendarPrimitive.Calendar
               mode="single"
               selected={deadline}
               onSelect={handleDateSelect}
               initialFocus
             />
+            <div className="mt-4">
+              <LabelPrimitive.Label className="block mb-2">Quick select</LabelPrimitive.Label>
+              <div className="grid grid-cols-2 gap-2">
+                <ButtonPrimitive.Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    const date = new Date();
+                    const day = date.getDay();
+                    const daysUntilEndOfWeek = 7 - day;
+                    date.setDate(date.getDate() + daysUntilEndOfWeek); // End of this week
+                    handleDateSelect(date);
+                  }}
+                >
+                  This week
+                </ButtonPrimitive.Button>
+                <ButtonPrimitive.Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    const date = new Date();
+                    date.setDate(date.getDate() + 7); // 1 week
+                    handleDateSelect(date);
+                  }}
+                >
+                  1 week
+                </ButtonPrimitive.Button>
+                <ButtonPrimitive.Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    const date = new Date();
+                    date.setDate(date.getDate() + 14); // 2 weeks
+                    handleDateSelect(date);
+                  }}
+                >
+                  2 weeks
+                </ButtonPrimitive.Button>
+                <ButtonPrimitive.Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    const date = new Date();
+                    date.setMonth(date.getMonth() + 1); // 1 month
+                    handleDateSelect(date);
+                  }}
+                >
+                  1 month
+                </ButtonPrimitive.Button>
+                <ButtonPrimitive.Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    const date = new Date();
+                    date.setMonth(date.getMonth() + 3); // 3 months
+                    handleDateSelect(date);
+                  }}
+                >
+                  3 months
+                </ButtonPrimitive.Button>
+                <ButtonPrimitive.Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    const date = new Date();
+                    date.setMonth(date.getMonth() + 6); // 6 months
+                    handleDateSelect(date);
+                  }}
+                >
+                  6 months
+                </ButtonPrimitive.Button>
+              </div>
+            </div>
           </TabsPrimitive.TabsContent>
           
-          <TabsPrimitive.TabsContent value="repeat" className="p-3 min-h-[40vh]">
+          <TabsPrimitive.TabsContent value="Repeat" className="p-3 min-h-[40vh]">
             <RepeatSettings
               value={task.repeats}
               onChange={(rrule) => {
@@ -162,7 +235,7 @@ export function DateTimeRepeatReminderPicker({
               }}
             />
           </TabsPrimitive.TabsContent>
-          <TabsPrimitive.TabsContent value="reminder" className="p-3 space-y-4 min-h-[40vh]">
+          <TabsPrimitive.TabsContent value="Reminders" className="p-3 space-y-4 min-h-[40vh]">
             <ReminderSettings value={task.notifications} onChange={(value: Notification[]) => {
               updateTask(task.id, { notifications: value})
             }} />
@@ -181,4 +254,4 @@ export function DateTimeRepeatReminderPicker({
     </DrawerContent>
     </Drawer>
   )
-} 
+}
