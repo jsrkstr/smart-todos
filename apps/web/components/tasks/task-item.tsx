@@ -32,7 +32,7 @@ interface TaskItemProps {
   onEdit?: () => void
   onDelete?: () => void
   onToggleCompletion: (taskId: string) => void
-  onOpenSidebar: (taskId: string) => void
+  onOpenDetails: (taskId: string) => void
   activePicker: { taskId: string; type: 'dateTime' | 'tag' } | null
   onSetActivePicker: (picker: { taskId: string; type: 'dateTime' | 'tag' } | null) => void
 }
@@ -44,7 +44,7 @@ export function TaskItem({
   onEdit,
   onDelete,
   onToggleCompletion,
-  onOpenSidebar,
+  onOpenDetails,
   activePicker,
   onSetActivePicker
 }: TaskItemProps) {
@@ -95,7 +95,7 @@ export function TaskItem({
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => {
       if (!showDetails) {
-        onOpenSidebar(task.id)
+        onOpenDetails(task.id)
       }
     },
     // preventDefaultTouchmoveEvent: true,
@@ -120,7 +120,12 @@ export function TaskItem({
 
   const handleTitleClick = (): void => {
     if (!isCompleted) {
-      setIsTitleEditing(true)
+      // setIsTitleEditing(true)
+      if (!showDetails && editedTitle.length > 3) {
+        onOpenDetails(task.id)
+      } else {
+        setIsTitleEditing(true)
+      }
     }
   }
 
@@ -226,7 +231,7 @@ export function TaskItem({
               {editedTitle || 'Add title...'}
             </div>
           )}
-          <div className={cn("flex flex-wrap gap-1 text-gray-400 text-sm", showDetails && 'mt-2 text-base')} style={{ minHeight: '1.25rem' }}>
+          <div className={cn("flex flex-wrap gap-1 text-gray-400 text-sm", showDetails && 'mt-2 text-base', !showDetails && 'hiddennn')} style={{ minHeight: '1.25rem' }}>
             <div className="flex items-center gap-1 -ml-2">
               {subtasks && subtasks.length > 0 && (
                 <div className="flex items-center gap-1 ml-2">
@@ -300,8 +305,8 @@ export function TaskItem({
           <ButtonPrimitive.Button
             variant="ghost"
             size="sm"
-            className="h-8 w-8 p-0 -mt-2"
-            onClick={() => onOpenSidebar(task.id)}
+            className="h-8 w-8 p-0 -mt-2 hidden"
+            onClick={() => onOpenDetails(task.id)}
           >
             <ChevronRight className='h-4 w-4 text-gray-400' />
           </ButtonPrimitive.Button>

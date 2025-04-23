@@ -9,7 +9,7 @@ import { TaskItem, TASK_ITEM_TYPE } from "./task-item"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Skeleton } from "../ui/skeleton"
 import { cn } from "@/lib/utils"
-import { Loader2, Play, PlusSquare, Sparkles } from "lucide-react"
+import { Loader2, Play, PlusSquare, Sparkles, Trash2 } from "lucide-react"
 import { Button } from "../ui/button"
 import { TaskForm } from "./task-form"
 import { useDrop } from "react-dnd"
@@ -76,7 +76,7 @@ function TaskGroupContainer({ group, children, onDrop }: {
 function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
   const router = useRouter()
   const searchParams = useSearchParams();
-  const { initialized: storeInitialized, loading, tasks, updateTask, addTask } = useTasks()
+  const { initialized: storeInitialized, loading, tasks, updateTask, addTask, deleteTask } = useTasks()
   const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
@@ -236,6 +236,10 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
     }
   }
 
+  const handleDelete = (id: string): void => {
+    deleteTask(id)
+  }
+
   const onOpenTaskDetails = (id: string) => {
     if (!showSidebar) return;
     router.push(`?task-id=${id}`);
@@ -334,20 +338,20 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
                           max: 100,
                           threshold: 50
                         }}
-                        left={<div className="flex gap-2 pl-2"><Button size="sm" variant="outline">Left 1</Button></div>}
+                        left={<div className="flex gap-2 pl-2"><Button size="sm" variant="destructive" onClick={() => handleDelete(task.id)}><Trash2 className="w-4 h-4" /></Button></div>}
                         right={<div className="flex flex-row-reverse gap-2 pr-2">
                           <Button
-                            variant="destructive"
+                            variant="secondary"
                             size="sm"
                           >
-                            <Play className="w-4 h-4" />
+                            <Play className="w-4 h-4 text-green-500" />
                           </Button>
                         </div>}
                       >
                         <TaskItem
                           task={task}
                           onToggleCompletion={toggleTaskCompletion}
-                          onOpenSidebar={(id) => onOpenTaskDetails(id)}
+                          onOpenDetails={(id) => onOpenTaskDetails(id)}
                           activePicker={activePicker}
                           onSetActivePicker={setActivePicker}
                           edit={editingTaskId === task.id}
@@ -369,6 +373,10 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
           :
           <div>
             <Skeleton className="h-10 w-[200px] mb-8" />
+            <Skeleton className="h-7 w-full mb-8" />
+            <Skeleton className="h-7 w-full mb-8" />
+            <Skeleton className="h-7 w-full mb-8" />
+            <Skeleton className="h-10 w-[200px] mb-8 mt-8" />
             <Skeleton className="h-7 w-full mb-8" />
             <Skeleton className="h-7 w-full mb-8" />
             <Skeleton className="h-7 w-full mb-8" />
