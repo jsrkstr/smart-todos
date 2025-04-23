@@ -9,7 +9,7 @@ import { TaskItem, TASK_ITEM_TYPE } from "./task-item"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Skeleton } from "../ui/skeleton"
 import { cn } from "@/lib/utils"
-import { Loader2, PlusSquare, Sparkles } from "lucide-react"
+import { Loader2, Play, PlusSquare, Sparkles } from "lucide-react"
 import { Button } from "../ui/button"
 import { TaskForm } from "./task-form"
 import { useDrop } from "react-dnd"
@@ -19,6 +19,7 @@ import ChatBox, { ChatBoxHandle } from "../chat/chat-box"
 import { useToast } from "@/hooks/use-toast"
 import { useChatMessages } from "@/hooks/use-chat-messages"
 import { useTaskStore } from "@/lib/store"
+import { SlidingItem } from "../ui/sliding-item"
 
 interface TaskGroup {
   title: string;
@@ -312,7 +313,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
                 group={group}
                 onDrop={handleDropTask}
               >
-                <div className="">
+                <div className="overflow-hidden">
                   <div className={cn('flex justify-between', group.tasks.length ? 'mb-3' : 'mb-2')}>
                     <h4 className={cn('text-l', !isSubtaskList && 'font-bold')}>
                       {group.title}
@@ -327,15 +328,31 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
                   </div>
                   <div className="space-y-2">
                     {group.tasks.map((task) => (
-                      <TaskItem
+                      <SlidingItem
                         key={task.id}
-                        task={task}
-                        onToggleCompletion={toggleTaskCompletion}
-                        onOpenSidebar={(id) => onOpenTaskDetails(id)}
-                        activePicker={activePicker}
-                        onSetActivePicker={setActivePicker}
-                        edit={editingTaskId === task.id}
-                      />
+                        options={{
+                          max: 100,
+                          threshold: 50
+                        }}
+                        left={<div className="flex gap-2 pl-2"><Button size="sm" variant="outline">Left 1</Button></div>}
+                        right={<div className="flex flex-row-reverse gap-2 pr-2">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                          >
+                            <Play className="w-4 h-4" />
+                          </Button>
+                        </div>}
+                      >
+                        <TaskItem
+                          task={task}
+                          onToggleCompletion={toggleTaskCompletion}
+                          onOpenSidebar={(id) => onOpenTaskDetails(id)}
+                          activePicker={activePicker}
+                          onSetActivePicker={setActivePicker}
+                          edit={editingTaskId === task.id}
+                        />
+                      </SlidingItem>
                     ))}
                   </div>
                   <div className="extra-space text-gray-400 mt-2 hidden h-2" onClick={() => addNewTask(group)}>
