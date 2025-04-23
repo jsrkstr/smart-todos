@@ -9,55 +9,26 @@ import { ChevronUpIcon, ChevronDownIcon, XIcon, PlayIcon, ListIcon, ChevronsRigh
 import { Badge } from "@/components/ui/badge"
 import { useTasks } from "@/hooks/use-tasks"
 
-export type TaskMode = "single" | "multi" | "free"
-
 export interface TaskSelectionProps {
-  selectedTaskId: string | null
-  onTaskSelected: (id: string | null) => void
   taskQueue: string[]
   onTaskQueueChange: (queue: string[]) => void
-  taskMode: TaskMode
-  onTaskModeChange: (mode: TaskMode) => void
 }
 
 export function TaskSelection({
-  selectedTaskId,
-  onTaskSelected,
   taskQueue,
   onTaskQueueChange,
-  taskMode,
-  onTaskModeChange,
 }: TaskSelectionProps) {
   const { tasks } = useTasks()
   
-  // Handle selecting a task
-  const handleTaskSelection = (taskId: string) => {
-    if (taskMode === "single") {
-      // In single mode, just set the selected task
-      onTaskSelected(taskId)
-    } else if (taskMode === "multi") {
-      // In multi mode, add to queue if not already there
-      if (!taskQueue.includes(taskId)) {
-        onTaskQueueChange([...taskQueue, taskId])
-      }
+  // Toggle task selection in queue
+  const handleTaskToggle = (taskId: string) => {
+    if (taskQueue.includes(taskId)) {
+      onTaskQueueChange(taskQueue.filter(id => id !== taskId))
+    } else {
+      onTaskQueueChange([...taskQueue, taskId])
     }
   }
-  
-  // Handle changing modes
-  const handleModeChange = (newMode: TaskMode) => {
-    onTaskModeChange(newMode)
-    
-    // Reset selections when changing modes
-    if (newMode === "single") {
-      onTaskQueueChange([])
-    } else if (newMode === "multi") {
-      onTaskSelected(null)
-    } else if (newMode === "free") {
-      onTaskSelected(null)
-      onTaskQueueChange([])
-    }
-  }
-  
+
   // Move task up or down in queue
   const moveTaskInQueue = (taskId: string, direction: "up" | "down") => {
     const currentIndex = taskQueue.indexOf(taskId)
@@ -111,150 +82,115 @@ export function TaskSelection({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs 
-          value={taskMode} 
-          onValueChange={(value) => handleModeChange(value as TaskMode)}
-          className="w-full mb-4"
-        >
-          <TabsList className="grid grid-cols-3">
-            <TabsTrigger value="single" className="flex items-center gap-1">
-              <PlayIcon className="h-3.5 w-3.5" />
-              <span>Single Task</span>
-            </TabsTrigger>
-            <TabsTrigger value="multi" className="flex items-center gap-1">
-              <ListIcon className="h-3.5 w-3.5" />
-              <span>Multi Task</span>
-            </TabsTrigger>
-            <TabsTrigger value="free" className="flex items-center gap-1">
-              <ChevronsRightIcon className="h-3.5 w-3.5" />
-              <span>Free</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {taskMode !== "free" && (
-          <>
-            <div className="text-sm font-medium mb-2">
-              {taskMode === "single" ? "Select a task to focus on:" : "Add tasks to your queue:"}
-            </div>
-            
-            <ScrollArea className="h-52 rounded-md border p-2 mb-4">
-              <div className="space-y-2 pr-3">
-                {tasks.length === 0 ? (
-                  <div className="p-2 text-sm text-muted-foreground text-center">
-                    No uncompleted tasks found
-                  </div>
-                ) : (
-                  tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`p-2 rounded-md cursor-pointer flex items-center justify-between ${
-                        (taskMode === "single" && selectedTaskId === task.id) ||
-                        (taskMode === "multi" && taskQueue.includes(task.id))
-                          ? "bg-primary/10 border border-primary/20"
-                          : "hover:bg-muted"
-                      }`}
-                      onClick={() => handleTaskSelection(task.id)}
-                    >
-                      <div className="max-w-[80%]">
-                        <div className="text-sm font-medium truncate">{task.title}</div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                          <TimerIcon className="h-3 w-3" />
-                          {task.estimatedPomodoros || 1} pomodoro{task.estimatedPomodoros !== 1 ? "s" : ""}
-                        </div>
-                      </div>
-                      {task.priority && (
-                        <Badge 
-                          variant={
-                            task.priority === "high" 
-                              ? "destructive" 
-                              : task.priority === "medium" 
-                              ? "default" 
-                              : "secondary"
-                          }
-                          className="text-xs"
-                        >
-                          {task.priority}
-                        </Badge>
-                      )}
+        <div className="text-sm font-medium mb-2">
+          Add or remove tasks from your queue:
+        </div>
+        <ScrollArea className="h-52 rounded-md border p-2 mb-4">
+          <div className="space-y-2 pr-3">
+            {tasks.length === 0 ? (
+              <div className="p-2 text-sm text-muted-foreground text-center">
+                No uncompleted tasks found
+              </div>
+            ) : (
+              tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className={`p-2 rounded-md cursor-pointer flex items-center justify-between ${
+                    taskQueue.includes(task.id)
+                      ? "bg-primary/10 border border-primary/20"
+                      : "hover:bg-muted"
+                  }`}
+                  onClick={() => handleTaskToggle(task.id)}
+                >
+                  <div className="max-w-[80%]">
+                    <div className="text-sm font-medium truncate">{task.title}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <TimerIcon className="h-3 w-3" />
+                      {task.estimatedPomodoros || 1} pomodoro{task.estimatedPomodoros !== 1 ? "s" : ""}
                     </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-            
-            {/* Task Queue for Multi Mode */}
-            {taskMode === "multi" && taskQueue.length > 0 && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-sm font-medium mb-2">
-                  <span>Task Queue:</span>
-                  <span className="text-xs text-muted-foreground">
-                    Est. time: {formatEstimatedTime(getTotalEstimatedTime())}
-                  </span>
+                  </div>
+                  {task.priority && (
+                    <Badge 
+                      variant={
+                        task.priority === "high" 
+                          ? "destructive" 
+                          : task.priority === "medium" 
+                          ? "default" 
+                          : "secondary"
+                      }
+                      className="text-xs"
+                    >
+                      {task.priority}
+                    </Badge>
+                  )}
                 </div>
-                <div className="space-y-2 border rounded-md p-2">
-                  {taskQueue.map((taskId, index) => {
-                    const task = tasks.find(t => t.id === taskId)
-                    if (!task) return null
-                    
-                    return (
-                      <div key={taskId} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
-                        <div className="flex items-center gap-2">
-                          <div className="text-muted-foreground text-xs font-medium w-5 text-center">
-                            {index + 1}
-                          </div>
-                          <div className="text-sm">{task.title}</div>
-                        </div>
-                        <div className="flex items-center">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              moveTaskInQueue(taskId, "up")
-                            }}
-                            disabled={index === 0}
-                          >
-                            <ChevronUpIcon className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              moveTaskInQueue(taskId, "down")
-                            }}
-                            disabled={index === taskQueue.length - 1}
-                          >
-                            <ChevronDownIcon className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              removeFromQueue(taskId)
-                            }}
-                          >
-                            <XIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+              ))
             )}
-          </>
-        )}
-        
-        {taskMode === "free" && (
-          <div className="p-4 text-center">
-            <p className="mb-2 text-sm">Free mode lets you use the timer without associating it with specific tasks.</p>
-            <p className="text-muted-foreground text-sm">Perfect for quick focus sessions or when working on activities outside your task list.</p>
+          </div>
+        </ScrollArea>
+            
+            {/* Task Queue */}
+            {taskQueue.length > 0 && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between text-sm font-medium mb-2">
+              <span>Task Queue:</span>
+              <span className="text-xs text-muted-foreground">
+                Est. time: {formatEstimatedTime(getTotalEstimatedTime())}
+              </span>
+            </div>
+            <div className="space-y-2 border rounded-md p-2">
+              {taskQueue.map((taskId, index) => {
+                const task = tasks.find(t => t.id === taskId)
+                if (!task) return null
+                return (
+                  <div key={taskId} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                    <div className="flex items-center gap-2">
+                      <div className="text-muted-foreground text-xs font-medium w-5 text-center">
+                        {index + 1}
+                      </div>
+                      <div className="text-sm">{task.title}</div>
+                    </div>
+                    <div className="flex items-center">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          moveTaskInQueue(taskId, "up")
+                        }}
+                        disabled={index === 0}
+                      >
+                        <ChevronUpIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          moveTaskInQueue(taskId, "down")
+                        }}
+                        disabled={index === taskQueue.length - 1}
+                      >
+                        <ChevronDownIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeFromQueue(taskId)
+                        }}
+                      >
+                        <XIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
       </CardContent>
