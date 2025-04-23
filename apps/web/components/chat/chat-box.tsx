@@ -56,7 +56,8 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
         .map((part) => part.toolInvocation.toolName)
       
       console.log('onfinish', message, toolNames);
-      if (toolNames?.includes('update_task') || toolNames?.includes('update_tasks_many') || toolNames?.includes('create_subtasks')) {
+      const taskModifyingTools = ['update_task', 'update_tasks_many', 'create_subtasks', 'create_task'];
+      if (toolNames?.some(tool => taskModifyingTools.includes(tool))) {
         fetchTasks(true);
         fetchTags(true);
       }

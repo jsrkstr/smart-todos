@@ -131,7 +131,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
         showDetails
       />
       <div className="py-4">
-        {!isSubtask && task.stage === 'Planning' && (
+        {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'NotStarted' && (
           <Button
             variant="outline"
             onClick={handleRefineTask}
@@ -195,7 +195,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
             onLoadingChange={(loading) => setChatLoading(loading)}
             slotContent={
               <div className="flex justify-center">
-                {!isSubtask && task.stage === 'Planning' && !isRefining && (
+                {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'NotStarted' && !isRefining && (
                   <Button
                     variant="outline"
                     size="sm"
