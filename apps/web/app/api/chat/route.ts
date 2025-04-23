@@ -486,7 +486,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
 
     // Stream the response
     const result = await streamText({
-      model: openai("gpt-4o"),
+      model: openai("gpt-4o"), //openai.responses('gpt-4o-mini')
       system: systemPrompt,
       messages,
       tools,

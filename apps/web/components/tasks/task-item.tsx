@@ -20,8 +20,7 @@ import * as ButtonPrimitive from "@/components/ui/button"
 import * as ProgressPrimitive from "@/components/ui/progress"
 import * as BadgePrimitive from "@/components/ui/badge"
 import { format } from "date-fns"
-import ReactMarkdown from "react-markdown"
-import rehypeRaw from "rehype-raw"
+import { Markdown } from "@/components/ui/markdown"
 
 // Define drag item type constant
 export const TASK_ITEM_TYPE = 'TASK_ITEM'
@@ -323,13 +322,7 @@ export function TaskItem({
           /> :
           <div className="text-gray-500"
             onClick={handleDescriptionClick}>
-            { !!editedDescription ? <ReactMarkdown rehypePlugins={[rehypeRaw]} components={{
-                a: ({ node, href, children, ...props }) => (
-                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600" {...props}>
-                    {children}
-                  </a>
-                ),
-              }}>{editedDescription}</ReactMarkdown> : <span className="text-gray-400">Add description...</span> }
+            { !!editedDescription ? <Markdown content={editedDescription} /> : <span className="text-gray-400">Add description...</span> }
           </div>
           }
         </div>

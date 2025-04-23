@@ -3,7 +3,7 @@
 import { useRef, useEffect, useImperativeHandle, forwardRef, useState, useCallback } from "react"
 import { Send } from "lucide-react"
 import { useChat } from "@ai-sdk/react"
-import ReactMarkdown from "react-markdown"
+import { Markdown } from "@/components/ui/markdown"
 import { Input } from "../ui/input"
 import { Avatar } from "../ui/avatar"
 import { Button } from "../ui/button"
@@ -159,9 +159,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
                 {message.role === "user" ? (
                   message.content
                 ) : (
-                  <ReactMarkdown>
-                    {message.content}
-                  </ReactMarkdown>
+                  <Markdown content={message.content} />
                 )}
               </div>
             </div>

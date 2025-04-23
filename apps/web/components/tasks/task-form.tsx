@@ -175,7 +175,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
       </div>
       <Drawer open={openChat} onOpenChange={onOpenChatChange} modal={true} dismissible={!chatLoading}>
         <DrawerTrigger asChild>
-          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white z-10">
+          <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-white z-10">
             <Button
               variant="secondary"
               className="rounded-lg h-10 px-8"
