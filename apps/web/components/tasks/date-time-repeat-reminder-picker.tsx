@@ -39,8 +39,12 @@ export function DateTimeRepeatReminderPicker({
   const [deadline, setDeadline] = React.useState<Date | undefined>(
     task.deadline ? new Date(task.deadline) : undefined
   )
-  const [taskDate, setTaskDate] = React.useState<Date>(new Date(task.date))
+  const [taskDate, setTaskDate] = React.useState<Date | undefined>(task.date ? new Date(task.date) : undefined)
+  const [dateMonth, setDateMonth] = React.useState<Date>(taskDate || new Date())
+  const [deadlineMonth, setDeadlineMonth] = React.useState<Date>(deadline || new Date())
   const [selectedTab, setSelectedTab] = React.useState<string>('date')
+
+  
 
   React.useEffect(() => {
     // Reset date/time when task changes or picker opens
@@ -57,7 +61,7 @@ export function DateTimeRepeatReminderPicker({
   const handleTaskDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
       // Preserve the time from the current taskDate
-      const currentTaskDate = new Date(taskDate)
+      const currentTaskDate = taskDate ? new Date(taskDate) : new Date();
       selectedDate.setHours(currentTaskDate.getHours())
       selectedDate.setMinutes(currentTaskDate.getMinutes())
       
@@ -70,7 +74,7 @@ export function DateTimeRepeatReminderPicker({
     const timeValue = event.target.value
     if (timeValue) {
       const [hours, minutes] = timeValue.split(':').map(Number)
-      const newDate = new Date(taskDate)
+      const newDate = taskDate ? new Date(taskDate) : new Date();
       newDate.setHours(hours)
       newDate.setMinutes(minutes)
       
@@ -81,23 +85,18 @@ export function DateTimeRepeatReminderPicker({
 
   const handleClear = () => {
     setDeadline(undefined)
-    // We shouldn't clear the task date completely, but reset to default time (start of day)
-    const defaultDate = new Date(taskDate)
-    defaultDate.setHours(0)
-    defaultDate.setMinutes(0)
-    defaultDate.setSeconds(0)
-    defaultDate.setMilliseconds(0)
-    
-    setTaskDate(defaultDate)
+    setTaskDate(undefined)
     updateTask(task.id, { 
       deadline: undefined,
-      date: defaultDate.toISOString()
+      date: undefined,
+      repeats: undefined,
     })
     onOpenChange(false)
   }
 
   // Format the time value for the time input field
   const getTimeString = (date: Date) => {
+    if (!date) return '00:00';
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
   }
 
@@ -130,6 +129,8 @@ export function DateTimeRepeatReminderPicker({
                   mode="single"
                   selected={taskDate}
                   onSelect={handleTaskDateSelect}
+                  month={dateMonth}
+                  onMonthChange={setDateMonth}
                   initialFocus
                 />
               </div>
@@ -150,6 +151,8 @@ export function DateTimeRepeatReminderPicker({
               mode="single"
               selected={deadline}
               onSelect={handleDateSelect}
+              month={deadlineMonth}
+              onMonthChange={setDeadlineMonth}
               initialFocus
             />
             <div className="mt-4">
