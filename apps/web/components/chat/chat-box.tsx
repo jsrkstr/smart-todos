@@ -12,6 +12,7 @@ import { ChatMessage } from "@/types/chat-message"
 import { ChatRequestOptions, CreateMessage, Message, tool, UIMessage } from "ai"
 import { useTaskStore } from "@/lib/store"
 import { useTagStore } from "@/lib/store/useTagStore"
+import { Textarea } from "../ui/textarea"
 
 // Define the imperative handle type
 export interface ChatBoxHandle {
@@ -28,7 +29,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
   const { messages: chatMessages, loading: messagesLoading, loadMessages } = useChatMessages(taskId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messageAreaRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const { fetchTasks } = useTaskStore();
   const { fetchTags } = useTagStore();
 
@@ -135,7 +136,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
   return (
     <div className="flex flex-col bg-gray-100 mmmax-h-[50vh]">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll-area max-h-[50vh]" ref={messageAreaRef}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll-area max-h-[50vh] min-h-[40vh]" ref={messageAreaRef}>
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-400">
             <p>Send a message to start chatting with the bot</p>
@@ -203,13 +204,14 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
       <div className="min-h-[65px] mobile-box">
         <div className="bg-white p-3 border-t mobile-input">
           <form onSubmit={handleSubmit} className="flex items-center space-x-2">
-            <Input
+            <Textarea
               ref={inputRef}
               value={input}
               onChange={handleInputChange}
               placeholder="Type a message..."
               type="text"
-              className="flex-1 rounded-full border-gray-300 focus:border-primary focus:ring-primary"
+              className="flex-1 rounded-xl border-gray-300 focus:border-primary focus:ring-primary"
+              rows={1}
             />
             <Button
               type="submit"
