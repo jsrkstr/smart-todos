@@ -1,6 +1,6 @@
 "use client"
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PomodoroTimer } from "@/components/pomodoro/pomodoro-timer";
 import { useEffect } from "react";
 
@@ -25,6 +25,7 @@ export function PomodoroDialog({ open, onOpenChange, selectedTaskId }: PomodoroD
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md w-[35vh]">
+        <DialogDescription className="sr-only">Pomodoro Timer</DialogDescription>
         <DialogHeader>
           <DialogTitle className="sr-only">Pomodoro Timer</DialogTitle>
         </DialogHeader>

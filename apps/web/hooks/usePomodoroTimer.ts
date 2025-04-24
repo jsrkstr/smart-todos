@@ -160,7 +160,6 @@ export function usePomodoroTimer(): PomodoroHookReturn {
     if (!isActive) {
       setSelectedTaskId(taskId)
       setTaskMode("single")
-      toggleTimer()
     }
     setIsShown(true);
   }, [toggleTimer, setIsShown])
