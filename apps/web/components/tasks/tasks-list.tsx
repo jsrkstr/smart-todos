@@ -11,6 +11,7 @@ import { Skeleton } from "../ui/skeleton"
 import { cn } from "@/lib/utils"
 import { Loader2, Play, PlusSquare, Sparkles, Trash2 } from "lucide-react"
 import { Button } from "../ui/button"
+import { PomodoroDialog } from "./pomodoro-dialog"
 import { TaskForm } from "./task-form"
 import { useDrop } from "react-dnd"
 import { DndContext } from "./dnd-context"
@@ -79,6 +80,8 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
   const { initialized: storeInitialized, loading, tasks, updateTask, addTask, deleteTask } = useTasks()
   const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [pomodoroDialogOpen, setPomodoroDialogOpen] = useState(false)
+  const [pomodoroTaskId, setPomodoroTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [openChat, setOpenChat] = useState<boolean>(false)
   const [isPrioritizing, setIsPrioritizing] = useState<boolean>(false)
@@ -343,6 +346,10 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
                           <Button
                             variant="secondary"
                             size="sm"
+                            onClick={() => {
+                              setPomodoroTaskId(task.id);
+                              setPomodoroDialogOpen(true);
+                            }}
                           >
                             <Play className="w-4 h-4 text-green-500" />
                           </Button>
@@ -423,6 +430,12 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
           {selectedTaskId && <TaskForm taskId={selectedTaskId} />}
         </SheetContent>
       </Sheet>
+
+      <PomodoroDialog
+        open={pomodoroDialogOpen}
+        onOpenChange={setPomodoroDialogOpen}
+        selectedTaskId={pomodoroTaskId}
+      />
     </div>
   )
 }

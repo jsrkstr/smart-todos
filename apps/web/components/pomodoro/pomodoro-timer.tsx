@@ -44,6 +44,15 @@ export function PomodoroTimer() {
     taskMode,
     setTaskMode
   } = usePomodoroTimer()
+
+  // Sync selectedTaskId from localStorage (for PomodoroDialog integration)
+  useEffect(() => {
+    const storedTaskId = typeof window !== 'undefined' ? localStorage.getItem("pomodoroSelectedTaskId") : null;
+    if (storedTaskId) {
+      setSelectedTaskId(storedTaskId);
+      localStorage.removeItem("pomodoroSelectedTaskId");
+    }
+  }, [setSelectedTaskId]);
   
   const { settings, updateSettings } = useSettings()
   const { tasks } = useTasks() 
@@ -82,12 +91,10 @@ export function PomodoroTimer() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>
-              <div className="flex items-center gap-2">
-                <Timer className="w-5 h-5" />
-                Pomodoro Timer
-              </div>
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Timer className="w-5 h-5" />
+              Pomodoro Timer
+            </div>
             <div className="flex items-center gap-2">
               <Select 
                 value={mode} 
@@ -104,9 +111,6 @@ export function PomodoroTimer() {
               </Select>
             </div>
           </div>
-          <CardDescription>
-            Timer to help you focus and take breaks
-          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">
           <div className="flex flex-col items-center">
@@ -181,14 +185,14 @@ export function PomodoroTimer() {
       </Card>
 
       {/* Task Selection Component */}
-      <TaskSelection 
+      {/* <TaskSelection 
         selectedTaskId={selectedTaskId}
         onTaskSelected={setSelectedTaskId}
         taskQueue={taskQueue}
         onTaskQueueChange={setTaskQueue}
         taskMode={taskMode}
         onTaskModeChange={setTaskMode}
-      />
+      /> */}
     </div>
   )
 }
