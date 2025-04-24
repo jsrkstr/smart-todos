@@ -74,19 +74,20 @@ function TaskGroupContainer({ group, children, onDrop }: {
   );
 }
 
-function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
+interface TasksListPropsWithPomodoro extends TasksListProps {
+  onOpenPomodoro?: (taskId: string | null) => void;
+}
+
+function TasksListContent({ parentId, showSidebar = true, onOpenPomodoro }: TasksListPropsWithPomodoro) {
   const router = useRouter()
   const searchParams = useSearchParams();
   const { initialized: storeInitialized, loading, tasks, updateTask, addTask, deleteTask } = useTasks()
   const [activePicker, setActivePicker] = useState<{ taskId: string; type: 'dateTime' | 'tag' } | null>(null)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
-  const [pomodoroDialogOpen, setPomodoroDialogOpen] = useState(false)
-  const [pomodoroTaskId, setPomodoroTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [openChat, setOpenChat] = useState<boolean>(false)
   const [isPrioritizing, setIsPrioritizing] = useState<boolean>(false)
   const { toast } = useToast()
-  const { loadMessages } = useChatMessages()
   const { fetchTasks } = useTaskStore()
   const isSubtaskList = !!parentId;
   const chatboxRef = useRef<ChatBoxHandle>(null);
@@ -346,10 +347,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
                           <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => {
-                              setPomodoroTaskId(task.id);
-                              setPomodoroDialogOpen(true);
-                            }}
+                            onClick={() => onOpenPomodoro?.(task.id)}
                           >
                             <Play className="w-4 h-4 text-green-500" />
                           </Button>
@@ -431,19 +429,14 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
         </SheetContent>
       </Sheet>
 
-      <PomodoroDialog
-        open={pomodoroDialogOpen}
-        onOpenChange={setPomodoroDialogOpen}
-        selectedTaskId={pomodoroTaskId}
-      />
     </div>
   )
 }
 
-export function TasksList(props: TasksListProps) {
+export function TasksList(props: TasksListProps & { onOpenPomodoro?: (taskId: string | null) => void }) {
   return (
     <DndContext>
-      <TasksListContent {...props} />
+      <TasksListContent {...props} onOpenPomodoro={props.onOpenPomodoro} />
     </DndContext>
   )
 }

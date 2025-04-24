@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Menu, Moon, Search, Sun, LogOut, User, Settings } from "lucide-react"
+import { Bell, Menu, Moon, Search, Sun, LogOut, User, Settings, Timer } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useNotifications } from "@/hooks/use-notifications"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/hooks/use-auth"
 
 interface Notification {
@@ -22,12 +22,31 @@ interface Notification {
   read: boolean
 }
 
+import { PomodoroDialog } from "@/components/tasks/pomodoro-dialog"
+import { usePomodoroTimer } from "@/hooks/usePomodoroTimer"
+
 interface HeaderProps {
   onMenuClick: () => void
   currentPage?: string
+  // Optional: callback for Pomodoro dialog open from tasks-list
+  children?: React.ReactNode
 }
 
-export function Header({ onMenuClick, currentPage = "Smart Todos" }: HeaderProps) {
+export function Header({ onMenuClick, currentPage = "Smart Todos", children }: HeaderProps) {
+  // Pomodoro dialog state
+  const [pomodoroDialogOpen, setPomodoroDialogOpen] = useState(false)
+  const [pomodoroTaskId, setPomodoroTaskId] = useState<string | null>(null)
+  const {
+    isActive: pomodoroActive,
+    timeLeft: pomodoroTimeLeft
+  } = usePomodoroTimer()
+
+  // Callback to be passed to children (tasks-list)
+  const handleOpenPomodoro = useCallback((taskId: string | null = null) => {
+    setPomodoroTaskId(taskId)
+    setPomodoroDialogOpen(true)
+  }, [])
+
   const { setTheme } = useTheme()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -93,6 +112,21 @@ export function Header({ onMenuClick, currentPage = "Smart Todos" }: HeaderProps
           <span className="text-primary text-xl">{currentPage}</span>
         </Link>
         <div className="ml-auto flex items-center gap-2 pr-4">
+          {/* Pomodoro Timer Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            onClick={() => setPomodoroDialogOpen(true)}
+          >
+            <Timer className="h-5 w-5" />
+            {pomodoroActive && (
+              <span className="text-xs font-mono text-primary mr-2">
+                {`${Math.floor(pomodoroTimeLeft / 60).toString().padStart(2, '0')}:${(pomodoroTimeLeft % 60).toString().padStart(2, '0')}`}
+              </span>
+            )}
+            <span className="sr-only">Pomodoro Timer</span>
+          </Button>
           <form className="hidden md:flex relative w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input type="search" placeholder="Search tasks..." className="w-full pl-8" />
@@ -189,6 +223,16 @@ export function Header({ onMenuClick, currentPage = "Smart Todos" }: HeaderProps
           </DropdownMenu>
         </div>
       </div>
+      {/* Pomodoro Dialog rendered in header */}
+      <PomodoroDialog
+        open={pomodoroDialogOpen}
+        onOpenChange={setPomodoroDialogOpen}
+        selectedTaskId={pomodoroTaskId}
+      />
+      {/* Render children with injected openPomodoro callback if any */}
+      {children && typeof children === 'function'
+        ? children({ openPomodoro: handleOpenPomodoro })
+        : children}
     </header>
   )
 }
