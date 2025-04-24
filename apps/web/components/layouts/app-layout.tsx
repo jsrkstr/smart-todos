@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/ui/sidebar"
 import { useState } from "react"
 import { usePathname } from "next/navigation"
 import { StoreInitializer } from "@/lib/store/store-initializer"
+import { PomodoroTimerProvider } from "../pomodoro/pomodoro-context"
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -36,8 +37,10 @@ export function AppLayout({ children }: AppLayoutProps) {
       <StoreInitializer />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-col flex-1 overflow-y-auto">
-        <Header onMenuClick={() => setSidebarOpen(true)} currentPage={currentPage} />
-        <main className="flex-1 pb-8 px-6 lg:px-8">{children}</main>
+        <PomodoroTimerProvider>
+          <Header onMenuClick={() => setSidebarOpen(true)} currentPage={currentPage} />
+          <main className="flex-1 pb-8 px-6 lg:px-8">{children}</main>
+        </PomodoroTimerProvider>
       </div>
     </div>
   )

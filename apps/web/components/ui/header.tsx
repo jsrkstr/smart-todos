@@ -23,7 +23,7 @@ interface Notification {
 }
 
 import { PomodoroDialog } from "@/components/tasks/pomodoro-dialog"
-import { usePomodoroTimer } from "@/hooks/usePomodoroTimer"
+import { useTimer } from "@/components/pomodoro/pomodoro-context"
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -34,18 +34,14 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, currentPage = "Smart Todos", children }: HeaderProps) {
   // Pomodoro dialog state
-  const [pomodoroDialogOpen, setPomodoroDialogOpen] = useState(false)
+  // const [pomodoroDialogOpen, setPomodoroDialogOpen] = useState(false)
   const [pomodoroTaskId, setPomodoroTaskId] = useState<string | null>(null)
   const {
     isActive: pomodoroActive,
+    isShown: pomodoroDialogOpen,
+    setIsShown: setPomodoroDialogOpen,
     timeLeft: pomodoroTimeLeft
-  } = usePomodoroTimer()
-
-  // Callback to be passed to children (tasks-list)
-  const handleOpenPomodoro = useCallback((taskId: string | null = null) => {
-    setPomodoroTaskId(taskId)
-    setPomodoroDialogOpen(true)
-  }, [])
+  } = useTimer()
 
   const { setTheme } = useTheme()
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -223,16 +219,11 @@ export function Header({ onMenuClick, currentPage = "Smart Todos", children }: H
           </DropdownMenu>
         </div>
       </div>
-      {/* Pomodoro Dialog rendered in header */}
       <PomodoroDialog
         open={pomodoroDialogOpen}
         onOpenChange={setPomodoroDialogOpen}
         selectedTaskId={pomodoroTaskId}
       />
-      {/* Render children with injected openPomodoro callback if any */}
-      {children && typeof children === 'function'
-        ? children({ openPomodoro: handleOpenPomodoro })
-        : children}
     </header>
   )
 }

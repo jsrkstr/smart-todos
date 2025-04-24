@@ -44,8 +44,7 @@ export function usePomodoroSync() {
   }
   
   // Store state in session storage for cross-tab sync and serve as a cache
-  const [syncState, setSyncState] = useSessionStorage<PomodoroState>(
-    "pomodoro-state", 
+  const [syncState, setSyncState] = useState<PomodoroState>(
     defaultState
   )
 
@@ -155,10 +154,13 @@ export function usePomodoroSync() {
         
         // Update local state with the ID from server if successful
         if (result.success) {
-          setSyncState(prev => ({
-            ...prev,
-            id: result.id
-          }))
+          setSyncState(prev => {
+            console.log('prev', prev);
+            return ({
+              ...prev,
+              id: result.id
+            })
+          })
         }
         
         return true

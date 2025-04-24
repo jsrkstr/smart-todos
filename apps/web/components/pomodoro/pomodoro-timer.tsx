@@ -1,20 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Slider } from "@/components/ui/slider"
-import { Toggle } from "@/components/ui/toggle"
 import { CircleProgress } from "@/components/ui/circle-progress"
-import { usePomodoroTimer } from "@/hooks/usePomodoroTimer"
 import { TaskSelection } from "@/components/pomodoro/task-selection"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Volume2, VolumeX, Pause, Play, Square, Timer } from "lucide-react"
@@ -27,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTasks } from "@/hooks/use-tasks"
+import { useTimer } from "./pomodoro-context"
 
 export function PomodoroTimer() {
   const {
@@ -43,7 +32,7 @@ export function PomodoroTimer() {
     setTaskQueue,
     taskMode,
     setTaskMode
-  } = usePomodoroTimer()
+  } = useTimer()
 
   // Sync selectedTaskId from localStorage (for PomodoroDialog integration)
   useEffect(() => {

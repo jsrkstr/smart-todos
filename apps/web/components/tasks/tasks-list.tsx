@@ -11,7 +11,6 @@ import { Skeleton } from "../ui/skeleton"
 import { cn } from "@/lib/utils"
 import { Loader2, Play, PlusSquare, Sparkles, Trash2 } from "lucide-react"
 import { Button } from "../ui/button"
-import { PomodoroDialog } from "./pomodoro-dialog"
 import { TaskForm } from "./task-form"
 import { useDrop } from "react-dnd"
 import { DndContext } from "./dnd-context"
@@ -21,6 +20,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useChatMessages } from "@/hooks/use-chat-messages"
 import { useTaskStore } from "@/lib/store"
 import { SlidingItem } from "../ui/sliding-item"
+import { useTimer } from "../pomodoro/pomodoro-context"
 
 interface TaskGroup {
   title: string;
@@ -74,11 +74,7 @@ function TaskGroupContainer({ group, children, onDrop }: {
   );
 }
 
-interface TasksListPropsWithPomodoro extends TasksListProps {
-  onOpenPomodoro?: (taskId: string | null) => void;
-}
-
-function TasksListContent({ parentId, showSidebar = true, onOpenPomodoro }: TasksListPropsWithPomodoro) {
+function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
   const router = useRouter()
   const searchParams = useSearchParams();
   const { initialized: storeInitialized, loading, tasks, updateTask, addTask, deleteTask } = useTasks()
@@ -91,6 +87,7 @@ function TasksListContent({ parentId, showSidebar = true, onOpenPomodoro }: Task
   const { fetchTasks } = useTaskStore()
   const isSubtaskList = !!parentId;
   const chatboxRef = useRef<ChatBoxHandle>(null);
+  const { startTimer } = useTimer()
 
   // Filter tasks based on parentId
   const filteredTasks = parentId
@@ -347,7 +344,7 @@ function TasksListContent({ parentId, showSidebar = true, onOpenPomodoro }: Task
                           <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => onOpenPomodoro?.(task.id)}
+                            onClick={() => startTimer(task.id)}
                           >
                             <Play className="w-4 h-4 text-green-500" />
                           </Button>
@@ -433,10 +430,10 @@ function TasksListContent({ parentId, showSidebar = true, onOpenPomodoro }: Task
   )
 }
 
-export function TasksList(props: TasksListProps & { onOpenPomodoro?: (taskId: string | null) => void }) {
+export function TasksList(props: TasksListProps) {
   return (
     <DndContext>
-      <TasksListContent {...props} onOpenPomodoro={props.onOpenPomodoro} />
+      <TasksListContent {...props} />
     </DndContext>
   )
 }

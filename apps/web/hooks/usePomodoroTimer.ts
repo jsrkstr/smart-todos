@@ -18,7 +18,10 @@ interface PomodoroHookReturn {
   setMode: (mode: TimerMode) => void;
   timeLeft: number;
   isActive: boolean;
+  isShown: boolean;
+  setIsShown: (isShown: boolean) => void;
   toggleTimer: () => void;
+  startTimer: (taskId: string) => void;
   resetTimer: () => void;
   pomodorosCompleted: number;
   
@@ -34,6 +37,7 @@ interface PomodoroHookReturn {
 export function usePomodoroTimer(): PomodoroHookReturn {
   const { settings } = useSettings()
   const { sendNotification } = useNotifications()
+  const [isShown, setIsShown] = useState<boolean>(false);
   const { 
     syncState, 
     startPomodoro, 
@@ -152,6 +156,15 @@ export function usePomodoroTimer(): PomodoroHookReturn {
     }
   }, [isActive, mode, selectedTaskId, taskQueue, taskMode, startPomodoro, stopPomodoro])
 
+  const startTimer = useCallback((taskId: string) => {
+    if (!isActive) {
+      setSelectedTaskId(taskId)
+      setTaskMode("single")
+      toggleTimer()
+    }
+    setIsShown(true);
+  }, [toggleTimer, setIsShown])
+
   // Effect to update timeLeft every second if active
   useEffect(() => {
     if (!isActive) return;
@@ -168,6 +181,7 @@ export function usePomodoroTimer(): PomodoroHookReturn {
     timeLeft,
     isActive,
     toggleTimer,
+    startTimer,
     resetTimer: (): void => {
       if (isActive) {
         stopPomodoro("cancelled").then(() => {
@@ -197,7 +211,9 @@ export function usePomodoroTimer(): PomodoroHookReturn {
     taskQueue,
     setTaskQueue,
     taskMode,
-    setTaskMode
+    setTaskMode,
+    isShown,
+    setIsShown,
   }
 }
 
