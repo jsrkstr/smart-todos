@@ -31,22 +31,6 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
       })
     }
 
-    // Calculate remaining time
-    const startTime = new Date(activePomodoro.startTime)
-    const now = new Date()
-    const elapsedSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000)
-    
-    // Parse settings if available
-    const settings = activePomodoro.settings as Record<string, any> || {}
-    const duration = activePomodoro.type === "focus" 
-      ? (settings.pomodoroDuration || 25) * 60
-      : activePomodoro.type === "shortBreak"
-      ? (settings.shortBreakDuration || 5) * 60
-      : (settings.longBreakDuration || 15) * 60
-    
-    // Calculate remaining time (don't go below 0)
-    const remainingTime = Math.max(0, duration - elapsedSeconds)
-    
     // Format task for response
     const task = activePomodoro.task ? {
       id: activePomodoro.task.id,
@@ -61,7 +45,6 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
       startTime: activePomodoro.startTime,
       endTime: activePomodoro.endTime,
       status: activePomodoro.status,
-      remainingTime,
       task,
       settings: activePomodoro.settings,
     })

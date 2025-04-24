@@ -63,13 +63,19 @@ export function usePomodoroSync() {
         
         // If there's an active pomodoro in the database, use it
         if (data.active) {
+          // Calculate remaining time on the client
+          const startTime = new Date(data.startTime)
+          const now = new Date()
+          const elapsedSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000)
+          const duration = getTimerDuration(data.type, data.settings || settings)
+          const remainingTime = Math.max(0, duration - elapsedSeconds)
           const pomodoroState: PomodoroState = {
             active: true,
             id: data.id,
             type: data.type as TimerMode,
-            startTime: new Date(data.startTime),
-            remainingTime: data.remainingTime,
-            status: 'active',
+            startTime,
+            remainingTime,
+            status: data.status,
             taskMode: data.taskMode as TaskMode,
             tasks: data.tasks || []
           }
