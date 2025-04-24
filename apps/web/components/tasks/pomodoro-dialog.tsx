@@ -24,7 +24,7 @@ export function PomodoroDialog({ open, onOpenChange, selectedTaskId }: PomodoroD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md w-full">
+      <DialogContent className="max-w-md w-[35vh]">
         <PomodoroTimer />
       </DialogContent>
     </Dialog>
