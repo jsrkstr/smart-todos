@@ -125,33 +125,9 @@ export function PomodoroTimer() {
         <div className="mt-8 flex space-x-4">
           <Button
             variant="outline"
-            size="icon"
             onClick={toggleTimer}
           >
-            {isActive ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={resetTimer}
-          >
-            <Square className="w-5 h-5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => {
-              updateSettings({
-                ...settings,
-                soundEnabled: !settings.soundEnabled,
-              })
-            }}
-          >
-            {settings.soundEnabled ? (
-              <Volume2 className="w-5 h-5" />
-            ) : (
-              <VolumeX className="w-5 h-5" />
-            )}
+            {isActive ? 'Stop' : 'Start'}
           </Button>
         </div>
       </div>
