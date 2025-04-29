@@ -42,7 +42,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
     parts: []
   }))
 
-  const { messages, input, handleInputChange, handleSubmit, data, append, isLoading } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, data, append, status } = useChat({
     initialMessages: initialMessages.length > 0 ? initialMessages : [],
     // api: '/api/chat-messages',
     body: {
@@ -65,8 +65,10 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
   })
 
   useEffect(() => {
+    const isLoading = status === "submitted" || status === "streaming";
     onLoadingChange && onLoadingChange(isLoading);
-  }, [isLoading])
+    console.log('status', status)
+  }, [status])
 
   // Load messages when component mounts
   useEffect(() => {
@@ -165,7 +167,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
             </div>
           ))
         )}
-        {isLoading && (
+        {status === "submitted" && (
           <div className="flex justify-start">
             <Avatar className="h-8 w-8 mr-2 mt-1 bg-primary">
               <span className="text-white text-xs font-semibold">B</span>
@@ -216,7 +218,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
               type="submit"
               size="icon"
               className="rounded-full h-10 w-10 flex items-center justify-center"
-              disabled={isLoading || !input.trim()}
+              disabled={status === "submitted" || status === "streaming" || !input.trim()}
             >
               <Send className="h-5 w-5" />
             </Button>
