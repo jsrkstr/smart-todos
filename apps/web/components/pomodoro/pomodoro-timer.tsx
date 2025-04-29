@@ -136,7 +136,7 @@ export function PomodoroTimer() {
 
       {/* Pomodoros completed */}
       <div className="w-full mt-2 flex items-center justify-center text-sm">
-        <span>Pomodoros completed:</span>
+        <span>Completed:</span>
         <span className="font-medium">{pomodorosCompleted}</span>
       </div>
     </div>

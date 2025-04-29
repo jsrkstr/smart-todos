@@ -34,13 +34,12 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, currentPage = "Smart Todos", children }: HeaderProps) {
   // Pomodoro dialog state
-  // const [pomodoroDialogOpen, setPomodoroDialogOpen] = useState(false)
-  const [pomodoroTaskId, setPomodoroTaskId] = useState<string | null>(null)
   const {
     isActive: pomodoroActive,
     isShown: pomodoroDialogOpen,
     setIsShown: setPomodoroDialogOpen,
-    timeLeft: pomodoroTimeLeft
+    timeLeft: pomodoroTimeLeft,
+    setSelectedTaskId: setPomodoroTaskId
   } = useTimer()
 
   const { setTheme } = useTheme()
@@ -97,6 +96,13 @@ export function Header({ onMenuClick, currentPage = "Smart Todos", children }: H
     logout()
   }
 
+  const openPomodoroDialog = useCallback(() => {
+    if (!pomodoroActive) {
+      setPomodoroTaskId(null)
+    }
+    setPomodoroDialogOpen(true)
+  }, [setPomodoroDialogOpen, pomodoroActive])
+
   return (
     <header className="sticky top-0 z-10 border-b bg-background">
       <div className="flex h-16 items-center px-2 lg:px-4 md:px-6">
@@ -113,7 +119,7 @@ export function Header({ onMenuClick, currentPage = "Smart Todos", children }: H
             variant="ghost"
             size="icon"
             className="relative"
-            onClick={() => setPomodoroDialogOpen(true)}
+            onClick={() => openPomodoroDialog()}
           >
             <Timer className="h-5 w-5" />
             {pomodoroActive && (
@@ -222,7 +228,6 @@ export function Header({ onMenuClick, currentPage = "Smart Todos", children }: H
       <PomodoroDialog
         open={pomodoroDialogOpen}
         onOpenChange={setPomodoroDialogOpen}
-        selectedTaskId={pomodoroTaskId}
       />
     </header>
   )

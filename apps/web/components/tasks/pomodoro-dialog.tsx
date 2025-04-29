@@ -7,21 +7,9 @@ import { useEffect } from "react";
 interface PomodoroDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedTaskId: string | null;
 }
 
-export function PomodoroDialog({ open, onOpenChange, selectedTaskId }: PomodoroDialogProps) {
-  // We use a wrapper to set the selectedTaskId in PomodoroTimer after mount
-  useEffect(() => {
-    if (open && selectedTaskId) {
-      // Set selectedTaskId in PomodoroTimer via localStorage or context if needed
-      localStorage.setItem("pomodoroSelectedTaskId", selectedTaskId);
-    }
-    return () => {
-      localStorage.removeItem("pomodoroSelectedTaskId");
-    };
-  }, [open, selectedTaskId]);
-
+export function PomodoroDialog({ open, onOpenChange }: PomodoroDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md w-[35vh]">
