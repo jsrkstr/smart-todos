@@ -76,7 +76,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
-    console.log('data', data);
+    console.log('messages', messages);
 
     // // Check if message contains annotations with a response_type property
     // const latestMessage = messages[messages.length-1];

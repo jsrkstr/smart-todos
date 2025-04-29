@@ -131,7 +131,7 @@ export function TaskForm({ taskId }: TaskFormProps) {
         showDetails
       />
       <div className="py-4">
-        {!isSubtask && task.stage === 'Refinement' && task.stageStatus === 'NotStarted' && (
+        {!isSubtask && task.stage === 'Planning' && task.stageStatus === 'NotStarted' && (
           <Button
             variant="outline"
             onClick={handleRefineTask}
