@@ -24,18 +24,27 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
   try {
     // Find active pomodoro session using the service
     const activePomodoro = await PomodoroService.getActivePomodoro(req.user.id)
-
+    
     if (!activePomodoro) {
       return NextResponse.json({ 
         active: false
       })
     }
 
-    // Format task for response
-    const task = activePomodoro.task ? {
-      id: activePomodoro.task.id,
-      title: activePomodoro.task.title
-    } : null
+    const isActiveNow = activePomodoro
+      ? (new Date().getTime() - new Date(activePomodoro.startTime).getTime()) / 1000 < activePomodoro.duration
+      : false
+
+    if (!isActiveNow) {
+      await PomodoroService.updatePomodoro(activePomodoro.id, {
+        status: "finished",
+        userId: req.user.id
+      })
+
+      return NextResponse.json({ 
+        active: false
+      })
+    }
 
     return NextResponse.json({
       active: true,
@@ -45,7 +54,10 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
       startTime: activePomodoro.startTime,
       endTime: activePomodoro.endTime,
       status: activePomodoro.status,
-      task,
+      tasks: activePomodoro.tasks ? activePomodoro.tasks.map(task => ({
+        id: task.id,
+        title: task.title
+      })) : null,
       settings: activePomodoro.settings,
     })
   } catch (error) {
