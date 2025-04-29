@@ -170,7 +170,7 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
   const updateMode = useCallback((newMode: TimerMode): void => {
     // If we're already active with a different mode, stop the current session
     if (isActive && mode !== newMode) {
-      stopPomodoro("finished").then(() => {
+      stopPomodoro(timeLeft > 0 ? "cancelled" : "finished").then(() => {
         setMode(newMode)
         setTimeLeft(getValidTimerConfig()[newMode])
         setIsActive(false)
@@ -208,7 +208,7 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
     } 
     // If active and about to stop, update server
     else {
-      await stopPomodoro("finished").then(() => {
+      await stopPomodoro(timeLeft > 0 ? "cancelled" : "finished").then(() => {
         setIsActive(false)
         if (timerRef.current) {
           clearInterval(timerRef.current)

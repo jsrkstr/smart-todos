@@ -118,7 +118,7 @@ export function PomodoroTimer() {
         <div className="mt-6 flex space-x-4">
           {/* Start/Stop button */}
           {/* Always show Stop button when timer is active, or when focus is finished but user is still working */}
-          {(isActive || (mode === "focus" && timeLeft === 0)) && (
+          {(isActive || ((mode === "focus" || mode === "shortBreak" || mode === "longBreak") && timeLeft === 0)) && (
             <Button
               variant="outline"
               onClick={isActive ? toggleTimer : resetTimer}

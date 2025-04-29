@@ -133,11 +133,17 @@ export function usePomodoroSync() {
             id,
             position: index,
             completed: false
-          }))
+          })),
+          completedPomodoros: 0
         }
         
         // Save to session storage
-        setSyncState(pomodoroState)
+        setSyncState(prev => {
+          return ({
+            ...pomodoroState,
+            completedPomodoros: prev.completedPomodoros,
+          })
+        })
         
         // Save to API
         const response = await fetch('/api/pomodoro', {
@@ -166,7 +172,8 @@ export function usePomodoroSync() {
           setSyncState(prev => {
             return ({
               ...prev,
-              id: result.id
+              id: result.id,
+              completedPomodoros: result.completedPomodoros,
             })
           })
         }
@@ -221,6 +228,13 @@ export function usePomodoroSync() {
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`)
         }
+
+        const responseData = await response.json()
+        // Update local state immediately
+        setSyncState(prev => ({
+          ...prev,
+          completedPomodoros: responseData.completedPomodoros,
+        }))
         
         return true
       } catch (err) {

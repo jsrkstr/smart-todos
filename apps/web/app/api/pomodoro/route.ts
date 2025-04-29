@@ -14,8 +14,19 @@ const pomodoroSchema = z.object({
   startTime: z.string().optional(), // ISO string for start time
   endTime: z.string().optional(),   // ISO string for end time
   settings: z.record(z.any()).optional(),
-  duration: z.number().optional(),
+  duration: z.number(),
 })
+
+const getCompletedPomodoros = async (userId: string) => {
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const allUserPomodoros = await PomodoroService.getUserPomodoros(userId, {
+    status: 'finished',
+    type: 'focus',
+    startDate: todayStart
+  });
+  return allUserPomodoros.length;
+}
 
 /**
  * GET /api/pomodoro
@@ -23,18 +34,9 @@ const pomodoroSchema = z.object({
  */
 export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
   try {
-    // Count completed pomodoros for the user
-    const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const allUserPomodoros = await PomodoroService.getUserPomodoros(req.user.id, {
-      status: 'finished',
-      type: 'focus',
-      startDate: todayStart
-    });
-    const completedPomodoros = allUserPomodoros.length;
-
     // Find active pomodoro session using the service
     const activePomodoro = await PomodoroService.getActivePomodoro(req.user.id)
+    const completedPomodoros = await getCompletedPomodoros(req.user.id)
 
     if (!activePomodoro) {
       return NextResponse.json({
@@ -60,7 +62,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
     }
 
     return NextResponse.json({
-      active: isActiveNow,
+      active: true,
       id: activePomodoro.id,
       type: activePomodoro.type,
       taskMode: activePomodoro.taskMode || "single",
@@ -121,11 +123,13 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
         settings: userSettings || undefined,
         userId: req.user.id,
         tasks: validatedData.taskIds || [],
+        duration: validatedData.duration
       })
 
       return NextResponse.json({
         success: true,
-        id: pomodoro.id
+        id: pomodoro.id,
+        completedPomodoros: await getCompletedPomodoros(req.user.id)
       })
     } else {
       // Update the status of the most recent pomodoro
@@ -140,7 +144,8 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
 
         return NextResponse.json({
           success: true,
-          id: updatedPomodoro.id
+          id: updatedPomodoro.id,
+          completedPomodoros: await getCompletedPomodoros(req.user.id)
         })
       }
 
