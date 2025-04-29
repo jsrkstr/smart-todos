@@ -174,6 +174,8 @@ export class TaskService {
       })
 
       return updatedTask
+    }, {
+      timeout: 20000 // in milliseconds (20 seconds)
     })
 
     return task

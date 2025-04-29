@@ -103,8 +103,8 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
             gte: z.number().optional().describe("Greater than or equal to this time in minutes"),
           }).optional().describe("Filter by estimated time")
         }),
-        execute: async ({ completed, priority, estimatedTimeMinutes }: { 
-          completed?: boolean, 
+        execute: async ({ completed, priority, estimatedTimeMinutes }: {
+          completed?: boolean,
           priority?: TaskPriority,
           estimatedTimeMinutes?: { lte?: number, gte?: number }
         }) => {
@@ -203,89 +203,97 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
           }).describe("The task data to update")
         }),
         execute: async ({ taskId, data }: { taskId: string, data: any }) => {
-          const { tags, notifications, ...otherData } = data;
-          // Format date fields if they exist
-          const formattedData = {
-            ...otherData,
-            ...(otherData.deadline ? { deadline: new Date(otherData.deadline) } : {}),
-            ...(otherData.date ? { date: new Date(otherData.date) } : {}),
-            ...(notifications ? {
-              notifications: {
-                create: notifications.create?.map(notification => ({
-                  message: notification.message,
-                  type: 'Reminder', // notification.type,
-                  trigger: notification.trigger,
-                  mode: 'Push', // notification.mode,
-                  relativeTimeValue: notification.relativeTimeValue,
-                  relativeTimeUnit: notification.relativeTimeUnit,
-                  fixedTime: notification.fixedTime,
-                  author: notification.author,
-                })),
-                update: notifications.update?.map(notification => ({
-                  id: notification.id,
-                  message: notification.message,
-                  type: 'Reminder', // notification.type,
-                  trigger: notification.trigger,
-                  mode: 'Push', // notification.mode,
-                  relativeTimeValue: notification.relativeTimeValue,
-                  relativeTimeUnit: notification.relativeTimeUnit,
-                  fixedTime: notification.fixedTime,
-                  author: notification.author,
-                })),
-                removeIds: notifications.removeIds || [],
-              }
-            } : {}),
-          };
+          try {
+            const { tags, notifications, ...otherData } = data;
+            // Format date fields if they exist
+            const formattedData = {
+              ...otherData,
+              ...(otherData.deadline ? { deadline: new Date(otherData.deadline) } : {}),
+              ...(otherData.date ? { date: new Date(otherData.date) } : {}),
+              ...(notifications ? {
+                notifications: {
+                  create: notifications.create?.map(notification => ({
+                    message: notification.message,
+                    type: 'Reminder', // notification.type,
+                    trigger: notification.trigger,
+                    mode: 'Push', // notification.mode,
+                    relativeTimeValue: notification.relativeTimeValue,
+                    relativeTimeUnit: notification.relativeTimeUnit,
+                    fixedTime: notification.fixedTime,
+                    author: notification.author,
+                  })),
+                  update: notifications.update?.map(notification => ({
+                    id: notification.id,
+                    message: notification.message,
+                    type: 'Reminder', // notification.type,
+                    trigger: notification.trigger,
+                    mode: 'Push', // notification.mode,
+                    relativeTimeValue: notification.relativeTimeValue,
+                    relativeTimeUnit: notification.relativeTimeUnit,
+                    fixedTime: notification.fixedTime,
+                    author: notification.author,
+                  })),
+                  removeIds: notifications.removeIds || [],
+                }
+              } : {}),
+            };
 
-          // Handle tags from AI response
-          if (tags && Array.isArray(tags)) {
-            const [allTags, allCategories] = await Promise.all([
-              TagService.getTags(),
-              TagService.getTagCategories()
-            ])
+            // Handle tags from AI response
+            if (tags && Array.isArray(tags)) {
+              const [allTags, allCategories] = await Promise.all([
+                TagService.getTags(),
+                TagService.getTagCategories()
+              ])
 
-            const tagIds: string[] = []
+              const tagIds: string[] = []
 
-            for (const tagData of tags) {
-              let existingTag = allTags.find((t) => t.name.toLowerCase() === tagData.name.toLowerCase())
+              for (const tagData of tags) {
+                let existingTag = allTags.find((t) => t.name.toLowerCase() === tagData.name.toLowerCase())
 
-              if (!existingTag) {
-                console.log('creating tag', tagData);
-                let categoryId: string | undefined
+                if (!existingTag) {
+                  console.log('creating tag', tagData);
+                  let categoryId: string | undefined
 
-                if (tagData.category) {
-                  let category = allCategories.find((c) => c.name.toLowerCase() === tagData.category.toLowerCase())
+                  if (tagData.category) {
+                    let category = allCategories.find((c) => c.name.toLowerCase() === tagData.category.toLowerCase())
 
-                  if (!category) {
-                    console.log('creating category', tagData);
-                    category = await TagService.createTagCategory({ name: tagData.category })
-                    allCategories.push(category)
+                    if (!category) {
+                      console.log('creating category', tagData);
+                      category = await TagService.createTagCategory({ name: tagData.category })
+                      allCategories.push(category)
+                    }
+
+                    categoryId = category.id
                   }
 
-                  categoryId = category.id
+                  existingTag = await TagService.createTag({
+                    name: tagData.name,
+                    color: '#808080',
+                    categoryId
+                  })
+                  allTags.push(existingTag)
                 }
 
-                existingTag = await TagService.createTag({
-                  name: tagData.name,
-                  color: '#808080',
-                  categoryId
-                })
-                allTags.push(existingTag)
+                tagIds.push(existingTag.id)
               }
 
-              tagIds.push(existingTag.id)
+              formattedData.tagIds = tagIds
             }
 
-            formattedData.tagIds = tagIds
+            console.log('updating task', taskId, data);
+            const task = await TaskService.updateTask({
+              id: taskId,
+              userId,
+              ...formattedData
+            });
+            return { ok: true, data: {
+              id: taskId,
+              title: task.title
+            }};
+          } catch (error) {
+            console.error('Error updating task:', error);
+            return { ok: false, error: error as Error };
           }
-          
-          const task = await TaskService.updateTask({
-            id: taskId,
-            userId,
-            ...formattedData
-          });
-          
-          return { ok: true };
         },
       },
       update_tasks_many: {
@@ -320,7 +328,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
               })
             })
           );
-          
+
           return { ok: true };
         },
       },
@@ -355,27 +363,32 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
           estimatedTimeMinutes: z.number().optional().describe("Estimated time in minutes"),
           parentId: z.string().optional().describe("Parent task ID if this is a subtask")
         }),
-        execute: async ({ title, description, priority, deadline, date, estimatedTimeMinutes, parentId }: { 
-          title: string, 
-          description?: string, 
-          priority?: TaskPriority, 
-          deadline?: string, 
-          date?: string, 
+        execute: async ({ title, description, priority, deadline, date, estimatedTimeMinutes, parentId }: {
+          title: string,
+          description?: string,
+          priority?: TaskPriority,
+          deadline?: string,
+          date?: string,
           estimatedTimeMinutes?: number,
           parentId?: string
         }) => {
-          const newTask = await TaskService.createTask({
-            title,
-            description,
-            priority: priority || "medium",
-            deadline: deadline ? new Date(deadline) : undefined,
-            date: date ? new Date(date) : undefined,
-            estimatedTimeMinutes: estimatedTimeMinutes || 0,
-            userId,
-            parentId
-          });
-          
-          return newTask;
+          try {
+            const newTask = await TaskService.createTask({
+              title,
+              description,
+              priority: priority || "medium",
+              deadline: deadline ? new Date(deadline) : undefined,
+              date: date ? new Date(date) : undefined,
+              estimatedTimeMinutes: estimatedTimeMinutes || 0,
+              userId,
+              parentId
+            });
+
+            return newTask;
+          } catch (error) {
+            console.error('Error creating task:', error);
+            return { ok: false, error: error as Error };
+          }
         }
       },
       create_subtasks: {
@@ -388,42 +401,47 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
             estimatedTimeMinutes: z.number().optional().describe("Estimated time in minutes"),
           })).describe("List of subtasks to create")
         }),
-        execute: async ({ parentTaskId, subtasks }: { 
-          parentTaskId: string, 
+        execute: async ({ parentTaskId, subtasks }: {
+          parentTaskId: string,
           subtasks: Array<{ title: string, description?: string, estimatedTimeMinutes?: number }>
         }) => {
-          // Verify parent task exists and belongs to user
-          const parentTask = await TaskService.getTask(parentTaskId, userId);
-          if (!parentTask) {
-            throw new Error("Parent task not found");
+          try {
+            // Verify parent task exists and belongs to user
+            const parentTask = await TaskService.getTask(parentTaskId, userId);
+            if (!parentTask) {
+              throw new Error("Parent task not found");
+            }
+
+            // Create subtasks
+            const createdSubtasks = [];
+            for (const subtask of subtasks) {
+              const newTask = await TaskService.createTask({
+                ...subtask,
+                userId,
+                parentId: parentTaskId,
+                priority: parentTask.priority,
+                date: parentTask.date || undefined,
+                deadline: parentTask.deadline || undefined,
+                stage: "Breakdown" as TaskStage
+              });
+              createdSubtasks.push(newTask);
+            }
+
+            // Update parent task stage if it's in refinement
+            if (parentTask.stage === "Refinement") {
+              await TaskService.updateTask({
+                id: parentTaskId,
+                userId,
+                stage: "Breakdown" as TaskStage,
+                stageStatus: "Completed"
+              });
+            }
+
+            return { ok: true };
+          } catch (error) {
+            console.error('Error creating subtasks:', error);
+            return { ok: false, error: error as Error };
           }
-          
-          // Create subtasks
-          const createdSubtasks = [];
-          for (const subtask of subtasks) {
-            const newTask = await TaskService.createTask({
-              ...subtask,
-              userId,
-              parentId: parentTaskId,
-              priority: parentTask.priority,
-              date: parentTask.date || undefined,
-              deadline: parentTask.deadline || undefined,
-              stage: "Breakdown" as TaskStage
-            });
-            createdSubtasks.push(newTask);
-          }
-          
-          // Update parent task stage if it's in refinement
-          if (parentTask.stage === "Refinement") {
-            await TaskService.updateTask({
-              id: parentTaskId,
-              userId,
-              stage: "Breakdown" as TaskStage,
-              stageStatus: "Completed"
-            });
-          }
-          
-          return { ok: true };
         }
       },
       search_tasks: {
@@ -452,7 +470,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
               }
             }
           });
-          
+
           return tasks;
         }
       },
