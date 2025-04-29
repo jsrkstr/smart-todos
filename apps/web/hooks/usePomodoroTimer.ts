@@ -17,6 +17,7 @@ interface PomodoroHookReturn {
   mode: TimerMode;
   setMode: (mode: TimerMode) => void;
   timeLeft: number;
+  timeLapsed: number;
   isActive: boolean;
   isShown: boolean;
   setIsShown: (isShown: boolean) => void;
@@ -60,13 +61,26 @@ export function usePomodoroTimer(): PomodoroHookReturn {
   const [pomodorosCompleted, setPomodorosCompleted] = useState<number>(0)
   // Always calculate timeLeft from syncState
   const getTimeLeft = () => {
-    if (!syncState.active || !syncState.startTime) return getValidTimerConfig()[syncState.type || "focus"];
+    if (!syncState.active || !syncState.startTime) {
+      const time = getValidTimerConfig()[syncState.type || "focus"]
+      return time
+    };
     const now = Date.now();
     const start = new Date(syncState.startTime).getTime();
     const duration = getValidTimerConfig()[syncState.type];
     return Math.max(0, duration - Math.floor((now - start) / 1000));
   };
+
+  const getTimeLapsed = () => {
+    if (!syncState.active || !syncState.startTime) return 0;
+    const now = Date.now();
+    const start = new Date(syncState.startTime).getTime();
+    return Math.max(0, Math.floor((now - start) / 1000));
+  };
+
+
   const [timeLeft, setTimeLeft] = useState<number>(getTimeLeft());
+  const [timeLapsed, setTimeLapsed] = useState<number>(0);
   
   // Task selection state
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(
@@ -91,6 +105,7 @@ export function usePomodoroTimer(): PomodoroHookReturn {
     setMode(syncState.type || "focus");
     setIsActive(syncState.active || false);
     setTimeLeft(getTimeLeft());
+    setTimeLapsed(getTimeLapsed());
     if (syncState.taskMode === "single" && syncState.tasks.length > 0) {
       setSelectedTaskId(syncState.tasks[0].id);
       setTaskQueue([]);
@@ -168,8 +183,10 @@ export function usePomodoroTimer(): PomodoroHookReturn {
   useEffect(() => {
     if (!isActive) return;
     setTimeLeft(getTimeLeft()); // Ensure immediate sync on activation
+    setTimeLapsed(getTimeLapsed());
     const interval = setInterval(() => {
       setTimeLeft(getTimeLeft());
+      setTimeLapsed(getTimeLapsed());
     }, 1000);
     return () => clearInterval(interval);
   }, [isActive, syncState.startTime, syncState.type, settings]);
@@ -178,6 +195,7 @@ export function usePomodoroTimer(): PomodoroHookReturn {
     mode,
     setMode: updateMode,
     timeLeft,
+    timeLapsed,
     isActive,
     toggleTimer,
     startTimer,
@@ -187,6 +205,7 @@ export function usePomodoroTimer(): PomodoroHookReturn {
           const currentTimerConfig = getValidTimerConfig()
           setIsActive(false)
           setTimeLeft(currentTimerConfig[mode])
+          setTimeLapsed(0)
           halfwayNotificationSent.current = false
 
           if (timerRef.current) {

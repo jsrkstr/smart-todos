@@ -22,6 +22,7 @@ export function PomodoroTimer() {
     mode,
     setMode,
     timeLeft,
+    timeLapsed,
     isActive,
     toggleTimer,
     resetTimer,
@@ -91,7 +92,7 @@ export function PomodoroTimer() {
         >
           {/* Elapsed time at the top */}
           <div className="absolute top-10 left-1/2 -translate-x-1/2 text-lg font-medium text-muted-foreground">
-            {formatTime(totalDuration - timeLeft)}
+            {formatTime(timeLapsed)}
           </div>
           <CircleProgress
             value={getProgress()}
