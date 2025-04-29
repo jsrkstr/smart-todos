@@ -213,6 +213,23 @@ export class PomodoroService {
     })
   }
 
+  static async getLatestPomodoro(userId: string) {
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return prisma.pomodoro.findFirst({
+      where: {
+        userId,
+        startTime: { gte: todayStart }
+      },
+      include: {
+        tasks: true
+      },
+      orderBy: {
+        startTime: 'desc'
+      }
+    })
+  }
+
   static async getTaskPomodoros(taskId: string) {
     return prisma.pomodoro.findMany({
       where: {

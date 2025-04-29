@@ -24,9 +24,10 @@ export function PomodoroTimer() {
     timeLeft,
     timeLapsed,
     isActive,
-    toggleTimer,
+    isTimeUp,
+    start,
     startRelax,
-    resetTimer,
+    stop,
     pomodorosCompleted,
     selectedTaskId,
     setSelectedTaskId,
@@ -34,9 +35,7 @@ export function PomodoroTimer() {
     setTaskQueue,
     taskMode,
     setTaskMode,
-    showRelax,
-    showResume,
-    showLongBreak,
+    nextMode,
     startLongBreak,
     resumeFocus
   } = useTimer()
@@ -118,28 +117,27 @@ export function PomodoroTimer() {
         <div className="mt-6 flex space-x-4">
           {/* Start/Stop button */}
           {/* Always show Stop button when timer is active, or when focus is finished but user is still working */}
-          {(isActive || ((mode === "focus" || mode === "shortBreak" || mode === "longBreak") && timeLeft === 0)) && (
+          {isActive && (
             <Button
               variant="outline"
-              onClick={isActive ? toggleTimer : resetTimer}
+              onClick={stop}
               className="px-10 rounded-3xl"
             >
               Stop
             </Button>
           )}
           {/* Show Start only if not active and no special buttons are visible */}
-          {!isActive && !showRelax && !showResume && !showLongBreak && (
+          {!isActive && nextMode === 'focus' && (
             <Button
               variant="outline"
-              onClick={toggleTimer}
+              onClick={start}
               className="px-10 rounded-3xl"
             >
               Start
             </Button>
           )}
 
-          {/* Relax button: always show if showRelax, or when focus is finished */}
-          {(showRelax || (mode === "focus" && timeLeft === 0)) && (
+          {nextMode === "shortBreak" && (
             <Button
               variant="outline"
               onClick={startRelax}
@@ -148,24 +146,22 @@ export function PomodoroTimer() {
               Relax
             </Button>
           )}
-          {/* Resume button */}
-          {showResume && (
-            <Button
-              variant="outline"
-              onClick={resumeFocus}
-              className="px-10 rounded-3xl"
-            >
-              Resume
-            </Button>
-          )}
-          {/* Long Break button */}
-          {showLongBreak && (
+          {nextMode === "longBreak" && (
             <Button
               variant="outline"
               onClick={startLongBreak}
               className="px-10 rounded-3xl"
             >
               Long Break
+            </Button>
+          )}
+          {(mode === "shortBreak" || mode === "longBreak") && (
+            <Button
+              variant="outline"
+              onClick={resumeFocus}
+              className="px-10 rounded-3xl"
+            >
+              Resume
             </Button>
           )}
         </div>

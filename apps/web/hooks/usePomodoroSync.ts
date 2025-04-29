@@ -25,8 +25,9 @@ export interface PomodoroState {
   remainingTime: number
   status: PomodoroStatus
   taskMode: TaskMode
-  tasks: TaskItem[],
+  tasks: TaskItem[]
   completedPomodoros: number
+  lastMode: TimerMode | null
 }
 
 export function usePomodoroSync() {
@@ -43,6 +44,7 @@ export function usePomodoroSync() {
     taskMode: "single",
     tasks: [],
     completedPomodoros: 0,
+    lastMode: null,
   }
   
   // Store state in session storage for cross-tab sync and serve as a cache
@@ -79,13 +81,15 @@ export function usePomodoroSync() {
             status: data.status,
             taskMode: data.taskMode as TaskMode,
             tasks: data.tasks || [],
-            completedPomodoros: data.completedPomodoros
+            completedPomodoros: data.completedPomodoros,
+            lastMode: data.lastMode as TimerMode
           }
           setSyncState(pomodoroState)
         } else {
           setSyncState({
             ...defaultState,
-            completedPomodoros: data.completedPomodoros
+            completedPomodoros: data.completedPomodoros,
+            lastMode: data.lastMode as TimerMode
           })
         }
       } catch (err) {
@@ -134,7 +138,8 @@ export function usePomodoroSync() {
             position: index,
             completed: false
           })),
-          completedPomodoros: 0
+          completedPomodoros: 0,
+          lastMode: mode
         }
         
         // Save to session storage
@@ -174,6 +179,7 @@ export function usePomodoroSync() {
               ...prev,
               id: result.id,
               completedPomodoros: result.completedPomodoros,
+              lastMode: result.lastMode,
             })
           })
         }
@@ -234,6 +240,7 @@ export function usePomodoroSync() {
         setSyncState(prev => ({
           ...prev,
           completedPomodoros: responseData.completedPomodoros,
+          lastMode: responseData.lastMode
         }))
         
         return true

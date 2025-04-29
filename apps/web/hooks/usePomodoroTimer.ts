@@ -29,32 +29,25 @@ interface PomodoroHookReturn {
   timeLapsed: number;
   isActive: boolean;
   isShown: boolean;
+  isTimeUp: boolean;
   setIsShown: (isShown: boolean) => void;
-  toggleTimer: () => void;
+  start: () => void;
+  stop: () => void;
   startFocus: (taskId: string) => void;
   startRelax: () => void;
-  resetTimer: () => void;
   pomodorosCompleted: number;
-  
-  // Task-related properties and methods
   selectedTaskId: string | null;
   setSelectedTaskId: (id: string | null) => void;
   taskQueue: string[];
   setTaskQueue: (queue: string[]) => void;
   taskMode: TaskMode;
   setTaskMode: (mode: TaskMode) => void;
-}
-
-// --- Pomodoro Session Cycle Constants ---
-const FOCUS_CYCLE_LENGTH = 3; // Number of focus sessions before long break
-
-export function usePomodoroTimer(): PomodoroHookReturn & {
-  showRelax: boolean;
-  showResume: boolean;
-  showLongBreak: boolean;
+  nextMode: TimerMode | null;
   startLongBreak: () => void;
   resumeFocus: () => void;
-} {
+}
+
+export function usePomodoroTimer(): PomodoroHookReturn {
   const { settings } = useSettings()
   const { sendNotification } = useNotifications()
   const [isShown, setIsShown] = useState<boolean>(false);
@@ -77,11 +70,12 @@ export function usePomodoroTimer(): PomodoroHookReturn & {
   // Timer state
   const [mode, setMode] = useState<TimerMode>(syncState.type || "focus")
   const [isActive, setIsActive] = useState<boolean>(syncState.active || false)
+  const [isTimeUp, setIsTimeUp] = useState<boolean>(false)
   // Track number of focus sessions completed in the current cycle
 // Use completedPomodoros from syncState if available
 const [pomodorosCompleted, setPomodorosCompleted] = useState<number>(syncState.completedPomodoros ?? 0)
 const [focusSessionsInCycle, setFocusSessionsInCycle] = useState<number>(0)
-const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
+const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(syncState.lastMode)
   // Always calculate timeLeft from syncState
   const getTimeLeft = () => {
     if (!syncState.active || !syncState.startTime) {
@@ -129,6 +123,7 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
     setIsActive(syncState.active || false);
     setTimeLeft(getTimeLeft());
     setTimeLapsed(getTimeLapsed());
+    setPomodorosCompleted(syncState.completedPomodoros);
     if (syncState.taskMode === "single" && syncState.tasks.length > 0) {
       setSelectedTaskId(syncState.tasks[0].id);
       setTaskQueue([]);
@@ -140,31 +135,31 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
       setTaskQueue([]);
     }
     setTaskMode(syncState.taskMode as TaskMode);
+    setLastFinishedMode(syncState.lastMode || null);
+    console.log('setlastmode', syncState.lastMode || null);
   }, [syncState]);
 
   // Effect: handle timer completion and session transitions
   useEffect(() => {
-    // Update completedPomodoros from syncState if available
-    if (typeof syncState.completedPomodoros === 'number') {
-      setPomodorosCompleted(syncState.completedPomodoros);
-    }
     if (timeLeft === 0 && isActive) {
-      // Timer just finished
-      if (mode === "focus") {
-        setFocusSessionsInCycle((prev) => prev + 1);
-        setLastFinishedMode("focus");
-        setIsActive(false);
-      } else if (mode === "shortBreak") {
-        setLastFinishedMode("shortBreak");
-        setIsActive(false);
-      } else if (mode === "longBreak") {
-        setLastFinishedMode("longBreak");
-        setIsActive(false);
-        setFocusSessionsInCycle(0); // Reset cycle after long break
-      }
-    }
+      // // Timer just finished
+      // if (mode === "focus") {
+      //   setFocusSessionsInCycle((prev) => prev + 1);
+      //   // setLastFinishedMode("focus");
+      //   setIsActive(false);
+      // } else if (mode === "shortBreak") {
+      //   // setLastFinishedMode("shortBreak");
+      //   setIsActive(false);
+      // } else if (mode === "longBreak") {
+      //   // setLastFinishedMode("longBreak");
+      //   setIsActive(false);
+      //   setFocusSessionsInCycle(0); // Reset cycle after long break
+      // }
+      setIsTimeUp(true)
+    } 
+    setIsTimeUp(timeLeft === 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, isActive, mode, syncState.completedPomodoros]);
+  }, [timeLeft, isActive, mode]);
 
   // Update timer mode and reset timer
   const updateMode = useCallback((newMode: TimerMode): void => {
@@ -194,29 +189,27 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
     }
   }, [isActive, mode, stopPomodoro, getValidTimerConfig])
 
-  // Handle toggling timer state
-  const toggleTimer = useCallback(async (): Promise<void> => {
-    // If not active and about to start, sync with server
+  // Start the timer
+  const start = useCallback(async (): Promise<void> => {
     if (!isActive) {
       const taskIds = taskMode === "single" 
         ? (selectedTaskId ? [selectedTaskId] : [])
         : taskQueue;
-      
       await startPomodoro(mode, taskIds, taskMode).then(() => {
         setIsActive(true)
       })
-    } 
-    // If active and about to stop, update server
-    else {
+    }
+  }, [isActive, mode, selectedTaskId, taskQueue, taskMode, startPomodoro]);
+
+  // Stop the timer
+  const stop = useCallback(async (): Promise<void> => {
       await stopPomodoro(timeLeft > 0 ? "cancelled" : "finished").then(() => {
-        setIsActive(false)
         if (timerRef.current) {
           clearInterval(timerRef.current)
           timerRef.current = null
         }
       })
-    }
-  }, [isActive, mode, selectedTaskId, taskQueue, taskMode, startPomodoro, stopPomodoro])
+  }, [stopPomodoro, timeLeft]);
 
   const startFocus = useCallback((taskId: string) => {
     if (!isActive) {
@@ -227,15 +220,15 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
   }, [setIsShown, setSelectedTaskId, setTaskMode])
 
   const startRelax = useCallback(async () => {
-  // Only allow if just finished a focus session
-  if (lastFinishedMode === "focus") {
-    setMode("shortBreak");
-    setTimeLeft(getValidTimerConfig()["shortBreak"]);
-    setIsActive(true);
-    setLastFinishedMode(null);
-    await startPomodoro("shortBreak", [], taskMode);
-  }
-}, [lastFinishedMode, setMode, setTimeLeft, setIsActive, setLastFinishedMode, startPomodoro, taskMode, getValidTimerConfig]);
+    // Only allow if just finished a focus session
+    if (lastFinishedMode === "focus") {
+      setMode("shortBreak");
+      setTimeLeft(getValidTimerConfig()["shortBreak"]);
+      setIsActive(true);
+      // setLastFinishedMode(null);
+      await startPomodoro("shortBreak", [], taskMode);
+    }
+  }, [lastFinishedMode, setMode, setTimeLeft, setIsActive, setLastFinishedMode, startPomodoro, taskMode, getValidTimerConfig]);
 
   // Effect to update timeLeft every second if active
   useEffect(() => {
@@ -255,31 +248,25 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
 
 // --- New: Long Break and Resume logic ---
   const startLongBreak = useCallback(async () => {
-    if (lastFinishedMode === "focus" && focusSessionsInCycle >= FOCUS_CYCLE_LENGTH) {
       setMode("longBreak");
       setTimeLeft(getValidTimerConfig()["longBreak"]);
       setIsActive(true);
-      setLastFinishedMode(null);
-      setFocusSessionsInCycle(0);
       await startPomodoro("longBreak", [], taskMode);
-    }
-  }, [lastFinishedMode, focusSessionsInCycle, setMode, setTimeLeft, setIsActive, setLastFinishedMode, setFocusSessionsInCycle, startPomodoro, taskMode, getValidTimerConfig]);
+  }, [focusSessionsInCycle, setMode, setTimeLeft, setIsActive, startPomodoro, taskMode, getValidTimerConfig]);
 
   const resumeFocus = useCallback(async () => {
-    if ((lastFinishedMode === "shortBreak" || lastFinishedMode === "longBreak") || (lastFinishedMode === "focus" && focusSessionsInCycle < FOCUS_CYCLE_LENGTH)) {
       setMode("focus");
       setTimeLeft(getValidTimerConfig()["focus"]);
       setIsActive(true);
-      setLastFinishedMode(null);
       await startPomodoro("focus", selectedTaskId ? [selectedTaskId] : [], taskMode);
-    }
-  }, [lastFinishedMode, focusSessionsInCycle, setMode, setTimeLeft, setIsActive, setLastFinishedMode, startPomodoro, selectedTaskId, taskMode, getValidTimerConfig]);
+  }, [focusSessionsInCycle, setMode, setTimeLeft, setIsActive, startPomodoro, selectedTaskId, taskMode, getValidTimerConfig]);
 
-  // --- Button Visibility Logic ---
-  const showRelax = !isActive && timeLeft === 0 && lastFinishedMode === "focus" && focusSessionsInCycle < FOCUS_CYCLE_LENGTH;
-  // Only show Resume after a break (shortBreak or longBreak) is finished
-  const showResume = !isActive && timeLeft === 0 && (lastFinishedMode === "shortBreak" || lastFinishedMode === "longBreak");
-  const showLongBreak = !isActive && timeLeft === 0 && lastFinishedMode === "focus" && focusSessionsInCycle >= FOCUS_CYCLE_LENGTH;
+  let nextMode: TimerMode | null = null;
+  if (!isActive) {
+    nextMode = 'focus';
+  } else if (isActive && isTimeUp && lastFinishedMode === 'focus') {
+    nextMode = (syncState.completedPomodoros + 1) % 3 === 0 ? 'longBreak' : 'shortBreak';
+  }
 
   return {
     mode,
@@ -287,33 +274,11 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
     timeLeft,
     timeLapsed,
     isActive,
-    toggleTimer,
+    isTimeUp,
+    start,
+    stop,
     startFocus,
     startRelax,
-    resetTimer: (): void => {
-      if (isActive) {
-        stopPomodoro("cancelled").then(() => {
-          const currentTimerConfig = getValidTimerConfig()
-          setIsActive(false)
-          setTimeLeft(currentTimerConfig[mode])
-          setTimeLapsed(0)
-          halfwayNotificationSent.current = false
-
-          if (timerRef.current) {
-            clearInterval(timerRef.current)
-            timerRef.current = null
-          }
-
-          if (isMobileApp()) {
-            stopPomodoroTimer()
-          }
-        })
-      } else {
-        const currentTimerConfig = getValidTimerConfig()
-        setTimeLeft(currentTimerConfig[mode])
-        halfwayNotificationSent.current = false
-      }
-    },
     pomodorosCompleted,
     selectedTaskId,
     setSelectedTaskId,
@@ -323,10 +288,7 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
     setTaskMode,
     isShown,
     setIsShown,
-    // --- New additions for UI ---
-    showRelax,
-    showResume,
-    showLongBreak,
+    nextMode,
     startLongBreak,
     resumeFocus,
   }

@@ -14,7 +14,7 @@ const pomodoroSchema = z.object({
   startTime: z.string().optional(), // ISO string for start time
   endTime: z.string().optional(),   // ISO string for end time
   settings: z.record(z.any()).optional(),
-  duration: z.number(),
+  duration: z.number().optional(),
 })
 
 const getCompletedPomodoros = async (userId: string) => {
@@ -35,47 +35,52 @@ const getCompletedPomodoros = async (userId: string) => {
 export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
   try {
     // Find active pomodoro session using the service
-    const activePomodoro = await PomodoroService.getActivePomodoro(req.user.id)
+    const latestPomodoro = await PomodoroService.getLatestPomodoro(req.user.id)
     const completedPomodoros = await getCompletedPomodoros(req.user.id)
 
-    if (!activePomodoro) {
+    if (!latestPomodoro || latestPomodoro.status !== 'active') {
       return NextResponse.json({
         active: false,
         completedPomodoros,
+        lastMode: latestPomodoro?.type,
       })
     }
 
-    const isActiveNow = activePomodoro
-      ? (new Date().getTime() - new Date(activePomodoro.startTime).getTime()) / 1000 < activePomodoro.duration
-      : false
+    // const isActiveNow = latestPomodoro
+    //   ? (new Date().getTime() - new Date(latestPomodoro.startTime).getTime()) / 1000 < latestPomodoro.duration
+    //   : false
 
-    if (!isActiveNow) {
-      await PomodoroService.updatePomodoro(activePomodoro.id, {
-        status: 'finished',
-        userId: req.user.id
-      })
+    // if (!isActiveNow) {
+    //   if (latestPomodoro.status === 'active') {
+    //     await PomodoroService.updatePomodoro(latestPomodoro.id, {
+    //       status: 'finished',
+    //       userId: req.user.id
+    //     })
+    //   }
 
-      return NextResponse.json({
-        active: false,
-        completedPomodoros,
-      })
-    }
+    //   return NextResponse.json({
+    //     active: false,
+    //     completedPomodoros,
+    //     lastMode: latestPomodoro?.type,
+    //   })
+    // }
 
     return NextResponse.json({
       active: true,
-      id: activePomodoro.id,
-      type: activePomodoro.type,
-      taskMode: activePomodoro.taskMode || "single",
-      startTime: activePomodoro.startTime,
-      endTime: activePomodoro.endTime,
-      status: activePomodoro.status,
-      tasks: activePomodoro.tasks ? activePomodoro.tasks.map(task => ({
+      id: latestPomodoro.id,
+      type: latestPomodoro.type,
+      taskMode: latestPomodoro.taskMode || "single",
+      startTime: latestPomodoro.startTime,
+      endTime: latestPomodoro.endTime,
+      status: latestPomodoro.status,
+      tasks: latestPomodoro.tasks ? latestPomodoro.tasks.map(task => ({
         id: task.id,
         title: task.title
       })) : null,
-      settings: activePomodoro.settings,
-      duration: activePomodoro.duration,
+      settings: latestPomodoro.settings,
+      duration: latestPomodoro.duration,
       completedPomodoros,
+      lastMode: latestPomodoro.type,
     })
   } catch (error) {
     console.error("Error fetching pomodoro:", error)
@@ -129,7 +134,8 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
       return NextResponse.json({
         success: true,
         id: pomodoro.id,
-        completedPomodoros: await getCompletedPomodoros(req.user.id)
+        completedPomodoros: await getCompletedPomodoros(req.user.id),
+        lastMode: validatedData.type
       })
     } else {
       // Update the status of the most recent pomodoro
@@ -145,7 +151,8 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
         return NextResponse.json({
           success: true,
           id: updatedPomodoro.id,
-          completedPomodoros: await getCompletedPomodoros(req.user.id)
+          completedPomodoros: await getCompletedPomodoros(req.user.id),
+          lastMode: recentPomodoro.type
         })
       }
 
