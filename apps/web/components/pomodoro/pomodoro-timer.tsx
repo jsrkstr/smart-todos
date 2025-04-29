@@ -33,7 +33,12 @@ export function PomodoroTimer() {
     taskQueue,
     setTaskQueue,
     taskMode,
-    setTaskMode
+    setTaskMode,
+    showRelax,
+    showResume,
+    showLongBreak,
+    startLongBreak,
+    resumeFocus
   } = useTimer()
 
   // Sync selectedTaskId from localStorage (for PomodoroDialog integration)
@@ -92,7 +97,7 @@ export function PomodoroTimer() {
           className="relative w-48 h-48 flex items-center justify-center rounded-full"
         >
           {/* Elapsed time at the top */}
-          <div className="absolute top-10 left-1/2 -translate-x-1/2 text-lg font-medium text-muted-foreground">
+          <div className="absolute top-10 left-1/2 -translate-x-1/2 text-lg font-medium text-muted-foreground w-24 text-center">
             {formatTime(timeLapsed)}
           </div>
           <CircleProgress
@@ -101,7 +106,7 @@ export function PomodoroTimer() {
             strokeWidth={8}
           />
           {/* Time remaining in the center */}
-          <div className="absolute text-4xl font-semibold">
+          <div className="absolute text-4xl font-semibold w-32 text-center">
             {formatTime(timeLeft)}
           </div>
           {/* Status below the timer */}
@@ -111,20 +116,47 @@ export function PomodoroTimer() {
         </div>
 
         <div className="mt-6 flex space-x-4">
-          <Button
-            variant="outline"
-            onClick={toggleTimer}
-            className="px-10 rounded-3xl"
-          >
-            {isActive ? 'Stop' : 'Start'}
-          </Button>
-          {timeLeft === 0 && mode === "focus" && <Button
-            variant="outline"
-            onClick={startRelax}
-            className="px-10 rounded-3xl"
-          >
-            Relax
-          </Button>}
+          {/* Start/Stop button */}
+          {isActive || (!showRelax && !showResume && !showLongBreak) ? (
+            <Button
+              variant="outline"
+              onClick={toggleTimer}
+              className="px-10 rounded-3xl"
+            >
+              {isActive ? 'Stop' : 'Start'}
+            </Button>
+          ) : null}
+
+          {/* Relax button */}
+          {showRelax && (
+            <Button
+              variant="outline"
+              onClick={startRelax}
+              className="px-10 rounded-3xl"
+            >
+              Relax
+            </Button>
+          )}
+          {/* Resume button */}
+          {showResume && (
+            <Button
+              variant="outline"
+              onClick={resumeFocus}
+              className="px-10 rounded-3xl"
+            >
+              Resume
+            </Button>
+          )}
+          {/* Long Break button */}
+          {showLongBreak && (
+            <Button
+              variant="outline"
+              onClick={startLongBreak}
+              className="px-10 rounded-3xl"
+            >
+              Long Break
+            </Button>
+          )}
         </div>
       </div>
 

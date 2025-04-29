@@ -36,7 +36,16 @@ interface PomodoroHookReturn {
   setTaskMode: (mode: TaskMode) => void;
 }
 
-export function usePomodoroTimer(): PomodoroHookReturn {
+// --- Pomodoro Session Cycle Constants ---
+const FOCUS_CYCLE_LENGTH = 3; // Number of focus sessions before long break
+
+export function usePomodoroTimer(): PomodoroHookReturn & {
+  showRelax: boolean;
+  showResume: boolean;
+  showLongBreak: boolean;
+  startLongBreak: () => void;
+  resumeFocus: () => void;
+} {
   const { settings } = useSettings()
   const { sendNotification } = useNotifications()
   const [isShown, setIsShown] = useState<boolean>(false);
@@ -59,7 +68,10 @@ export function usePomodoroTimer(): PomodoroHookReturn {
   // Timer state
   const [mode, setMode] = useState<TimerMode>(syncState.type || "focus")
   const [isActive, setIsActive] = useState<boolean>(syncState.active || false)
-  const [pomodorosCompleted, setPomodorosCompleted] = useState<number>(0)
+  // Track number of focus sessions completed in the current cycle
+const [pomodorosCompleted, setPomodorosCompleted] = useState<number>(0)
+const [focusSessionsInCycle, setFocusSessionsInCycle] = useState<number>(0)
+const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
   // Always calculate timeLeft from syncState
   const getTimeLeft = () => {
     if (!syncState.active || !syncState.startTime) {
@@ -119,6 +131,27 @@ export function usePomodoroTimer(): PomodoroHookReturn {
     }
     setTaskMode(syncState.taskMode as TaskMode);
   }, [syncState]);
+
+  // Effect: handle timer completion and session transitions
+  useEffect(() => {
+    if (timeLeft === 0 && isActive) {
+      // Timer just finished
+      if (mode === "focus") {
+        setPomodorosCompleted((prev) => prev + 1);
+        setFocusSessionsInCycle((prev) => prev + 1);
+        setLastFinishedMode("focus");
+        setIsActive(false);
+      } else if (mode === "shortBreak") {
+        setLastFinishedMode("shortBreak");
+        setIsActive(false);
+      } else if (mode === "longBreak") {
+        setLastFinishedMode("longBreak");
+        setIsActive(false);
+        setFocusSessionsInCycle(0); // Reset cycle after long break
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, isActive, mode]);
 
   // Update timer mode and reset timer
   const updateMode = useCallback((newMode: TimerMode): void => {
@@ -181,16 +214,15 @@ export function usePomodoroTimer(): PomodoroHookReturn {
   }, [setIsShown, setSelectedTaskId, setTaskMode])
 
   const startRelax = useCallback(async () => {
-    if (isActive) {
-      await stopPomodoro("finished")
-      setIsActive(false)
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
-        timerRef.current = null
-      }
-      await startPomodoro("shortBreak", [], taskMode)
-    }
-  }, [toggleTimer, setIsActive, stopPomodoro, setMode, isActive])
+  // Only allow if just finished a focus session
+  if (lastFinishedMode === "focus") {
+    setMode("shortBreak");
+    setTimeLeft(getValidTimerConfig()["shortBreak"]);
+    setIsActive(true);
+    setLastFinishedMode(null);
+    await startPomodoro("shortBreak", [], taskMode);
+  }
+}, [lastFinishedMode, setMode, setTimeLeft, setIsActive, setLastFinishedMode, startPomodoro, taskMode, getValidTimerConfig]);
 
   // Effect to update timeLeft every second if active
   useEffect(() => {
@@ -203,6 +235,33 @@ export function usePomodoroTimer(): PomodoroHookReturn {
     }, 1000);
     return () => clearInterval(interval);
   }, [isActive, syncState.startTime, syncState.type, settings]);
+
+// --- New: Long Break and Resume logic ---
+  const startLongBreak = useCallback(async () => {
+    if (lastFinishedMode === "focus" && focusSessionsInCycle >= FOCUS_CYCLE_LENGTH) {
+      setMode("longBreak");
+      setTimeLeft(getValidTimerConfig()["longBreak"]);
+      setIsActive(true);
+      setLastFinishedMode(null);
+      setFocusSessionsInCycle(0);
+      await startPomodoro("longBreak", [], taskMode);
+    }
+  }, [lastFinishedMode, focusSessionsInCycle, setMode, setTimeLeft, setIsActive, setLastFinishedMode, setFocusSessionsInCycle, startPomodoro, taskMode, getValidTimerConfig]);
+
+  const resumeFocus = useCallback(async () => {
+    if ((lastFinishedMode === "shortBreak" || lastFinishedMode === "longBreak") || (lastFinishedMode === "focus" && focusSessionsInCycle < FOCUS_CYCLE_LENGTH)) {
+      setMode("focus");
+      setTimeLeft(getValidTimerConfig()["focus"]);
+      setIsActive(true);
+      setLastFinishedMode(null);
+      await startPomodoro("focus", selectedTaskId ? [selectedTaskId] : [], taskMode);
+    }
+  }, [lastFinishedMode, focusSessionsInCycle, setMode, setTimeLeft, setIsActive, setLastFinishedMode, startPomodoro, selectedTaskId, taskMode, getValidTimerConfig]);
+
+  // --- Button Visibility Logic ---
+  const showRelax = !isActive && timeLeft === 0 && lastFinishedMode === "focus" && focusSessionsInCycle < FOCUS_CYCLE_LENGTH;
+  const showResume = !isActive && timeLeft === 0 && (lastFinishedMode === "shortBreak" || lastFinishedMode === "longBreak" || (lastFinishedMode === "focus" && focusSessionsInCycle < FOCUS_CYCLE_LENGTH));
+  const showLongBreak = !isActive && timeLeft === 0 && lastFinishedMode === "focus" && focusSessionsInCycle >= FOCUS_CYCLE_LENGTH;
 
   return {
     mode,
@@ -246,6 +305,12 @@ export function usePomodoroTimer(): PomodoroHookReturn {
     setTaskMode,
     isShown,
     setIsShown,
+    // --- New additions for UI ---
+    showRelax,
+    showResume,
+    showLongBreak,
+    startLongBreak,
+    resumeFocus,
   }
 }
 
