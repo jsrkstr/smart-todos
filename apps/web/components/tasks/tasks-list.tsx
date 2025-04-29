@@ -87,7 +87,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
   const { fetchTasks } = useTaskStore()
   const isSubtaskList = !!parentId;
   const chatboxRef = useRef<ChatBoxHandle>(null);
-  const { startTimer } = useTimer()
+  const { startFocus } = useTimer()
 
   // Filter tasks based on parentId
   const filteredTasks = parentId
@@ -344,7 +344,7 @@ function TasksListContent({ parentId, showSidebar = true }: TasksListProps) {
                           <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => startTimer(task.id)}
+                            onClick={() => startFocus(task.id)}
                           >
                             <Play className="w-4 h-4 text-green-500" />
                           </Button>

@@ -22,7 +22,8 @@ interface PomodoroHookReturn {
   isShown: boolean;
   setIsShown: (isShown: boolean) => void;
   toggleTimer: () => void;
-  startTimer: (taskId: string) => void;
+  startFocus: (taskId: string) => void;
+  startRelax: () => void;
   resetTimer: () => void;
   pomodorosCompleted: number;
   
@@ -148,20 +149,20 @@ export function usePomodoroTimer(): PomodoroHookReturn {
   }, [isActive, mode, stopPomodoro, getValidTimerConfig])
 
   // Handle toggling timer state
-  const toggleTimer = useCallback((): void => {
+  const toggleTimer = useCallback(async (): Promise<void> => {
     // If not active and about to start, sync with server
     if (!isActive) {
       const taskIds = taskMode === "single" 
         ? (selectedTaskId ? [selectedTaskId] : [])
         : taskQueue;
       
-      startPomodoro(mode, taskIds, taskMode).then(() => {
+      await startPomodoro(mode, taskIds, taskMode).then(() => {
         setIsActive(true)
       })
     } 
     // If active and about to stop, update server
     else {
-      stopPomodoro("finished").then(() => {
+      await stopPomodoro("finished").then(() => {
         setIsActive(false)
         if (timerRef.current) {
           clearInterval(timerRef.current)
@@ -171,13 +172,25 @@ export function usePomodoroTimer(): PomodoroHookReturn {
     }
   }, [isActive, mode, selectedTaskId, taskQueue, taskMode, startPomodoro, stopPomodoro])
 
-  const startTimer = useCallback((taskId: string) => {
+  const startFocus = useCallback((taskId: string) => {
     if (!isActive) {
       setSelectedTaskId(taskId)
       setTaskMode("single")
     }
     setIsShown(true);
-  }, [toggleTimer, setIsShown])
+  }, [setIsShown, setSelectedTaskId, setTaskMode])
+
+  const startRelax = useCallback(async () => {
+    if (isActive) {
+      await stopPomodoro("finished")
+      setIsActive(false)
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+      await startPomodoro("shortBreak", [], taskMode)
+    }
+  }, [toggleTimer, setIsActive, stopPomodoro, setMode, isActive])
 
   // Effect to update timeLeft every second if active
   useEffect(() => {
@@ -198,7 +211,8 @@ export function usePomodoroTimer(): PomodoroHookReturn {
     timeLapsed,
     isActive,
     toggleTimer,
-    startTimer,
+    startFocus,
+    startRelax,
     resetTimer: (): void => {
       if (isActive) {
         stopPomodoro("cancelled").then(() => {

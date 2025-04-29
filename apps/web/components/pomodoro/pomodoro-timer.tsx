@@ -25,6 +25,7 @@ export function PomodoroTimer() {
     timeLapsed,
     isActive,
     toggleTimer,
+    startRelax,
     resetTimer,
     pomodorosCompleted,
     selectedTaskId,
@@ -117,6 +118,13 @@ export function PomodoroTimer() {
           >
             {isActive ? 'Stop' : 'Start'}
           </Button>
+          {timeLeft === 0 && mode === "focus" && <Button
+            variant="outline"
+            onClick={startRelax}
+            className="px-10 rounded-3xl"
+          >
+            Relax
+          </Button>}
         </div>
       </div>
 

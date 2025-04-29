@@ -530,8 +530,8 @@ enum PomodoroStatus {
 
 enum PomodoroType {
   focus
-  short_break
-  long_break
+  shortBreak
+  longBreak
 }
 
 enum PomodoroTaskMode {

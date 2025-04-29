@@ -155,7 +155,6 @@ export function usePomodoroSync() {
         // Update local state with the ID from server if successful
         if (result.success) {
           setSyncState(prev => {
-            console.log('prev', prev);
             return ({
               ...prev,
               id: result.id
