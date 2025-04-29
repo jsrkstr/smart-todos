@@ -56,65 +56,63 @@ export function PomodoroTimer() {
 
   // Format time as MM:SS
   const formatTime = (seconds: number): string => {
-    if (isNaN(seconds)) return "25:00" // Fallback if value is NaN
-
+    if (isNaN(seconds) || seconds < 0) seconds = 0; // Prevent negative display
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
-
     return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
-  const getProgress = (): number => {
-    const config = {
-      focus: Number(settings.pomodoroDuration || 25) * 60,
-      shortBreak: Number(settings.shortBreakDuration || 5) * 60,
-      longBreak: Number(settings.longBreakDuration || 15) * 60
-    }
+  // Total duration for current mode
+  const config = {
+    focus: Number(settings.pomodoroDuration || 25) * 60,
+    shortBreak: Number(settings.shortBreakDuration || 5) * 60,
+    longBreak: Number(settings.longBreakDuration || 15) * 60
+  }
+  const totalDuration = config[mode];
 
+  // Status text based on mode
+  const statusText = mode === 'focus' ? (isActive ? 'Working...' : '') : mode === 'shortBreak' ? 'Relaxing...' : 'Long Break';
+
+  const getProgress = (): number => {
     if (timeLeft <= 0) return 100
-    return 100 - (timeLeft / config[mode]) * 100
+    return 100 - (timeLeft / totalDuration) * 100
   }
 
   return (
     <div className="w-fulll mmin-w-[30vh]">
-      <div className="flex items-center justify-between gap-2 mb-4">
+      <div className="flex items-center justify-center gap-2 mb-4">
         <div className="flex items-center gap-2">
           Pomodoro Timer
-        </div>
-        <div className="flex items-center gap-2">
-          <Select
-            value={mode}
-            onValueChange={(value) => setMode(value as "focus" | "shortBreak" | "longBreak")}
-          >
-            <SelectTrigger className="h-8 w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="focus">Focus</SelectItem>
-              <SelectItem value="shortBreak">Short Break</SelectItem>
-              <SelectItem value="longBreak">Long Break</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
       <div className="flex flex-col items-center">
         <div
           className="relative w-48 h-48 flex items-center justify-center rounded-full"
         >
+          {/* Elapsed time at the top */}
+          <div className="absolute top-10 left-1/2 -translate-x-1/2 text-lg font-medium text-muted-foreground">
+            {formatTime(totalDuration - timeLeft)}
+          </div>
           <CircleProgress
             value={getProgress()}
             size={192}
             strokeWidth={8}
           />
+          {/* Time remaining in the center */}
           <div className="absolute text-4xl font-semibold">
             {formatTime(timeLeft)}
           </div>
+          {/* Status below the timer */}
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-base font-normal text-muted-foreground">
+            {statusText}
+          </div>
         </div>
 
-        <div className="mt-8 flex space-x-4">
+        <div className="mt-6 flex space-x-4">
           <Button
             variant="outline"
             onClick={toggleTimer}
+            className="px-10 rounded-3xl"
           >
             {isActive ? 'Stop' : 'Start'}
           </Button>
@@ -123,7 +121,7 @@ export function PomodoroTimer() {
 
       {/* Show task info when in focus mode */}
       {mode === "focus" && activeTask && (
-        <div className="w-full mt-4 p-4 bg-muted rounded-lg">
+        <div className="w-full mt-6 p-4 bg-muted rounded-lg">
           <h3 className="font-medium mb-1">Working on:</h3>
           <div className="flex items-center justify-between">
             <span className="line-clamp-1">{activeTask.title}</span>
@@ -137,7 +135,7 @@ export function PomodoroTimer() {
       )}
 
       {/* Pomodoros completed */}
-      <div className="w-full mt-2 flex items-center justify-between text-sm">
+      <div className="w-full mt-2 flex items-center justify-center text-sm">
         <span>Pomodoros completed:</span>
         <span className="font-medium">{pomodorosCompleted}</span>
       </div>
