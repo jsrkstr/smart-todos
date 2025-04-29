@@ -9,22 +9,22 @@ export class PomodoroService {
     status?: string;
     startTime: Date;
     endTime?: Date | null;
-    taskId?: string | null;
     taskMode?: string;
     settings?: any;
     userId: string;
     tasks?: string[];
+    duration?: number;
   }) {
     const { 
       type, 
       status = 'active', 
       startTime, 
       endTime = null, 
-      taskId = null, 
       taskMode = 'single', 
       settings = null, 
       userId,
-      tasks = []
+      tasks = [],
+      duration = 0
     } = params
 
     // Create pomodoro
@@ -34,18 +34,17 @@ export class PomodoroService {
         status,
         startTime,
         endTime,
-        taskId,
         taskMode,
         settings: settings ? (settings as Prisma.JsonObject) : undefined,
         userId,
-        ...(tasks.length > 0 && taskMode === 'multi' && {
+        duration,
+        ...(tasks.length > 0 && {
           tasks: {
             connect: tasks.map(id => ({ id }))
           }
         })
       },
       include: {
-        task: true,
         tasks: true
       }
     })
@@ -54,12 +53,10 @@ export class PomodoroService {
     await LogService.createLog({
       type: LogType.pomodoro_started,
       userId,
-      taskId: taskId || undefined,
       data: {
         pomodoroId: pomodoro.id,
         type,
         taskMode,
-        ...(taskId && { taskId }),
         ...(tasks.length > 0 && { tasks })
       }
     })
@@ -72,18 +69,19 @@ export class PomodoroService {
     endTime?: Date;
     settings?: any;
     userId: string; // Required for logging
+    duration?: number;
   }) {
-    const { status, endTime, settings, userId } = params
+    const { status, endTime, settings, userId, duration } = params
 
     const pomodoro = await prisma.pomodoro.update({
       where: { id },
       data: {
         ...(status && { status }),
         ...(endTime && { endTime }),
-        ...(settings && { settings: settings as Prisma.JsonObject })
+        ...(settings && { settings: settings as Prisma.JsonObject }),
+        ...(typeof duration === 'number' && { duration })
       },
       include: {
-        task: true,
         tasks: true
       }
     })
@@ -111,7 +109,6 @@ export class PomodoroService {
     await LogService.createLog({
       type: logType,
       userId,
-      taskId: pomodoro.taskId || undefined,
       data: {
         pomodoroId: pomodoro.id,
         status,
@@ -127,7 +124,6 @@ export class PomodoroService {
     const pomodoro = await prisma.pomodoro.findUnique({
       where: { id },
       include: {
-        task: true,
         tasks: true
       }
     })
@@ -145,7 +141,6 @@ export class PomodoroService {
     await LogService.createLog({
       type: LogType.pomodoro_cancelled,
       userId,
-      taskId: pomodoro.taskId || undefined,
       data: {
         pomodoroId: id,
         type: pomodoro.type,
@@ -160,7 +155,6 @@ export class PomodoroService {
     return prisma.pomodoro.findUnique({
       where: { id },
       include: {
-        task: true,
         tasks: true
       }
     })
@@ -190,12 +184,10 @@ export class PomodoroService {
         userId,
         ...(status && { status }),
         ...(type && { type }),
-        ...(taskId && { taskId }),
         ...(startDate && { startTime: { gte: startDate } }),
         ...(endDate && { startTime: { lte: endDate } })
       },
       include: {
-        task: true,
         tasks: true
       },
       orderBy: {
@@ -213,7 +205,6 @@ export class PomodoroService {
         status: 'active'
       },
       include: {
-        task: true,
         tasks: true
       },
       orderBy: {
@@ -225,13 +216,9 @@ export class PomodoroService {
   static async getTaskPomodoros(taskId: string) {
     return prisma.pomodoro.findMany({
       where: {
-        OR: [
-          { taskId },
-          { tasks: { some: { id: taskId } } }
-        ]
+        tasks: { some: { id: taskId } }
       },
       include: {
-        task: true,
         tasks: true
       },
       orderBy: {

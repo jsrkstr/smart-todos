@@ -13,7 +13,7 @@ const pomodoroSchema = z.object({
   taskIds: z.array(z.string()).optional(),
   startTime: z.string().optional(), // ISO string for start time
   endTime: z.string().optional(),   // ISO string for end time
-  settings: z.record(z.any()).optional()
+  settings: z.record(z.any()).optional(),
 })
 
 /**
@@ -24,9 +24,9 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
   try {
     // Find active pomodoro session using the service
     const activePomodoro = await PomodoroService.getActivePomodoro(req.user.id)
-    
+
     if (!activePomodoro) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         active: false
       })
     }
@@ -35,19 +35,8 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
       ? (new Date().getTime() - new Date(activePomodoro.startTime).getTime()) / 1000 < activePomodoro.duration
       : false
 
-    if (!isActiveNow) {
-      await PomodoroService.updatePomodoro(activePomodoro.id, {
-        status: "finished",
-        userId: req.user.id
-      })
-
-      return NextResponse.json({ 
-        active: false
-      })
-    }
-
     return NextResponse.json({
-      active: true,
+      active: isActiveNow,
       id: activePomodoro.id,
       type: activePomodoro.type,
       taskMode: activePomodoro.taskMode || "single",
@@ -59,6 +48,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
         title: task.title
       })) : null,
       settings: activePomodoro.settings,
+      duration: activePomodoro.duration,
     })
   } catch (error) {
     console.error("Error fetching pomodoro:", error)
@@ -84,11 +74,15 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
     // Close any existing active sessions if creating a new active pomodoro
     if (validatedData.status === "active") {
       const activePomodoro = await PomodoroService.getActivePomodoro(req.user.id)
-      
+
       if (activePomodoro) {
+        const isActiveNow = activePomodoro
+          ? (new Date().getTime() - new Date(activePomodoro.startTime).getTime()) / 1000 < activePomodoro.duration
+          : false
+
         await PomodoroService.updatePomodoro(activePomodoro.id, {
-          status: "cancelled",
-          endTime: new Date(),
+          status: isActiveNow ? "cancelled" : "finished",
+          endTime: isActiveNow ? new Date() : undefined,
           userId: req.user.id
         })
       }
@@ -101,12 +95,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
         taskMode: validatedData.taskMode,
         settings: userSettings || undefined,
         userId: req.user.id,
-        taskId: validatedData.taskIds && validatedData.taskIds.length > 0 
-          ? validatedData.taskIds[0] // For single task mode
-          : null,
-        tasks: (validatedData.taskMode === 'multi' && validatedData.taskIds) 
-          ? validatedData.taskIds 
-          : []
+        tasks: validatedData.taskIds || [],
       })
 
       return NextResponse.json({
@@ -121,7 +110,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
         const updatedPomodoro = await PomodoroService.updatePomodoro(recentPomodoro.id, {
           status: validatedData.status,
           endTime: validatedData.endTime ? new Date(validatedData.endTime) : new Date(),
-          userId: req.user.id
+          userId: req.user.id,
         })
 
         return NextResponse.json({
@@ -137,11 +126,11 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest) => {
     }
   } catch (error) {
     console.error("Error creating/updating pomodoro:", error)
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid data", details: error.format() }, { status: 400 })
     }
-    
+
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 })
@@ -155,22 +144,22 @@ export const DELETE = withAuth(async (req: AuthenticatedApiRequest) => {
     // Get pomodoro ID from URL
     const url = new URL(req.url)
     const id = url.searchParams.get('id')
-    
+
     if (!id) {
       return NextResponse.json({ error: "Pomodoro ID is required" }, { status: 400 })
     }
 
     // Delete the pomodoro using the service
     await PomodoroService.deletePomodoro(id, req.user.id)
-    
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error deleting pomodoro:", error)
-    
+
     if (error instanceof Error && error.message === 'Pomodoro not found') {
       return NextResponse.json({ error: "Pomodoro not found" }, { status: 404 })
     }
-    
+
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 })
