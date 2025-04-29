@@ -13,6 +13,15 @@ interface TimerConfig {
   longBreak: number;
 }
 
+interface PomodoroState {
+  type: TimerMode;
+  active: boolean;
+  startTime: string | null;
+  tasks: { id: string }[];
+  taskMode: TaskMode;
+  completedPomodoros?: number;
+}
+
 interface PomodoroHookReturn {
   mode: TimerMode;
   setMode: (mode: TimerMode) => void;
@@ -69,7 +78,8 @@ export function usePomodoroTimer(): PomodoroHookReturn & {
   const [mode, setMode] = useState<TimerMode>(syncState.type || "focus")
   const [isActive, setIsActive] = useState<boolean>(syncState.active || false)
   // Track number of focus sessions completed in the current cycle
-const [pomodorosCompleted, setPomodorosCompleted] = useState<number>(0)
+// Use completedPomodoros from syncState if available
+const [pomodorosCompleted, setPomodorosCompleted] = useState<number>(syncState.completedPomodoros ?? 0)
 const [focusSessionsInCycle, setFocusSessionsInCycle] = useState<number>(0)
 const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
   // Always calculate timeLeft from syncState
@@ -134,10 +144,13 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
 
   // Effect: handle timer completion and session transitions
   useEffect(() => {
+    // Update completedPomodoros from syncState if available
+    if (typeof syncState.completedPomodoros === 'number') {
+      setPomodorosCompleted(syncState.completedPomodoros);
+    }
     if (timeLeft === 0 && isActive) {
       // Timer just finished
       if (mode === "focus") {
-        setPomodorosCompleted((prev) => prev + 1);
         setFocusSessionsInCycle((prev) => prev + 1);
         setLastFinishedMode("focus");
         setIsActive(false);
@@ -151,7 +164,7 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, isActive, mode]);
+  }, [timeLeft, isActive, mode, syncState.completedPomodoros]);
 
   // Update timer mode and reset timer
   const updateMode = useCallback((newMode: TimerMode): void => {
@@ -226,11 +239,15 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
 
   // Effect to update timeLeft every second if active
   useEffect(() => {
-    if (!isActive) return;
-    setTimeLeft(getTimeLeft()); // Ensure immediate sync on activation
+    // Always update timeLapsed if we have a startTime
+    if (!syncState.startTime) return;
+    // Only update timeLeft if active
+    setTimeLeft(getTimeLeft());
     setTimeLapsed(getTimeLapsed());
     const interval = setInterval(() => {
-      setTimeLeft(getTimeLeft());
+      if (isActive) {
+        setTimeLeft(getTimeLeft());
+      }
       setTimeLapsed(getTimeLapsed());
     }, 1000);
     return () => clearInterval(interval);
@@ -260,7 +277,8 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(null)
 
   // --- Button Visibility Logic ---
   const showRelax = !isActive && timeLeft === 0 && lastFinishedMode === "focus" && focusSessionsInCycle < FOCUS_CYCLE_LENGTH;
-  const showResume = !isActive && timeLeft === 0 && (lastFinishedMode === "shortBreak" || lastFinishedMode === "longBreak" || (lastFinishedMode === "focus" && focusSessionsInCycle < FOCUS_CYCLE_LENGTH));
+  // Only show Resume after a break (shortBreak or longBreak) is finished
+  const showResume = !isActive && timeLeft === 0 && (lastFinishedMode === "shortBreak" || lastFinishedMode === "longBreak");
   const showLongBreak = !isActive && timeLeft === 0 && lastFinishedMode === "focus" && focusSessionsInCycle >= FOCUS_CYCLE_LENGTH;
 
   return {

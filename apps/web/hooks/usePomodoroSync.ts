@@ -25,7 +25,8 @@ export interface PomodoroState {
   remainingTime: number
   status: PomodoroStatus
   taskMode: TaskMode
-  tasks: TaskItem[]
+  tasks: TaskItem[],
+  completedPomodoros: number
 }
 
 export function usePomodoroSync() {
@@ -40,7 +41,8 @@ export function usePomodoroSync() {
     status: "finished",
     remainingTime: 0,
     taskMode: "single",
-    tasks: []
+    tasks: [],
+    completedPomodoros: 0,
   }
   
   // Store state in session storage for cross-tab sync and serve as a cache
@@ -76,9 +78,15 @@ export function usePomodoroSync() {
             remainingTime,
             status: data.status,
             taskMode: data.taskMode as TaskMode,
-            tasks: data.tasks || []
+            tasks: data.tasks || [],
+            completedPomodoros: data.completedPomodoros
           }
           setSyncState(pomodoroState)
+        } else {
+          setSyncState({
+            ...defaultState,
+            completedPomodoros: data.completedPomodoros
+          })
         }
       } catch (err) {
         console.error("Error fetching active pomodoro:", err)
@@ -112,14 +120,14 @@ export function usePomodoroSync() {
       try {
         // Get current date for consistent timing between client and server
         const startTime = new Date();
-        
+        const duration = getTimerDuration(mode, settings);
         // Create new pomodoro state locally first for immediate UI update
         const pomodoroState: PomodoroState = {
           active: true,
           type: mode,
           status: "active",
           startTime: startTime,
-          remainingTime: getTimerDuration(mode, settings),
+          remainingTime: duration,
           taskMode,
           tasks: taskIds.map((id, index) => ({
             id,
@@ -142,7 +150,8 @@ export function usePomodoroSync() {
             status: 'active',
             startTime: startTime.toISOString(),
             taskMode,
-            taskIds
+            taskIds,
+            duration
           }),
         })
         

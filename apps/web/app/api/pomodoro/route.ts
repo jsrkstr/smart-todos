@@ -14,6 +14,7 @@ const pomodoroSchema = z.object({
   startTime: z.string().optional(), // ISO string for start time
   endTime: z.string().optional(),   // ISO string for end time
   settings: z.record(z.any()).optional(),
+  duration: z.number().optional(),
 })
 
 /**
@@ -22,18 +23,41 @@ const pomodoroSchema = z.object({
  */
 export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
   try {
+    // Count completed pomodoros for the user
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const allUserPomodoros = await PomodoroService.getUserPomodoros(req.user.id, {
+      status: 'finished',
+      type: 'focus',
+      startDate: todayStart
+    });
+    const completedPomodoros = allUserPomodoros.length;
+
     // Find active pomodoro session using the service
     const activePomodoro = await PomodoroService.getActivePomodoro(req.user.id)
 
     if (!activePomodoro) {
       return NextResponse.json({
-        active: false
+        active: false,
+        completedPomodoros,
       })
     }
 
     const isActiveNow = activePomodoro
       ? (new Date().getTime() - new Date(activePomodoro.startTime).getTime()) / 1000 < activePomodoro.duration
       : false
+
+    if (!isActiveNow) {
+      await PomodoroService.updatePomodoro(activePomodoro.id, {
+        status: 'finished',
+        userId: req.user.id
+      })
+
+      return NextResponse.json({
+        active: false,
+        completedPomodoros,
+      })
+    }
 
     return NextResponse.json({
       active: isActiveNow,
@@ -49,6 +73,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
       })) : null,
       settings: activePomodoro.settings,
       duration: activePomodoro.duration,
+      completedPomodoros,
     })
   } catch (error) {
     console.error("Error fetching pomodoro:", error)

@@ -117,18 +117,29 @@ export function PomodoroTimer() {
 
         <div className="mt-6 flex space-x-4">
           {/* Start/Stop button */}
-          {isActive || (!showRelax && !showResume && !showLongBreak) ? (
+          {/* Always show Stop button when timer is active, or when focus is finished but user is still working */}
+          {(isActive || (mode === "focus" && timeLeft === 0)) && (
+            <Button
+              variant="outline"
+              onClick={isActive ? toggleTimer : resetTimer}
+              className="px-10 rounded-3xl"
+            >
+              Stop
+            </Button>
+          )}
+          {/* Show Start only if not active and no special buttons are visible */}
+          {!isActive && !showRelax && !showResume && !showLongBreak && (
             <Button
               variant="outline"
               onClick={toggleTimer}
               className="px-10 rounded-3xl"
             >
-              {isActive ? 'Stop' : 'Start'}
+              Start
             </Button>
-          ) : null}
+          )}
 
-          {/* Relax button */}
-          {showRelax && (
+          {/* Relax button: always show if showRelax, or when focus is finished */}
+          {(showRelax || (mode === "focus" && timeLeft === 0)) && (
             <Button
               variant="outline"
               onClick={startRelax}
@@ -176,9 +187,9 @@ export function PomodoroTimer() {
       )}
 
       {/* Pomodoros completed */}
-      <div className="w-full mt-2 flex items-center justify-center text-sm">
-        <span>Completed:</span>
-        <span className="font-medium">{pomodorosCompleted}</span>
+      <div className="w-full mt-8 flex items-center justify-center text-sm">
+        <span>Completed today:</span>
+        <span className="font-medium ml-1">{pomodorosCompleted}</span>
       </div>
     </div>
   )
