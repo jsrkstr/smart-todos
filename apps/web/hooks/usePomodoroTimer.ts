@@ -136,25 +136,12 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(syncS
     }
     setTaskMode(syncState.taskMode as TaskMode);
     setLastFinishedMode(syncState.lastMode || null);
-    console.log('setlastmode', syncState.lastMode || null);
+
   }, [syncState]);
 
   // Effect: handle timer completion and session transitions
   useEffect(() => {
     if (timeLeft === 0 && isActive) {
-      // // Timer just finished
-      // if (mode === "focus") {
-      //   setFocusSessionsInCycle((prev) => prev + 1);
-      //   // setLastFinishedMode("focus");
-      //   setIsActive(false);
-      // } else if (mode === "shortBreak") {
-      //   // setLastFinishedMode("shortBreak");
-      //   setIsActive(false);
-      // } else if (mode === "longBreak") {
-      //   // setLastFinishedMode("longBreak");
-      //   setIsActive(false);
-      //   setFocusSessionsInCycle(0); // Reset cycle after long break
-      // }
       setIsTimeUp(true)
     } 
     setIsTimeUp(timeLeft === 0);
@@ -220,15 +207,11 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(syncS
   }, [setIsShown, setSelectedTaskId, setTaskMode])
 
   const startRelax = useCallback(async () => {
-    // Only allow if just finished a focus session
-    if (lastFinishedMode === "focus") {
-      setMode("shortBreak");
-      setTimeLeft(getValidTimerConfig()["shortBreak"]);
-      setIsActive(true);
-      // setLastFinishedMode(null);
-      await startPomodoro("shortBreak", [], taskMode);
-    }
-  }, [lastFinishedMode, setMode, setTimeLeft, setIsActive, setLastFinishedMode, startPomodoro, taskMode, getValidTimerConfig]);
+    setMode("shortBreak");
+    setTimeLeft(getValidTimerConfig()["shortBreak"]);
+    setIsActive(true);
+    await startPomodoro("shortBreak", [], taskMode);
+  }, [setMode, setTimeLeft, setIsActive, startPomodoro, taskMode, getValidTimerConfig]);
 
   // Effect to update timeLeft every second if active
   useEffect(() => {
@@ -246,7 +229,6 @@ const [lastFinishedMode, setLastFinishedMode] = useState<TimerMode | null>(syncS
     return () => clearInterval(interval);
   }, [isActive, syncState.startTime, syncState.type, settings]);
 
-// --- New: Long Break and Resume logic ---
   const startLongBreak = useCallback(async () => {
       setMode("longBreak");
       setTimeLeft(getValidTimerConfig()["longBreak"]);

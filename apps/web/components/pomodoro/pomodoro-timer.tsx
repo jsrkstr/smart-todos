@@ -85,7 +85,7 @@ export function PomodoroTimer() {
   }
 
   return (
-    <div className="w-fulll mmin-w-[30vh]">
+    <div className="">
       <div className="flex items-center justify-center gap-2 mb-4">
         <div className="flex items-center gap-2">
           Pomodoro Timer
