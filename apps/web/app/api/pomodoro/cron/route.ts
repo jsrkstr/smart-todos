@@ -7,6 +7,16 @@ import { toZonedTime, format } from 'date-fns-tz'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+const TIMEZONE = 'Europe/Paris'
+
+// Helper function to convert UTC to Paris time
+const toParisTime = (date: Date) => toZonedTime(date, TIMEZONE)
+
+// Helper function to convert Paris time to UTC
+const toUTC = (date: Date) => {
+  const parisDate = toZonedTime(date, TIMEZONE)
+  return new Date(parisDate.getTime() - (parisDate.getTimezoneOffset() * 60000))
+}
 
 export async function GET() {
   try {
@@ -29,6 +39,7 @@ export async function GET() {
     })
 
     const notifications = []
+    const now = toParisTime(new Date())
     
     // Process each active pomodoro
     for (const pomodoro of activePomodoros) {
@@ -57,11 +68,19 @@ export async function GET() {
       console.log('Pomodoro start time (UTC):', format(startTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
       console.log('Half-time point (UTC):', format(halfTimePoint, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
       console.log('Full-time point (UTC):', format(fullTimePoint, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
+      console.log('One minute from now (UTC):', format(oneMinuteFromNow, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
 
       // Check if half-time notification is coming up in the next minute
       if (isAfter(halfTimePoint, now) && isBefore(halfTimePoint, oneMinuteFromNow)) {
         console.log('Setting timeout for half-time notification in', Math.floor((halfTimePoint.getTime() - now.getTime()) / 1000), 'seconds')
-        await (new Promise<void>(resolve => setTimeout(async () => {
+        notifications.push({
+          pomodoroId: pomodoro.id,
+          userId: pomodoro.userId,
+          type: 'half-time',
+          status: 'sent'
+        })
+
+        setTimeout(async () => {
           try {
             // Prepare push notification payload
             const message = {
@@ -84,20 +103,9 @@ export async function GET() {
             })
 
             if (response.ok) {
-              notifications.push({
-                pomodoroId: pomodoro.id,
-                userId: pomodoro.userId,
-                type: 'half-time',
-                status: 'sent'
-              })
+              console.log('Half-time notification sent successfully')
             } else {
               console.error('Failed to send half-time push notification:', await response.text())
-              notifications.push({
-                pomodoroId: pomodoro.id,
-                userId: pomodoro.userId,
-                type: 'half-time',
-                status: 'failed'
-              })
             }
           } catch (error) {
             console.error('Error sending half-time notification:', error)
@@ -109,14 +117,20 @@ export async function GET() {
               error: (error as Error).message
             })
           }
-          resolve()
-        }, halfTimePoint.getTime() - now.getTime())))
+        }, halfTimePoint.getTime() - now.getTime())
       }
 
       // Check if full-time notification is coming up in the next minute
       if (isAfter(fullTimePoint, now) && isBefore(fullTimePoint, oneMinuteFromNow)) {
         console.log('Setting timeout for full-time notification in', Math.floor((fullTimePoint.getTime() - now.getTime()) / 1000), 'seconds')
-        await (new Promise<void>(resolve => setTimeout(async () => {
+        notifications.push({
+          pomodoroId: pomodoro.id,
+          userId: pomodoro.userId,
+          type: 'full-time',
+          status: 'sent'
+        })
+
+        setTimeout(async () => {
           try {
             // Prepare push notification payload
             const message = {
@@ -147,34 +161,14 @@ export async function GET() {
               //     endTime: new Date()
               //   }
               // })
-              
-              notifications.push({
-                pomodoroId: pomodoro.id,
-                userId: pomodoro.userId,
-                type: 'full-time',
-                status: 'sent'
-              })
+              console.log('Full-time notification sent successfully')
             } else {
               console.error('Failed to send full-time push notification:', await response.text())
-              notifications.push({
-                pomodoroId: pomodoro.id,
-                userId: pomodoro.userId,
-                type: 'full-time',
-                status: 'failed'
-              })
             }
           } catch (error) {
             console.error('Error sending full-time notification:', error)
-            notifications.push({
-              pomodoroId: pomodoro.id,
-              userId: pomodoro.userId,
-              type: 'full-time',
-              status: 'error',
-              error: (error as Error).message
-            })
           }
-          resolve()
-        }, fullTimePoint.getTime() - now.getTime())))
+        }, fullTimePoint.getTime() - now.getTime())
       }
     }
 
