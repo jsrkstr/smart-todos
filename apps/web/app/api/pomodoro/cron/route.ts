@@ -8,6 +8,8 @@ import { format } from 'date-fns-tz';
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+export const maxDuration = 60; // This function can run for a maximum of 60 seconds
+
 export async function GET() {
   try {
     // Fetch all active focus pomodoros
