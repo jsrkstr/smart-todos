@@ -20,10 +20,11 @@ const toUTC = (date: Date) => {
 
 export async function GET() {
   try {
-    // Fetch all active pomodoros
+    // Fetch all active focus pomodoros
     const activePomodoros = await prisma.pomodoro.findMany({
       where: {
         status: PomodoroStatus.active,
+        type: 'focus',
       },
       include: {
         user: {
@@ -57,7 +58,8 @@ export async function GET() {
       // Check if it's time to send a notification (within a 1-minute window)
       const oneMinuteAgo = addMinutes(now, -1)
       const oneMinuteFromNow = addMinutes(now, 1)
-      
+      console.log('isAfter', halfTimePoint, oneMinuteAgo);
+      console.log('isBefore', halfTimePoint, oneMinuteFromNow);
       // Check for half-time notification
       if (isAfter(halfTimePoint, oneMinuteAgo) && isBefore(halfTimePoint, oneMinuteFromNow)) {
         // Time to send half-time notification
@@ -140,19 +142,6 @@ export async function GET() {
               data: { 
                 status: PomodoroStatus.finished,
                 endTime: new Date()
-              }
-            })
-            
-            // Log the pomodoro completion
-            await prisma.log.create({
-              data: {
-                type: 'pomodoro_completed',
-                userId: pomodoro.userId,
-                data: {
-                  pomodoroId: pomodoro.id,
-                  duration: pomodoro.duration,
-                  type: pomodoro.type
-                }
               }
             })
             
