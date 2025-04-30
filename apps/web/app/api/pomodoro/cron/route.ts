@@ -56,9 +56,7 @@ export async function GET() {
       // Calculate notification points in UTC
       const halfTimePoint = addMinutes(startTime, durationMinutes / 2)
       const fullTimePoint = addMinutes(startTime, durationMinutes)
-      
-      // Check if it's time to send a notification (within a 1-minute window in UTC)
-      const oneMinuteAgo = addMinutes(now, -1)
+
       const oneMinuteFromNow = addMinutes(now, 1)
       
       // Debug logs for UTC times
@@ -70,117 +68,107 @@ export async function GET() {
       console.log('Pomodoro start time (UTC):', format(startTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
       console.log('Half-time point (UTC):', format(halfTimePoint, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
       console.log('Full-time point (UTC):', format(fullTimePoint, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
-      console.log('Time window:', format(oneMinuteAgo, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }), '-', format(oneMinuteFromNow, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
-      // Check for half-time notification
-      if (isAfter(halfTimePoint, oneMinuteAgo) && isBefore(halfTimePoint, oneMinuteFromNow)) {
-        // Time to send half-time notification
-        try {
-          // Prepare push notification payload
-          const message = {
-            to: pomodoro.user.expoPushToken,
-            sound: 'default',
-            title: `Pomodoro Half-time`,
-            body: `You're halfway through your ${durationMinutes} minute pomodoro session!`,
-            data: { pomodoroId: pomodoro.id },
-          }
+      console.log('One minute from now (UTC):', format(oneMinuteFromNow, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
 
-          // Send the push notification
-          const response = await fetch('https://exp.host/--/api/v2/push/send', {
-            method: 'POST',
-            headers: {
-              Accept: 'application/json',
-              'Accept-Encoding': 'gzip, deflate',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(message),
-          })
+      // Check if half-time notification is coming up in the next minute
+      if (isAfter(halfTimePoint, now) && isBefore(halfTimePoint, oneMinuteFromNow)) {
+        console.log('Setting timeout for half-time notification in', Math.floor((halfTimePoint.getTime() - now.getTime()) / 1000), 'seconds')
+        notifications.push({
+          pomodoroId: pomodoro.id,
+          userId: pomodoro.userId,
+          type: 'half-time',
+          status: 'sent'
+        })
 
-          if (response.ok) {
+        setTimeout(async () => {
+          try {
+            // Prepare push notification payload
+            const message = {
+              to: pomodoro.user.expoPushToken,
+              sound: 'default',
+              title: `Pomodoro Half-time`,
+              body: `You're halfway through your ${durationMinutes} minute pomodoro session!`,
+              data: { pomodoroId: pomodoro.id },
+            }
+
+            // Send the push notification
+            const response = await fetch('https://exp.host/--/api/v2/push/send', {
+              method: 'POST',
+              headers: {
+                Accept: 'application/json',
+                'Accept-Encoding': 'gzip, deflate',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(message),
+            })
+
+            if (response.ok) {
+              console.log('Half-time notification sent successfully')
+            } else {
+              console.error('Failed to send half-time push notification:', await response.text())
+            }
+          } catch (error) {
+            console.error('Error sending half-time notification:', error)
             notifications.push({
               pomodoroId: pomodoro.id,
               userId: pomodoro.userId,
               type: 'half-time',
-              status: 'sent'
-            })
-          } else {
-            console.error('Failed to send half-time push notification:', await response.text())
-            notifications.push({
-              pomodoroId: pomodoro.id,
-              userId: pomodoro.userId,
-              type: 'half-time',
-              status: 'failed'
+              status: 'error',
+              error: (error as Error).message
             })
           }
-        } catch (error) {
-          console.error('Error sending half-time notification:', error)
-          notifications.push({
-            pomodoroId: pomodoro.id,
-            userId: pomodoro.userId,
-            type: 'half-time',
-            status: 'error',
-            error: (error as Error).message
-          })
-        }
+        }, halfTimePoint.getTime() - now.getTime())
       }
-      
-      // Check for full-time notification
-      if (isAfter(fullTimePoint, oneMinuteAgo) && isBefore(fullTimePoint, now)) {
-        try {
-          // Prepare push notification payload
-          const message = {
-            to: pomodoro.user.expoPushToken,
-            sound: 'default',
-            title: `Pomodoro Completed`,
-            body: `Your ${durationMinutes} minute pomodoro session is complete!`,
-            data: { pomodoroId: pomodoro.id },
-          }
 
-          // Send the push notification
-          const response = await fetch('https://exp.host/--/api/v2/push/send', {
-            method: 'POST',
-            headers: {
-              Accept: 'application/json',
-              'Accept-Encoding': 'gzip, deflate',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(message),
-          })
+      // Check if full-time notification is coming up in the next minute
+      if (isAfter(fullTimePoint, now) && isBefore(fullTimePoint, oneMinuteFromNow)) {
+        console.log('Setting timeout for full-time notification in', Math.floor((fullTimePoint.getTime() - now.getTime()) / 1000), 'seconds')
+        notifications.push({
+          pomodoroId: pomodoro.id,
+          userId: pomodoro.userId,
+          type: 'full-time',
+          status: 'sent'
+        })
 
-          if (response.ok) {
-            // Update pomodoro status to finished
-            await prisma.pomodoro.update({
-              where: { id: pomodoro.id },
-              data: { 
-                status: PomodoroStatus.finished,
-                endTime: new Date()
-              }
+        setTimeout(async () => {
+          try {
+            // Prepare push notification payload
+            const message = {
+              to: pomodoro.user.expoPushToken,
+              sound: 'default',
+              title: `Pomodoro Completed`,
+              body: `Your ${durationMinutes} minute pomodoro session is complete!`,
+              data: { pomodoroId: pomodoro.id },
+            }
+
+            // Send the push notification
+            const response = await fetch('https://exp.host/--/api/v2/push/send', {
+              method: 'POST',
+              headers: {
+                Accept: 'application/json',
+                'Accept-Encoding': 'gzip, deflate',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(message),
             })
-            
-            notifications.push({
-              pomodoroId: pomodoro.id,
-              userId: pomodoro.userId,
-              type: 'full-time',
-              status: 'sent'
-            })
-          } else {
-            console.error('Failed to send full-time push notification:', await response.text())
-            notifications.push({
-              pomodoroId: pomodoro.id,
-              userId: pomodoro.userId,
-              type: 'full-time',
-              status: 'failed'
-            })
+
+            if (response.ok) {
+              // Update pomodoro status to finished
+              // await prisma.pomodoro.update({
+              //   where: { id: pomodoro.id },
+              //   data: { 
+              //     status: PomodoroStatus.finished,
+              //     endTime: new Date()
+              //   }
+              // })
+              console.log('Full-time notification sent successfully')
+            } else {
+              console.error('Failed to send full-time push notification:', await response.text())
+            }
+          } catch (error) {
+            console.error('Error sending full-time notification:', error)
           }
-        } catch (error) {
-          console.error('Error sending full-time notification:', error)
-          notifications.push({
-            pomodoroId: pomodoro.id,
-            userId: pomodoro.userId,
-            type: 'full-time',
-            status: 'error',
-            error: (error as Error).message
-          })
-        }
+        }, fullTimePoint.getTime() - now.getTime())
       }
     }
 
