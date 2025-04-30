@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { PomodoroStatus } from '@prisma/client'
 import { addMinutes, isAfter, isBefore } from 'date-fns'
-import { toZonedTime } from 'date-fns-tz'
+import { toZonedTime, format } from 'date-fns-tz'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -48,18 +48,29 @@ export async function GET() {
         continue
       }
 
-      const startTime = toParisTime(pomodoro.startTime)
-      const duration = pomodoro.duration
+      // Convert pomodoro start time to UTC
+      const startTime = new Date(pomodoro.startTime)
+      const now = new Date()
+      const durationMinutes = pomodoro.duration / 60;
       
-      // Calculate half-time and full-time notification points
-      const halfTimePoint = addMinutes(startTime, duration / 2)
-      const fullTimePoint = addMinutes(startTime, duration)
+      // Calculate notification points in UTC
+      const halfTimePoint = addMinutes(startTime, durationMinutes / 2)
+      const fullTimePoint = addMinutes(startTime, durationMinutes)
       
-      // Check if it's time to send a notification (within a 1-minute window)
+      // Check if it's time to send a notification (within a 1-minute window in UTC)
       const oneMinuteAgo = addMinutes(now, -1)
       const oneMinuteFromNow = addMinutes(now, 1)
-      console.log('isAfter', halfTimePoint, oneMinuteAgo);
-      console.log('isBefore', halfTimePoint, oneMinuteFromNow);
+      
+      // Debug logs for UTC times
+      console.log('Current time:', now.toISOString())
+      console.log('Start time:', startTime.toISOString())
+      console.log('Half point time:', halfTimePoint.toISOString())
+      console.log('Full point time:', fullTimePoint.toISOString())
+      console.log('Current UTC time:', format(now, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
+      console.log('Pomodoro start time (UTC):', format(startTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
+      console.log('Half-time point (UTC):', format(halfTimePoint, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
+      console.log('Full-time point (UTC):', format(fullTimePoint, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
+      console.log('Time window:', format(oneMinuteAgo, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }), '-', format(oneMinuteFromNow, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'UTC' }))
       // Check for half-time notification
       if (isAfter(halfTimePoint, oneMinuteAgo) && isBefore(halfTimePoint, oneMinuteFromNow)) {
         // Time to send half-time notification
@@ -69,7 +80,7 @@ export async function GET() {
             to: pomodoro.user.expoPushToken,
             sound: 'default',
             title: `Pomodoro Half-time`,
-            body: `You're halfway through your ${duration} minute pomodoro session!`,
+            body: `You're halfway through your ${durationMinutes} minute pomodoro session!`,
             data: { pomodoroId: pomodoro.id },
           }
 
@@ -113,14 +124,14 @@ export async function GET() {
       }
       
       // Check for full-time notification
-      if (isAfter(fullTimePoint, oneMinuteAgo) && isBefore(fullTimePoint, oneMinuteFromNow)) {
+      if (isAfter(fullTimePoint, oneMinuteAgo) && isBefore(fullTimePoint, now)) {
         try {
           // Prepare push notification payload
           const message = {
             to: pomodoro.user.expoPushToken,
             sound: 'default',
             title: `Pomodoro Completed`,
-            body: `Your ${duration} minute pomodoro session is complete!`,
+            body: `Your ${durationMinutes} minute pomodoro session is complete!`,
             data: { pomodoroId: pomodoro.id },
           }
 
