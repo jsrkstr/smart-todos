@@ -84,12 +84,13 @@ export async function GET() {
               }
 
               // Send the push notification
-              const response = await fetch('https://exp.host/--/api/v2/push/send', {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/notifications/push`, {
                 method: 'POST',
                 headers: {
                   Accept: 'application/json',
                   'Accept-Encoding': 'gzip, deflate',
                   'Content-Type': 'application/json',
+                  'wait-time': `${halfTimePoint.getTime() - now.getTime()}`
                 },
                 body: JSON.stringify(message),
               })
@@ -110,7 +111,7 @@ export async function GET() {
               })
             }
             resolve()
-          }, halfTimePoint.getTime() - now.getTime())))
+          }, 0)))
         })
       }
 
@@ -137,12 +138,13 @@ export async function GET() {
               }
 
               // Send the push notification
-              const response = await fetch('https://exp.host/--/api/v2/push/send', {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/notifications/push`, {
                 method: 'POST',
                 headers: {
                   Accept: 'application/json',
                   'Accept-Encoding': 'gzip, deflate',
                   'Content-Type': 'application/json',
+                  'wait-time': `${fullTimePoint.getTime() - now.getTime()}`
                 },
                 body: JSON.stringify(message),
               })
@@ -163,7 +165,7 @@ export async function GET() {
             } catch (error) {
               console.error('Error sending full-time notification:', error)
             }
-          }, fullTimePoint.getTime() - now.getTime())))
+          }, 0)))
         })
       }
     }
