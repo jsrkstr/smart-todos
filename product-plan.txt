@@ -1,0 +1,269 @@
+
+SmartTodos is an app that helps people complete the tasks that they have set for themselves.
+This app tries to resolve several key psychological and practical reasons why many people struggle to complete their to-do lists and personal goals:Challenges for User - 
+* Emotional Regulation Challenges
+    * Emotional states significantly impact goal pursuit. Stress, anxiety, depression, or low self-esteem can derail even the most well-intentioned plans.
+* Lack of Adaptive Strategy
+    * Successful goal achievement requires flexibility. People often stick to rigid plans instead of adjusting strategies when initial approaches don't work.
+* External Distractions
+    * Modern life is filled with constant interruptions: Smartphone notifications, social media, work pressures, family responsibilities, and unexpected life events.
+* Insufficient Self-Awareness
+    * Many individuals don't truly understand their genuine interests, personal working style, energy patterns throughout the day, and realistic personal limitations.
+* Unrealistic Expectations
+    * People often set goals based on idealized versions of themselves, disconnected from their current capabilities, resources, and daily constraints. This mismatch creates frustration and eventual abandonment.
+* Motivation Burnout
+    * Initial enthusiasm often wanes quickly. Without consistent strategies to maintain motivation, people lose momentum. This includes not celebrating small wins, failing to create accountability, and lacking a compelling emotional connection to the goal.
+* Poor Time Management
+    * Many individuals underestimate the time required for tasks, get distracted easily, lack effective prioritization skills, struggle with time blocking and scheduling, and don't allocate sufficient focused time for important goals.
+* Psychological Barriers
+    * Several mental obstacles prevent goal completion: Fear of failure, perfectionism, low self-efficacy (belief in one's ability to succeed), lack of intrinsic motivation, and negative self-talk and limiting beliefs.
+* Lack of Clear Planning
+    * Most people create lists without a structured approach. They write down tasks but don't break them into actionable, specific steps. Without a clear roadmap, goals can feel abstract and unattainable. Effective goal-setting requires: Specific, measurable objectives, realistic timelines, incremental milestones, and a systematic approach to tracking progress.
+    * It takes time/effort/mental energy to break down a task. Get help from AI.
+* Overwhelming Complexity
+    * Many people create to-do lists that are too complex or ambitious. They load themselves with too many tasks, which can lead to decision paralysis and procrastination. When goals seem too large or intimidating, individuals often feel demotivated before they even start.
+
+Goals for this app -
+* Make it fun
+    * Gamification
+        * Flashcards feature (use case: when user wants to learn something)
+        * Quiz feature (use case: when user wants to learn something, give notifications with questions)
+        * Accountability Partner
+        * Competition with friends
+* Make it super easy
+    * Low cognitive load for data entry and management
+* Personalize
+    * Learn about the user
+        * Know the time they wake up, then suggest tasks for the morning (example: stretching)
+        * Ask user to enter their excuses when they refuse to do a task, and ask about their mood
+        * When in the day is the user more active in completing tasks, and which kind of tasks they are completing (complex or simple)
+        * Personalized user experience that evolves with individual preferences
+        * Analyze user's strengths, weaknesses, and historical performance (Use this knowledge to improve breakdowns, motivation, etc.)
+        * Personalized Goal Setting: Allow users to set clear, specific, and measurable goals tailored to their unique needs, interests, and circumstances (Offer templates and frameworks like SMART goals)
+        * Help user to finish tasks in a way that's most comfortable for them
+* Be a coach
+    * Holistic Life Management
+        * Cross-domain goal integration and synergy analysis
+        * Support goals across multiple life domains: Professional development, Personal growth, Health and wellness, Financial planning, Learning and skill acquisition, Relationship management
+    * Enlighten
+        * Cultivate a growth mindset
+        * Recommend complementary objectives and skill development paths
+    * Guidance
+        * Help user remain on track
+        * Help use productivity techniques (e.g., Pomodoro method)
+        * Identify potential obstacles and proactively suggest mitigation strategies
+    * Community & Support
+        * Build a supportive community or coaching mechanism where users can interact with others to share progress, advice, or even team up on certain goals.
+        * Choose your coaches feature
+    * Encourage
+        * Self-compassion
+        * Habit Formation: Encourage users to form positive habits that align with their goals, providing regular check-ins and reminders
+    * Time Management & Prioritization
+        * Help users manage their time efficiently, whether by suggesting daily priorities or integrating with their calendar and tasks.
+    * Adaptability & Flexibility
+        * Allow users to modify goals, deadlines, and tasks as needed, especially in the face of unexpected changes.
+        * Regularly review and adjust goals
+        * Adaptive motivation techniques based on individual psychology (e.g., INFT personality types)
+        * Dynamic goal adjustment based on user performance and changing circumstances
+    * Accountability
+        * Create accountability mechanisms
+        * Social features that keep users accountable to themselves or others
+        * Social accountability features (optional sharing, accountability partners)
+    * Breakdown
+        * Break down large goals into smaller, achievable tasks or milestones, and provide actionable steps to make progress.
+        * Suggest personalized goal structures based on user's past achievements and interests
+        * Offer templates and frameworks like SMART goals
+        * Provide AI-powered guidance for breaking down complex objectives
+        * Help create and break down tasks as easily as possible
+    * Appreciate
+    * Motivate
+        * Incorporate motivational elements such as reminders, push notifications, rewards
+        * Personalized motivational content and insights (Could be from chosen coaches)
+        * Reward systems for consistent progress and milestone achievements
+        * Gamification elements to maintain user engagement
+        * Tracking Progress: Provide visual progress tracking, allowing users to see how much they've accomplished and where they need to improve. This can be through graphs, completion rates, or streaks.
+            * Automated progress logging with minimal user intervention
+            * Predictive analytics to forecast goal completion likelihood
+            * Real-time progress monitoring with visual representations
+* General tracking
+    * App should help user track anything (e.g., stock price, taking medicines, task progress)
+* Send and receive tasks
+    * Just like Google meeting invites, request and receive tasks from others. People accept requests and it gets added to their list.
+        * Initially, it could be only via email or chat client. Just like in Google invites, once the receiver accepts, they get reminders and progress checks (not adapted to their daily behavior as app not installed), then server sends progress to the sender.
+    * Why?
+        * Receiver forgets the requests, forgets to tell the requester, but wants to be responsible. Sender forgets the requests, has to follow up with receiver, stressed but doesn't want to annoy the receiver.
+* Integration with Other Apps
+    * Google Tasks app - Sync tasks
+    * Google Calendar - Sync events
+
+
+
+Lifecycle of a task 
+1. Task Lifecycle Stages
+    1. Task creation
+        1. Description
+            1. In this stage we invite user to create his task list
+        2. Goal
+            1. Make it super easy to add a task, as simple as writing the details in one line
+        3. How
+            1. Allow user to describe a task in few words
+            2. Allow user to create task via a form in the app
+            3. Allow user to describe task by a sending a text or voice message from their favourite messaging app
+                1. Whatsapp
+                2. Telegram
+                3. Facebook messenger
+                4. Email
+            4. Allow user to add task in their favourite online lists like
+                1. Notion
+                2. Google tasks
+            5. Allow user to add task via mobile phone assistants like Google Gemini or Apple Siri or Amazon Alexa
+            6. Allow user to receive a task from other users and add it to his list
+        4. 
+    2. Task Breakdown, Refining & Planning
+        1. Description
+            1. In this stage we invite user to a task breakdown and planning session
+        2. Breakdown
+            1. Goal
+                1. Breakdown the task into small subtasks
+            2. How
+                1. Give suggestions of subtasks to user
+                2. Break task based on
+                    1. popular time tested strategies like
+                        1. Keep each subtask doable in 1 Pomodoro run of 25 mins
+                    2. user’s chosen strategies.
+                3. Allow user to accept or reject one or more suggested subtasks
+                4. Guided Breakdown Wizard
+                    1. Provide context in suggestions
+                    2. For example, “Break this design project into a 25-minute brainstorming, plus a 25-minute drafting session.”
+                    3. Have “first step tasks” to help the user overcome inertia.
+                        1. Tag those tasks
+        3. Refine the task
+            1. Goal
+                1. Infer details about the task and fill it’s missing fields by understanding the goal of the user, context of task, urgency and importance
+            2. How
+                1. Set tags automatically
+                2. Set estimated time of task
+                3. Set deadlines automatically where possible
+                    1. Example task description - I should buy cake ingredients by this weekend
+                4. Set task’s location automatically
+                    1. Example task description - Remind me when i'm near any supermarket / my favourite supermarket
+        4. Task planning
+            1. Goal
+                1. Prioritise the subtasks for most efficient order
+            2. How
+                1. Prioritise based on user’s profile
+                2. Prioritise based on user’s availability
+                3. Prioritise based on strategies like
+                    1. Easy one first
+                    2. first easy next hard, then repeat
+                4. Allow user to  accept, reject or make modifications to the suggested plan
+    3. Task Execution, Tracking progress & Adapting plans
+        1. Description
+            1. In this stage user tries to execute the task, we check the progress from user, analyse his actions and adapt the plans
+            2. Note that a there will be iterations between Task Execution, Tracking progress & Adapting plans steps until the task is completed
+        2. Execution
+            1. Goal
+                1. Help use execute the tasks, be more focused, find time to work on task
+            2. How
+                1. Introduce use to tools like Pomodoro time tracking
+                    1. Start timer in various Modes like
+                    2. Task mode
+                        1. User Selects a task and starts timer, turn on DoNotDisturb mode on their device
+                    3. Focus mode
+                        1. Let the system select 2-4 tasks that can fit in one Pomodoro timer (25 mins)
+                    4. Free mode
+                        1. User start timer without selecting any task
+                2. Active help
+                    1. short quizzes or flashcards for learning-related tasks
+        3. Tracking progress
+            1. Goal
+                1. Find out how much task user has done and how much remaining
+            2. How
+                1. Time tracking
+                    1. Finding how many days the has been in the list
+                    2. Finding how many times it was postponed
+                2. Asking questions 
+                    1. Types of questions
+                        1. Asking direct questions to user like
+                            1. Hey John, did you finished this task?
+                        2. Asking indirect questions like
+                            1. For a task to learn spanish, app could ask “Do you know what Rio means in spanish?”
+                    2. Using modes of communication
+                        1. Phone calls
+                        2. Push notification with buttons
+                        3. Interactive Message on their messaging app
+                    3. Choosing an appropriate time and frequency of questions
+        4. Reminding users
+            1. Goal
+                1. Remind user about their pending tasks
+            2. How
+                1. Use strategies like
+                    1. Asking questions about Upcoming tasks
+                        1. Example conversation 1
+                            1. “Hey John, Got 5 mins to do this task?”
+                        2. Example conversation 2
+                            1. App - John, let's buy those rice today?
+                            2. User - yes
+                            3. App - Can i schedule them for today?
+                            4. User - yes, when i'm out of home today
+                            5. App - ok, i'll remind you when you are out (App Sets reminder with location out of user’s current geofence)
+                    2. Ask questions to missed tasks 
+                        1. Example - “Hey John, Do the first step, it takes only 5 mins”
+                        2. Example conversation
+                            1. App - John, this task takes 15 mins, want to do it?
+                            2. User - yes, in 5 mins?
+                            3. App - Perfect (App Sets reminder for 5 mins)
+                            4. After 5 mins
+                            5. App - John, ready to tackle this task?
+                            6. User - yes
+                            7. App - Great ! (App starts the Pomodoro timer and turn on the focus mode)
+                    3. Asking questions when no user activity is detected
+                2. Use communication modes like
+                    1. Phone calls
+                    2. Push notification with buttons
+                    3. Interactive Message on their messaging app
+                3. Trigger reminders based on
+                    1. Location
+                        1. User gets near to of one of the points (get inside of a geofence)
+                        2. User exits some place (goes outside of a geofence)
+                    2. Time
+                        1. At time of event
+                        2. Few minutes before event start time
+                    3. Others
+                        1. like weather update, stock price update
+                    4. User behaviour
+                        1. When user wakes up
+                4. Choosing an appropriate time and frequency of reminders
+        5. Adapting plans
+            1. Goal
+                1. By learning user activity and behaviour, change planning of tasks in the best interest of user
+            2. How
+                1. Suggest best time for scheduling the missed task
+                2. Adjust tasks based on progress
+                3. Resize goals
+                4. Shift timelines
+                5. Redefine success criteria
+                6. Add/remove subtasks
+                7. Adjust difficulty level
+    4. Task completion
+        1. Goal
+            1. Update user about this performance, congratulate and reward him
+        2. How
+            1. Have a rewards system
+                1. Suggest appropriate rewards for each task
+                2. Allow user to set rewards to tasks
+                3. Example reward could be
+                    1. Movie night
+                    2. Buy something nice
+                    3. Coffee break
+                    4. Extra sleep
+            2. Have a points systems
+                1. Estimate reward points when breaking down tasks
+                2. Award points on successful completion
+                3. Have suggested rewards which user can exchange for points
+                4. Allow user to add custom rewards
+            3. Have celebration when a task is complete
+                1. Example message
+                    1. “Congratulations, you built a streak of X tasks!”
+            4. Have Reflection system 
+                1. Micro-check-ins for emotional states (“How do you feel about this task right now?”).
