@@ -82,5 +82,5 @@ export const processAdaptation = async (state: GraphState): Promise<ActionItem[]
     });
   }
 
-  return result.actions.filter((action: ActionItem) => action.type !== 'none');
+  return result.actions.filter((action) => action.type !== 'none') as ActionItem[];
 };

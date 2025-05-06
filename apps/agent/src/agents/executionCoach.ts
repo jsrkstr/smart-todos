@@ -91,5 +91,5 @@ export const processExecutionCoach = async (state: GraphState): Promise<ActionIt
     });
   }
 
-  return result.actions.filter((action: ActionItem) => action.type !== 'none');
+  return result.actions.filter((action) => action.type !== 'none') as ActionItem[];
 };

@@ -29,8 +29,7 @@ export async function processRequest(
   };
 
   // Process the user request through the graph
-  const { values } = await supervisorGraph.invoke(initialState);
-  return values;
+  return await supervisorGraph.invoke(initialState);
 }
 
 /**
@@ -42,7 +41,8 @@ async function main() {
   // Example usage - substitute with actual values for testing
   const result = await processRequest(
     'cm9cmam9t0000tg5ibyifmfxi',
-    'I need to create a task for finishing my presentation by Friday',
+    'what is my most urgent task?',
+    // 'I need to create a task for finishing my presentation by Friday',
     { modelName: 'gpt-4o' }
   );
 

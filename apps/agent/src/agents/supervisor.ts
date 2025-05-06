@@ -29,7 +29,7 @@ export const determineAgent = async (state: GraphState): Promise<AgentType> => {
 
   // Get response from LLM
   const response = await llm.invoke(formattedPrompt);
-  const agentType = response.content.toLowerCase().trim();
+  const agentType = (response.content as string).toLowerCase().trim();
 
   // Map text response to enum
   if (agentType.includes('taskcreation')) return AgentType.TaskCreation;
@@ -79,5 +79,5 @@ export const generateResponse = async (state: GraphState): Promise<string> => {
   // Get response from LLM
   const response = await llm.invoke(formattedPrompt);
   
-  return response.content;
+  return response.content as string;
 };

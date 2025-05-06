@@ -37,7 +37,9 @@ export const executeActions = async (state: GraphState, actions: ActionItem[]): 
 
             // Refresh the task to include the new subtasks
             const refreshedTask = await TaskService.getTask(state.task.id, state.userId);
-            newState.task = refreshedTask;
+            if (refreshedTask) {
+              newState.task = refreshedTask;
+            }
           }
           break;
 

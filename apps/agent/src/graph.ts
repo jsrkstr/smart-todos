@@ -1,5 +1,5 @@
-import { StateGraph, END } from '@langchain/langgraph';
-import { AgentType, GraphState, ActionItem } from './types';
+import { StateGraph, Annotation } from '@langchain/langgraph';
+import { AgentType, GraphState, ActionItem, Message } from './types/index';
 import { determineAgent, generateResponse } from './agents/supervisor';
 import { processTaskCreation } from './agents/taskCreation';
 import { processPlanning } from './agents/planning';
@@ -9,218 +9,208 @@ import { processAnalytics } from './agents/analytics';
 import { executeActions } from './utils/actions';
 import { UserService, TaskService } from './services/database';
 
+// Define the state annotation for the graph, including reducers where appropriate
+const StateAnnotation = Annotation.Root({
+  userId: Annotation<string>(),
+  input: Annotation<string>(),
+  context: Annotation<any>(), // You can further annotate structure if needed
+  user: Annotation<any>(),
+  task: Annotation<any>(),
+  tasks: Annotation<any>(),
+  activeAgentType: Annotation<AgentType>(),
+  messages: Annotation<Message[]>({
+    reducer: (left: Message[], right: Message | Message[]) => {
+      if (Array.isArray(right)) {
+        return left.concat(right);
+      }
+      return left.concat([right]);
+    },
+    default: () => [],
+  }),
+  agentResponse: Annotation<string>(),
+  actionItems: Annotation<ActionItem[]>(),
+  error: Annotation<string>(),
+});
+
+// Define all node names as a union type for type safety
+export type NodeNames =
+  | "__start__"
+  | "__end__"
+  | 'loadContext'
+  | 'determineAgent'
+  | 'taskCreationAgent'
+  | 'planningAgent'
+  | 'executionCoachAgent'
+  | 'adaptationAgent'
+  | 'analyticsAgent'
+  | 'executeActions'
+  | 'generateResponse';
+
 // Create the main supervisor graph
 export const createSupervisorGraph = () => {
-  // Initialize the graph with our GraphState type
-  const graph = new StateGraph<GraphState>({
-    channels: {
-      userId: {},
-      input: {},
-      context: {},
-      user: {},
-      task: {},
-      tasks: {},
-      activeAgentType: {},
-      messages: {},
-      agentResponse: {},
-      actionItems: {},
-      error: {}
-    }
-  });
+  // Initialize the graph with the state annotation
+  const graphBuilder = new StateGraph(StateAnnotation);
 
   // Add nodes for each step in the workflow
-  graph.addNode('loadContext', async (state) => {
-    const newState = { ...state };
-    
+  graphBuilder.addNode('loadContext', async (state: typeof StateAnnotation.State) => {
+    const updates: Partial<typeof StateAnnotation.State> = {};
     try {
-      // Load user information if userId is provided
       if (state.userId) {
         const user = await UserService.getUserWithProfile(state.userId);
-        newState.user = user;
+        updates.user = user;
       }
-
-      // Load task information if taskId is provided in context
       if (state.context?.taskId && state.userId) {
         const task = await TaskService.getTask(state.context.taskId, state.userId);
-        newState.task = task;
+        updates.task = task;
       }
-
-      // Initialize messages array if not already present
-      if (!newState.messages) {
-        newState.messages = [];
-      }
-      
-      // Add user's current message to the messages array
-      newState.messages.push({
+      updates.messages = [{
         role: 'user',
         content: state.input
-      });
+      }];
     } catch (error) {
       console.error('Error loading context:', error);
-      newState.error = `Failed to load context: ${error}`;
+      updates.error = `Failed to load context: ${error}`;
     }
-
-    return newState;
+    return updates;
   });
 
-  graph.addNode('determineAgent', async (state) => {
-    const newState = { ...state };
-    
+  graphBuilder.addNode('determineAgent', async (state: GraphState) => {
+    const updates: Partial<GraphState> = {};
     try {
-      // Determine which agent should handle this request
       const agentType = await determineAgent(state);
-      newState.activeAgentType = agentType;
+      updates.activeAgentType = agentType;
     } catch (error) {
       console.error('Error determining agent:', error);
-      newState.error = `Failed to determine agent: ${error}`;
-      newState.activeAgentType = AgentType.TaskCreation; // Default fallback
+      updates.error = `Failed to determine agent: ${error}`;
+      updates.activeAgentType = AgentType.TaskCreation;
     }
-
-    return newState;
+    return updates;
   });
 
-  // Add nodes for each agent type
-  graph.addNode('taskCreationAgent', async (state) => {
-    const newState = { ...state };
-    
+  graphBuilder.addNode('taskCreationAgent', async (state: GraphState) => {
+    const updates: Partial<GraphState> = {};
     try {
       const actions = await processTaskCreation(state);
-      newState.actionItems = actions;
+      updates.actionItems = actions;
     } catch (error) {
       console.error('Error in task creation agent:', error);
-      newState.error = `Task creation agent error: ${error}`;
+      updates.error = `Task creation agent error: ${error}`;
     }
-
-    return newState;
+    return updates;
   });
 
-  graph.addNode('planningAgent', async (state) => {
-    const newState = { ...state };
-    
+  graphBuilder.addNode('planningAgent', async (state: GraphState) => {
+    const updates: Partial<GraphState> = {};
     try {
       const actions = await processPlanning(state);
-      newState.actionItems = actions;
+      updates.actionItems = actions;
     } catch (error) {
       console.error('Error in planning agent:', error);
-      newState.error = `Planning agent error: ${error}`;
+      updates.error = `Planning agent error: ${error}`;
     }
-
-    return newState;
+    return updates;
   });
 
-  graph.addNode('executionCoachAgent', async (state) => {
-    const newState = { ...state };
-    
+  graphBuilder.addNode('executionCoachAgent', async (state: GraphState) => {
+    const updates: Partial<GraphState> = {};
     try {
       const actions = await processExecutionCoach(state);
-      newState.actionItems = actions;
+      updates.actionItems = actions;
     } catch (error) {
       console.error('Error in execution coach agent:', error);
-      newState.error = `Execution coach agent error: ${error}`;
+      updates.error = `Execution coach agent error: ${error}`;
     }
-
-    return newState;
+    return updates;
   });
 
-  graph.addNode('adaptationAgent', async (state) => {
-    const newState = { ...state };
-    
+  graphBuilder.addNode('adaptationAgent', async (state: GraphState) => {
+    const updates: Partial<GraphState> = {};
     try {
       const actions = await processAdaptation(state);
-      newState.actionItems = actions;
+      updates.actionItems = actions;
     } catch (error) {
       console.error('Error in adaptation agent:', error);
-      newState.error = `Adaptation agent error: ${error}`;
+      updates.error = `Adaptation agent error: ${error}`;
     }
-
-    return newState;
+    return updates;
   });
 
-  graph.addNode('analyticsAgent', async (state) => {
-    const newState = { ...state };
-    
+  graphBuilder.addNode('analyticsAgent', async (state: GraphState) => {
+    const updates: Partial<GraphState> = {};
     try {
       const actions = await processAnalytics(state);
-      newState.actionItems = actions;
+      updates.actionItems = actions;
     } catch (error) {
       console.error('Error in analytics agent:', error);
-      newState.error = `Analytics agent error: ${error}`;
+      updates.error = `Analytics agent error: ${error}`;
     }
-
-    return newState;
+    return updates;
   });
 
-  graph.addNode('executeActions', async (state) => {
+  graphBuilder.addNode('executeActions', async (state: GraphState) => {
     if (!state.actionItems || state.actionItems.length === 0) {
-      return state; // No actions to execute
+      return {};
     }
-    
     try {
-      // Execute all actions and update state accordingly
       const newState = await executeActions(state, state.actionItems);
       return newState;
     } catch (error) {
       console.error('Error executing actions:', error);
-      return {
-        ...state,
-        error: `Failed to execute actions: ${error}`
-      };
+      return { error: `Failed to execute actions: ${error}` };
     }
   });
 
-  graph.addNode('generateResponse', async (state) => {
-    const newState = { ...state };
-    
+  graphBuilder.addNode('generateResponse', async (state: GraphState) => {
+    const updates: Partial<GraphState> = {};
     try {
-      // Generate the final response using the supervisor agent
       const response = await generateResponse(state);
-      newState.agentResponse = response;
-      
-      // Add the response to the messages array
-      newState.messages.push({
+      updates.agentResponse = response;
+      updates.messages = [{
         role: 'assistant',
         content: response
-      });
+      }];
     } catch (error) {
       console.error('Error generating response:', error);
-      newState.error = `Failed to generate response: ${error}`;
-      newState.agentResponse = 'I apologize, but I encountered an error processing your request.';
+      updates.error = `Failed to generate response: ${error}`;
+      updates.agentResponse = 'I apologize, but I encountered an error processing your request.';
     }
-
-    return newState;
+    return updates;
   });
 
   // Define the workflow edges
-  graph.addEdge('loadContext', 'determineAgent');
-  
-  // Route to the appropriate agent based on the determination
-  graph.addConditionalEdges(
+  // @ts-ignore
+  graphBuilder.addEdge("__start__", 'loadContext');
+  // @ts-ignore
+  graphBuilder.addEdge('loadContext', 'determineAgent');
+  graphBuilder.addConditionalEdges(
+    // @ts-ignore
     'determineAgent',
-    (state) => {
+    (state: GraphState) => {
       switch(state.activeAgentType) {
         case AgentType.TaskCreation: return 'taskCreationAgent';
         case AgentType.Planning: return 'planningAgent';
         case AgentType.ExecutionCoach: return 'executionCoachAgent';
         case AgentType.Adaptation: return 'adaptationAgent';
         case AgentType.Analytics: return 'analyticsAgent';
-        default: return 'taskCreationAgent'; // Default fallback
+        default: return 'taskCreationAgent';
       }
     }
   );
+  // @ts-ignore
+  graphBuilder.addEdge('taskCreationAgent', 'executeActions');
+  // @ts-ignore
+  graphBuilder.addEdge('planningAgent', 'executeActions');
+  // @ts-ignore
+  graphBuilder.addEdge('executionCoachAgent', 'executeActions');
+  // @ts-ignore
+  graphBuilder.addEdge('adaptationAgent', 'executeActions');
+  // @ts-ignore
+  graphBuilder.addEdge('analyticsAgent', 'executeActions');
+  // @ts-ignore
+  graphBuilder.addEdge('executeActions', 'generateResponse');
+  // @ts-ignore
+  graphBuilder.addEdge('generateResponse', "__end__");
 
-  // After each agent processes, execute any generated actions
-  graph.addEdge('taskCreationAgent', 'executeActions');
-  graph.addEdge('planningAgent', 'executeActions');
-  graph.addEdge('executionCoachAgent', 'executeActions');
-  graph.addEdge('adaptationAgent', 'executeActions');
-  graph.addEdge('analyticsAgent', 'executeActions');
-  
-  // After actions are executed, generate the final response
-  graph.addEdge('executeActions', 'generateResponse');
-  
-  // End the workflow after generating the response
-  graph.addEdge('generateResponse', END);
-
-  // Compile the graph
-  return graph.compile();
+  // Compile and return the graph
+  return graphBuilder.compile();
 };
