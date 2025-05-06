@@ -28,8 +28,17 @@ export async function processRequest(
     messages: [],
   };
 
+  const config = { configurable: { thread_id: "1" } };
+
+  // await graph.invoke({
+  //   messages: [{
+  //     role: "user",
+  //     content: "what's the weather in sf"
+  //   }],
+  // }, config);
+
   // Process the user request through the graph
-  return await supervisorGraph.invoke(initialState);
+  return await (await supervisorGraph).invoke(initialState, config);
 }
 
 /**

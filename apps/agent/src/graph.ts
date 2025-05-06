@@ -8,6 +8,7 @@ import { processAdaptation } from './agents/adaptation';
 import { processAnalytics } from './agents/analytics';
 import { executeActions } from './utils/actions';
 import { UserService, TaskService } from './services/database';
+import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 
 // Define the state annotation for the graph, including reducers where appropriate
 const StateAnnotation = Annotation.Root({
@@ -47,7 +48,35 @@ export type NodeNames =
   | 'generateResponse';
 
 // Create the main supervisor graph
-export const createSupervisorGraph = () => {
+export const createSupervisorGraph = async () => {
+  
+  const checkpointer = PostgresSaver.fromConnString(
+    `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:5432/${process.env.POSTGRES_DATABASE}?sslmode=require`,
+    // optional configuration object
+    {
+      schema: "langgraph", // defaults to "public"
+    }
+  );
+  
+  // NOTE: you need to call .setup() the first time you're using your checkpointer
+  await checkpointer.setup();
+  
+  // const graph = createReactAgent({
+  //   tools: [getWeather],
+  //   llm: new ChatOpenAI({
+  //     model: "gpt-4o-mini",
+  //   }),
+  //   checkpointSaver: checkpointer,
+  // });
+  // const config = { configurable: { thread_id: "1" } };
+  
+  // await graph.invoke({
+  //   messages: [{
+  //     role: "user",
+  //     content: "what's the weather in sf"
+  //   }],
+  // }, config);
+
   // Initialize the graph with the state annotation
   const graphBuilder = new StateGraph(StateAnnotation);
 
@@ -62,6 +91,10 @@ export const createSupervisorGraph = () => {
       if (state.context?.taskId && state.userId) {
         const task = await TaskService.getTask(state.context.taskId, state.userId);
         updates.task = task;
+      }
+      if (!state.context?.taskId && state.userId) {
+        const tasks = await TaskService.getTasks(state.userId);
+        updates.tasks = tasks;
       }
       updates.messages = [{
         role: 'user',
@@ -212,5 +245,5 @@ export const createSupervisorGraph = () => {
   graphBuilder.addEdge('generateResponse', "__end__");
 
   // Compile and return the graph
-  return graphBuilder.compile();
+  return graphBuilder.compile({ checkpointer: checkpointer });
 };
