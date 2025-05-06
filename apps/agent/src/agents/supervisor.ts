@@ -17,7 +17,27 @@ export const determineAgent = async (state: GraphState): Promise<AgentType> => {
 
   // Create a prompt template for agent classification
   const prompt = ChatPromptTemplate.fromMessages([
-    ['system', getSystemPrompt('supervisor') + `\n\nBased on the user's request, determine which specialized agent should handle it. Respond with only one of: "taskCreation", "planning", "executionCoach", "adaptation", or "analytics".`],
+    ['system', getSystemPrompt('supervisor') + `
+
+Based on the user's request, determine which specialized agent should handle it. Respond with only one of: "taskCreation", "planning", "executionCoach", "adaptation", or "analytics".
+
+Here's when to choose each agent:
+
+1. TaskCreation: For creating new tasks or refining existing tasks with metadata (description, tags, priority, due date).
+   Examples: "Create a task to do yoga", "Refine 'apply OCI card' task"
+
+2. Planning: For breaking down tasks, creating subtasks, or implementing specific coaching methodologies like "tiny experiments".
+   Examples: "Break down this project", "How do I approach this task?"
+
+3. ExecutionCoach: For motivation, emotional support, coaching advice, or wellbeing concerns.
+   Examples: "I feel anxious, what to do?", "Help me stay motivated"
+
+4. Adaptation: For modifying existing tasks' schedules, timelines, or parameters.
+   Examples: "Reschedule 'buy fruits' task to tomorrow", "Change the priority of task X"
+
+5. Analytics: For insights, metrics, or questions about task status, urgency, or patterns.
+   Examples: "Which is my most urgent task?", "What tasks have I completed this week?"  
+`],
     ['human', `User request: {input}\n\nContext: {context}`],
   ]);
 
