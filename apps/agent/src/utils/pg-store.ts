@@ -18,13 +18,13 @@ function isPutOperation(op: Operation): op is PutOperation {
 //     return (op as DeleteOperation).namespace !== undefined && (op as DeleteOperation).key !== undefined && (op as any).value === undefined && (op as any).index === undefined;
 // }
 
-class PostgresStore extends BaseStore {
+export class PostgresStore extends BaseStore {
     private pool: Pool;
     private tableName: string;
 
-    constructor(connString: string, tableName = "langgraph_async_batched_store") {
+    constructor(connString: string, tableName = "langgraph_pg_store") {
         super();
-        this.pool = new Pool({ connectionString: connString, schema: "langgraph" });
+        this.pool = new Pool({ connectionString: connString });
         this.tableName = tableName;
     }
 
@@ -157,17 +157,5 @@ class PostgresStore extends BaseStore {
         } finally {
             client.release();
         }
-    }
-}
-
-export class PostgresAsyncBatchedStore extends AsyncBatchedStore {
-    public store: PostgresStore;
-    constructor(connString: string, tableName = "langgraph_async_batched_store") {
-        const store = new PostgresStore(connString, tableName);
-        super(store);
-        this.store = store;
-    }
-    async initialize() {
-        await this.store.initialize();
     }
 }

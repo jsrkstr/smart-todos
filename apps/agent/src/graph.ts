@@ -9,7 +9,7 @@ import { processAnalytics } from './agents/analytics';
 import { executeActions } from './utils/actions';
 import { UserService, TaskService } from './services/database';
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { PostgresAsyncBatchedStore } from './utils/pg-store';
+import { PostgresStore } from './utils/pg-store';
 
 // Define the state annotation for the graph, including reducers where appropriate
 const StateAnnotation = Annotation.Root({
@@ -53,7 +53,7 @@ export type NodeNames =
 export const createSupervisorGraph = async () => {
 
   // Example usage:
-  const pg_store = new PostgresAsyncBatchedStore(
+  const pg_store = new PostgresStore(
     `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:5432/${process.env.POSTGRES_DATABASE}?sslmode=require`
   );
   await pg_store.initialize();
@@ -205,7 +205,7 @@ export const createSupervisorGraph = async () => {
   });
 
   graphBuilder.addNode('generateResponse', async (state: GraphState, ...args: any[]) => {
-    console.log('args---', args[0]);
+    console.log('args---', args);
     const store = args[0].store;
     console.log('food pref---', await store.get(['1', 'memories'], '132'))
 
