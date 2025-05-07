@@ -1,4 +1,4 @@
-import { StateGraph, Annotation } from '@langchain/langgraph';
+import { StateGraph, Annotation, BaseStore, InMemoryStore } from '@langchain/langgraph';
 import { AgentType, GraphState, ActionItem, Message } from './types/index';
 import { determineAgent, generateResponse } from './agents/supervisor';
 import { processTaskCreation } from './agents/taskCreation';
@@ -9,6 +9,7 @@ import { processAnalytics } from './agents/analytics';
 import { executeActions } from './utils/actions';
 import { UserService, TaskService } from './services/database';
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+import { PostgresAsyncBatchedStore } from './utils/pg-store';
 
 // Define the state annotation for the graph, including reducers where appropriate
 const StateAnnotation = Annotation.Root({
@@ -19,6 +20,7 @@ const StateAnnotation = Annotation.Root({
   task: Annotation<any>(),
   tasks: Annotation<any>(),
   activeAgentType: Annotation<AgentType>(),
+  // https://langchain-ai.github.io/langgraphjs/reference/variables/langgraph.MessagesAnnotation.html
   messages: Annotation<Message[]>({
     reducer: (left: Message[], right: Message | Message[]) => {
       if (Array.isArray(right)) {
@@ -49,6 +51,12 @@ export type NodeNames =
 
 // Create the main supervisor graph
 export const createSupervisorGraph = async () => {
+
+  // Example usage:
+  const pg_store = new PostgresAsyncBatchedStore(
+    `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:5432/${process.env.POSTGRES_DATABASE}?sslmode=require`
+  );
+  await pg_store.initialize();
   
   const checkpointer = PostgresSaver.fromConnString(
     `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:5432/${process.env.POSTGRES_DATABASE}?sslmode=require`,
@@ -81,7 +89,10 @@ export const createSupervisorGraph = async () => {
   const graphBuilder = new StateGraph(StateAnnotation);
 
   // Add nodes for each step in the workflow
-  graphBuilder.addNode('loadContext', async (state: typeof StateAnnotation.State) => {
+  graphBuilder.addNode('loadContext', async (state: typeof StateAnnotation.State, ...args: any[]) => {
+    const store = args[0].store;
+    await store.put(['1', 'memories'], '132', { 'food_preference': 'pizza' })
+
     const updates: Partial<typeof StateAnnotation.State> = {};
     try {
       if (state.userId) {
@@ -193,7 +204,11 @@ export const createSupervisorGraph = async () => {
     }
   });
 
-  graphBuilder.addNode('generateResponse', async (state: GraphState) => {
+  graphBuilder.addNode('generateResponse', async (state: GraphState, ...args: any[]) => {
+    console.log('args---', args[0]);
+    const store = args[0].store;
+    console.log('food pref---', await store.get(['1', 'memories'], '132'))
+
     const updates: Partial<GraphState> = {};
     try {
       const response = await generateResponse(state);
@@ -245,5 +260,5 @@ export const createSupervisorGraph = async () => {
   graphBuilder.addEdge('generateResponse', "__end__");
 
   // Compile and return the graph
-  return graphBuilder.compile({ checkpointer: checkpointer });
+  return graphBuilder.compile({ checkpointer: checkpointer, store: pg_store });
 };
