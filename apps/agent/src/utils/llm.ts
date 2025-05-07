@@ -5,9 +5,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Create and export a reusable LLM instance
-export const createLLM = (modelName = 'gpt-4o', temperature = 0.2) => {
+export const createLLM = (modelName = 'gpt-4o-mini', temperature = 0.2) => {
   return new ChatOpenAI({
-    modelName,
+    modelName: 'gpt-4o-mini', //modelName,
     temperature,
   });
 };

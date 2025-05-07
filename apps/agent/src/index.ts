@@ -28,7 +28,7 @@ export async function processRequest(
     messages: [],
   };
 
-  const config = { configurable: { thread_id: "1" } };
+  const config = { configurable: { thread_id: "2" } };
 
   // await graph.invoke({
   //   messages: [{
@@ -50,9 +50,10 @@ async function main() {
   // Example usage - substitute with actual values for testing
   const result = await processRequest(
     'cm9cmam9t0000tg5ibyifmfxi',
-    'what is my most urgent task?',
+    'what is this task about?',
     // 'I need to create a task for finishing my presentation by Friday',
-    { modelName: 'gpt-4o' }
+    { taskId: 'cm9u6cat20014tgi9fdotptt3' }
+    // { modelName: 'gpt-4o' }
   );
 
   console.log('Response:', result.agentResponse);
