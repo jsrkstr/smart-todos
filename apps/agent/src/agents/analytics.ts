@@ -4,6 +4,7 @@ import { AgentType, ActionItem, ActionType, GraphState, Message } from '../types
 import { createLLM, getSystemPrompt } from '../utils/llm';
 import { StructuredOutputParser } from 'langchain/output_parsers';
 import { z } from 'zod';
+import { AIMessage } from '@langchain/core/messages';
 
 // Process the user input with Analytics agent
 export const processAnalytics = async (state: GraphState): Promise<ActionItem[]> => {
@@ -30,8 +31,8 @@ export const processAnalytics = async (state: GraphState): Promise<ActionItem[]>
 
   // Prepare the conversation history
   const conversationHistory = state.messages.filter(msg => 
-    msg.role === 'user' || 
-    (msg.role === 'assistant' && msg.agentType === AgentType.Analytics)
+    msg.getType() === 'human' || 
+    (msg.getType() === 'ai' && msg.additional_kwargs.agentType === AgentType.Analytics)
   );
 
   // Task and user context
@@ -66,32 +67,35 @@ export const processAnalytics = async (state: GraphState): Promise<ActionItem[]>
 
   // Record the agent's insights as a message
   if (result.insights && result.insights.length > 0) {
-    state.messages.push({
-      role: 'assistant',
+    state.messages.push(new AIMessage({
       content: `Key Insights:\n${result.insights.map(insight => `- ${insight}`).join('\n')}`,
-      agentType: AgentType.Analytics,
-      name: 'insights'
-    });
+      additional_kwargs: {
+        agentType: AgentType.Analytics,
+        name: 'insights'
+      }
+    }));
   }
 
   // Record the agent's recommendations as a message
   if (result.recommendations && result.recommendations.length > 0) {
-    state.messages.push({
-      role: 'assistant',
+    state.messages.push(new AIMessage({
       content: `Recommendations:\n${result.recommendations.map(rec => `- ${rec}`).join('\n')}`,
-      agentType: AgentType.Analytics,
-      name: 'recommendations'
-    });
+      additional_kwargs: {
+        agentType: AgentType.Analytics,
+        name: 'recommendations'
+      }
+    }));
   }
 
   // Record the agent's thought process as a message
   if (result.reasoning) {
-    state.messages.push({
-      role: 'assistant',
+    state.messages.push(new AIMessage({
       content: result.reasoning,
-      agentType: AgentType.Analytics,
-      name: 'reasoning'
-    });
+      additional_kwargs: {
+        agentType: AgentType.Analytics,
+        name: 'reasoning'
+      }
+    }));
   }
 
   return result.actions.filter((action) => action.type !== 'none') as ActionItem[];

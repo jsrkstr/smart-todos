@@ -1,5 +1,5 @@
-import { StateGraph, Annotation, BaseStore, InMemoryStore } from '@langchain/langgraph';
-import { AgentType, GraphState, ActionItem, Message } from './types/index';
+import { StateGraph, Annotation, BaseStore, InMemoryStore, START, END, MessagesAnnotation, messagesStateReducer } from '@langchain/langgraph';
+import { AgentType, GraphState, ActionItem } from './types/index';
 import { determineAgent, generateResponse } from './agents/supervisor';
 import { processTaskCreation } from './agents/taskCreation';
 import { processPlanning } from './agents/planning';
@@ -10,6 +10,7 @@ import { executeActions } from './utils/actions';
 import { UserService, TaskService } from './services/database';
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { PostgresStore } from './utils/pg-store';
+import { AIMessage, BaseMessage, HumanMessage, isHumanMessage } from '@langchain/core/messages';
 
 // Define the state annotation for the graph, including reducers where appropriate
 const StateAnnotation = Annotation.Root({
@@ -22,12 +23,8 @@ const StateAnnotation = Annotation.Root({
   activeAgentType: Annotation<AgentType>(),
   // https://langchain-ai.github.io/langgraphjs/reference/variables/langgraph.MessagesAnnotation.html
   messages: Annotation<Message[]>({
-    reducer: (left: Message[], right: Message | Message[]) => {
-      if (Array.isArray(right)) {
-        return left.concat(right);
-      }
-      return left.concat([right]);
-    },
+  messages: Annotation<BaseMessage[]>({
+    reducer: messagesStateReducer,
     default: () => [],
   }),
   agentResponse: Annotation<string>(),
@@ -36,18 +33,19 @@ const StateAnnotation = Annotation.Root({
 });
 
 // Define all node names as a union type for type safety
-export type NodeNames =
-  | "__start__"
-  | "__end__"
-  | 'loadContext'
-  | 'determineAgent'
   | 'taskCreationAgent'
-  | 'planningAgent'
-  | 'executionCoachAgent'
-  | 'adaptationAgent'
-  | 'analyticsAgent'
-  | 'executeActions'
-  | 'generateResponse';
+// export type NodeNames =
+//   | "__start__"
+//   | "__end__"
+//   | 'loadContext'
+//   | 'determineAgent'
+//   | 'taskCreationAgent'
+//   | 'planningAgent'
+//   | 'executionCoachAgent'
+//   | 'adaptationAgent'
+//   | 'analyticsAgent'
+//   | 'executeActions'
+//   | 'generateResponse';
 
 // Create the main supervisor graph
 export const createSupervisorGraph = async () => {
@@ -68,30 +66,15 @@ export const createSupervisorGraph = async () => {
   
   // NOTE: you need to call .setup() the first time you're using your checkpointer
   await checkpointer.setup();
-  
-  // const graph = createReactAgent({
-  //   tools: [getWeather],
-  //   llm: new ChatOpenAI({
-  //     model: "gpt-4o-mini",
-  //   }),
-  //   checkpointSaver: checkpointer,
-  // });
-  // const config = { configurable: { thread_id: "1" } };
-  
-  // await graph.invoke({
-  //   messages: [{
-  //     role: "user",
-  //     content: "what's the weather in sf"
-  //   }],
-  // }, config);
 
   // Initialize the graph with the state annotation
   const graphBuilder = new StateGraph(StateAnnotation);
 
   // Add nodes for each step in the workflow
   graphBuilder.addNode('loadContext', async (state: typeof StateAnnotation.State, ...args: any[]) => {
-    const store = args[0].store;
-    await store.put(['1', 'memories'], '132', { 'food_preference': 'pizza' })
+    // const store = args[0].store;
+    // await store.put(['1', 'memories'], '132', { 'food_preference': 'pizza' })
+    console.log('state---', state)
 
     const updates: Partial<typeof StateAnnotation.State> = {};
     try {
@@ -107,10 +90,9 @@ export const createSupervisorGraph = async () => {
         const tasks = await TaskService.getTasks(state.userId);
         updates.tasks = tasks;
       }
-      updates.messages = [{
-        role: 'user',
-        content: state.input
-      }];
+      // updates.messages = [new HumanMessage({
+      //   content: state.input
+      // })];
     } catch (error) {
       console.error('Error loading context:', error);
       updates.error = `Failed to load context: ${error}`;
@@ -205,18 +187,16 @@ export const createSupervisorGraph = async () => {
   });
 
   graphBuilder.addNode('generateResponse', async (state: GraphState, ...args: any[]) => {
-    console.log('args---', args);
-    const store = args[0].store;
-    console.log('food pref---', await store.get(['1', 'memories'], '132'))
+    // const store = args[0].store;
+    // console.log('food pref---', await store.get(['1', 'memories'], '132'))
 
     const updates: Partial<GraphState> = {};
     try {
       const response = await generateResponse(state);
       updates.agentResponse = response;
-      updates.messages = [{
-        role: 'assistant',
+      updates.messages = [new AIMessage({
         content: response
-      }];
+      })];
     } catch (error) {
       console.error('Error generating response:', error);
       updates.error = `Failed to generate response: ${error}`;
@@ -227,7 +207,7 @@ export const createSupervisorGraph = async () => {
 
   // Define the workflow edges
   // @ts-ignore
-  graphBuilder.addEdge("__start__", 'loadContext');
+  graphBuilder.addEdge(START, 'loadContext');
   // @ts-ignore
   graphBuilder.addEdge('loadContext', 'determineAgent');
   graphBuilder.addConditionalEdges(
@@ -257,7 +237,7 @@ export const createSupervisorGraph = async () => {
   // @ts-ignore
   graphBuilder.addEdge('executeActions', 'generateResponse');
   // @ts-ignore
-  graphBuilder.addEdge('generateResponse', "__end__");
+  graphBuilder.addEdge('generateResponse', END);
 
   // Compile and return the graph
   return graphBuilder.compile({ checkpointer: checkpointer, store: pg_store });

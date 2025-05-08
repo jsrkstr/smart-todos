@@ -1,3 +1,4 @@
+import { BaseMessage } from '@langchain/core/messages';
 import { Task, User, PsychProfile, Coach } from '@prisma/client';
 
 // Main state type for the supervisor graph
@@ -18,7 +19,7 @@ export interface GraphState {
   };
   tasks?: Task[];
   activeAgentType?: AgentType;
-  messages: Message[];
+  messages: BaseMessage[];
   agentResponse?: string;
   actionItems?: ActionItem[];
   error?: string;

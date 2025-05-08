@@ -65,12 +65,12 @@ Here's when to choose each agent:
 // Generate a final response with the Supervisor agent
 export const generateResponse = async (state: GraphState): Promise<string> => {
   // Create LLM
-  const llm = createLLM('gpt-4o', 0.7);
+  const llm = createLLM('gpt-4o', 0.7); 
   
   // Prepare the conversation history
   const conversationHistory = state.messages.map((msg) => {
     return {
-      role: msg.role as any,
+      role: msg.getType() as any,
       content: msg.content
     };
   });

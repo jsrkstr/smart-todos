@@ -4,6 +4,7 @@ import { AgentType, ActionItem, ActionType, GraphState, Message } from '../types
 import { createLLM, getSystemPrompt } from '../utils/llm';
 import { StructuredOutputParser } from 'langchain/output_parsers';
 import { z } from 'zod';
+import { AIMessage } from '@langchain/core/messages';
 
 // Process the user input with Adaptation agent
 export const processAdaptation = async (state: GraphState): Promise<ActionItem[]> => {
@@ -31,8 +32,8 @@ export const processAdaptation = async (state: GraphState): Promise<ActionItem[]
 
   // Prepare the conversation history
   const conversationHistory = state.messages.filter(msg => 
-    msg.role === 'user' || 
-    (msg.role === 'assistant' && msg.agentType === AgentType.Adaptation)
+    msg.getType() === 'human' ||
+    (msg.getType() === 'ai' && msg.additional_kwargs.agentType === AgentType.Adaptation)
   );
 
   // Task and user context
@@ -64,22 +65,24 @@ export const processAdaptation = async (state: GraphState): Promise<ActionItem[]
 
   // Record the agent's adaptation strategy as a message
   if (result.adaptationStrategy) {
-    state.messages.push({
-      role: 'assistant',
+    state.messages.push(new AIMessage({
       content: result.adaptationStrategy,
-      agentType: AgentType.Adaptation,
-      name: 'adaptation'
-    });
+      additional_kwargs: {
+        agentType: AgentType.Adaptation,
+        name: 'adaptation'
+      }
+    }));
   }
 
   // Record the agent's thought process as a message
   if (result.reasoning) {
-    state.messages.push({
-      role: 'assistant',
+    state.messages.push(new AIMessage({
       content: result.reasoning,
-      agentType: AgentType.Adaptation,
-      name: 'reasoning'
-    });
+      additional_kwargs: {
+        agentType: AgentType.Adaptation,
+        name: 'reasoning'
+      }
+    }));
   }
 
   return result.actions.filter((action) => action.type !== 'none') as ActionItem[];

@@ -4,6 +4,7 @@ import { AgentType, ActionItem, ActionType, GraphState, Message } from '../types
 import { createLLM, getSystemPrompt } from '../utils/llm';
 import { StructuredOutputParser } from 'langchain/output_parsers';
 import { z } from 'zod';
+import { AIMessage } from '@langchain/core/messages';
 
 // Process the user input with Planning agent
 export const processPlanning = async (state: GraphState): Promise<ActionItem[]> => {
@@ -30,8 +31,8 @@ export const processPlanning = async (state: GraphState): Promise<ActionItem[]> 
 
   // Prepare the conversation history
   const conversationHistory = state.messages.filter(msg => 
-    msg.role === 'user' || 
-    (msg.role === 'assistant' && msg.agentType === AgentType.Planning)
+    msg.getType() === 'human' || 
+    (msg.getType() === 'ai' && msg.additional_kwargs.agentType === AgentType.Planning)
   );
 
   // Task and user context
@@ -67,12 +68,13 @@ export const processPlanning = async (state: GraphState): Promise<ActionItem[]> 
 
   // Record the agent's thought process as a message
   if (result.reasoning) {
-    state.messages.push({
-      role: 'assistant',
+    state.messages.push(new AIMessage({
       content: result.reasoning,
-      agentType: AgentType.Planning,
-      name: 'reasoning'
-    });
+      additional_kwargs: {
+        agentType: AgentType.Planning,
+        name: 'reasoning'
+      }
+    }));
   }
 
   return result.actions.filter((action) => action.type !== 'none') as ActionItem[];

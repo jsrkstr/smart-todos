@@ -4,6 +4,7 @@ import { AgentType, ActionItem, ActionType, GraphState, Message } from '../types
 import { createLLM, getSystemPrompt } from '../utils/llm';
 import { StructuredOutputParser } from 'langchain/output_parsers';
 import { z } from 'zod';
+import { AIMessage } from '@langchain/core/messages';
 
 // Process the user input with Execution Coach agent
 export const processExecutionCoach = async (state: GraphState): Promise<ActionItem[]> => {
@@ -34,14 +35,13 @@ export const processExecutionCoach = async (state: GraphState): Promise<ActionIt
 
   // Prepare the conversation history
   const conversationHistory = state.messages.filter(msg => 
-    msg.role === 'user' || 
-    (msg.role === 'assistant' && msg.agentType === AgentType.ExecutionCoach)
+    msg.getType() === 'human' || 
+    (msg.getType() === 'ai' && msg.additional_kwargs.agentType === AgentType.ExecutionCoach)
   );
 
   // Task and user context
-  const taskContext = state.task ? 
-    `Task: ${state.task.title}\nDescription: ${state.task.description || 'None'}\nPriority: ${state.task.priority}\nStage: ${state.task.stage}\nStatus: ${state.task.stageStatus}\nDeadline: ${state.task.deadline ? new Date(state.task.deadline).toISOString() : 'None'}` : 
-    'No task provided';
+  const allTasks = state.task ? [state.task] : state.tasks || []
+  const taskContext = `\n\nTasks:\n${allTasks.map((task: any) => `\n- TaskId: ${task.id}\nTask: ${task.title}\nDescription: ${task.description || 'None'}\nPriority: ${task.priority}\nStage: ${task.stage}\nStatus: ${task.stageStatus}\nDeadline: ${task.deadline ? new Date(task.deadline).toISOString() : 'None'}`).join('')}`;
 
   // Get coach info and preferences if available
   const coach = state.user?.psychProfile?.coach;
@@ -73,22 +73,24 @@ export const processExecutionCoach = async (state: GraphState): Promise<ActionIt
 
   // Record the agent's motivational message as a message
   if (result.motivationalMessage) {
-    state.messages.push({
-      role: 'assistant',
+    state.messages.push(new AIMessage({
       content: result.motivationalMessage,
-      agentType: AgentType.ExecutionCoach,
-      name: 'motivation'
-    });
+      additional_kwargs: {
+        agentType: AgentType.ExecutionCoach,
+        name: 'motivation'
+      }
+    }));
   }
 
   // Record the agent's thought process as a message
   if (result.reasoning) {
-    state.messages.push({
-      role: 'assistant',
+    state.messages.push(new AIMessage({
       content: result.reasoning,
-      agentType: AgentType.ExecutionCoach,
-      name: 'reasoning'
-    });
+      additional_kwargs: {
+        agentType: AgentType.ExecutionCoach,
+        name: 'reasoning'
+      }
+    }));
   }
 
   return result.actions.filter((action) => action.type !== 'none') as ActionItem[];
