@@ -22,7 +22,6 @@ const StateAnnotation = Annotation.Root({
   tasks: Annotation<any>(),
   activeAgentType: Annotation<AgentType>(),
   // https://langchain-ai.github.io/langgraphjs/reference/variables/langgraph.MessagesAnnotation.html
-  messages: Annotation<Message[]>({
   messages: Annotation<BaseMessage[]>({
     reducer: messagesStateReducer,
     default: () => [],
@@ -33,7 +32,6 @@ const StateAnnotation = Annotation.Root({
 });
 
 // Define all node names as a union type for type safety
-  | 'taskCreationAgent'
 // export type NodeNames =
 //   | "__start__"
 //   | "__end__"
