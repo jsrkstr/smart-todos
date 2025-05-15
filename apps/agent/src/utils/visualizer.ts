@@ -1,5 +1,5 @@
 import { LangChainTracer } from 'langchain/callbacks';
-import { GraphState } from '../types';
+import { StateAnnotation } from '../consts';
 
 /**
  * Creates a visualizer for the langGraph workflow
@@ -26,7 +26,7 @@ export const createVisualizer = () => {
  */
 export const visualizeState = (
   visualizer: LangChainTracer | null,
-  state: GraphState,
+  state: typeof StateAnnotation.State,
   step: string
 ) => {
   if (!visualizer) return;

@@ -1,13 +1,14 @@
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
-import { AgentType, ActionItem, ActionType, GraphState, Message } from '../types';
+import { AgentType, ActionItem } from '../types';
 import { createLLM, getSystemPrompt } from '../utils/llm';
 import { StructuredOutputParser } from 'langchain/output_parsers';
 import { z } from 'zod';
 import { AIMessage } from '@langchain/core/messages';
+import { StateAnnotation } from '../types';
 
 // Process the user input with Execution Coach agent
-export const processExecutionCoach = async (state: GraphState): Promise<ActionItem[]> => {
+export const processExecutionCoach = async (state: typeof StateAnnotation.State): Promise<ActionItem[]> => {
   // Create LLM
   const llm = createLLM('gpt-4o', 0.3); // Slightly higher temperature for more creative coaching
 
@@ -59,8 +60,8 @@ export const processExecutionCoach = async (state: GraphState): Promise<ActionIt
   // Create the chain
   const chain = RunnableSequence.from([
     {
-      input: (state: GraphState) => state.input,
-      conversation_history: (state: GraphState) => conversationHistory,
+      input: (state: typeof StateAnnotation.State) => state.input,
+      conversation_history: (state: typeof StateAnnotation.State) => conversationHistory,
       format_instructions: async () => outputParser.getFormatInstructions()
     },
     prompt,

@@ -1,29 +1,35 @@
 import { BaseMessage } from '@langchain/core/messages';
 import { Task, User, PsychProfile, Coach } from '@prisma/client';
+import { Annotation, messagesStateReducer } from "@langchain/langgraph";
 
-// Main state type for the supervisor graph
-export interface GraphState {
-  userId: string;
-  input: string;
-  context?: {
-    taskId?: string;
-    modelName?: string;
+export interface UserWithPsychProfile extends User {
+  psychProfile?: PsychProfile & {
+    coach?: Coach;
   };
-  user?: User & {
-    psychProfile?: PsychProfile & {
-      coach?: Coach;
-    };
-  };
-  task?: Task & {
-    children?: Task[];
-  };
-  tasks?: Task[];
-  activeAgentType?: AgentType;
-  messages: BaseMessage[];
-  agentResponse?: string;
-  actionItems?: ActionItem[];
-  error?: string;
 }
+
+// Define the state annotation for the graph, including reducers where appropriate
+export const StateAnnotation = Annotation.Root({
+  userId: Annotation<string>(),
+  input: Annotation<string>(),
+  context: Annotation<any>(), // You can further annotate structure if needed
+  user: Annotation<UserWithPsychProfile | null>(),
+  task: Annotation<Task & {
+      children?: Task[];
+    } | null>(),
+  tasks: Annotation<Task[] | null>(),
+  activeAgentType: Annotation<AgentType>(),
+  // https://langchain-ai.github.io/langgraphjs/reference/variables/langgraph.MessagesAnnotation.html
+  messages: Annotation<BaseMessage[]>({
+    reducer: messagesStateReducer,
+    default: () => [],
+  }),
+  summary: Annotation<string   | null>(),
+  agentResponse: Annotation<string | null>(),
+  actionItems: Annotation<ActionItem[]>(),
+  error: Annotation<string | null>(),
+});
+
 
 // Types of messages in the agent conversation
 export interface Message {

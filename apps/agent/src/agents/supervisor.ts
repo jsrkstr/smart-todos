@@ -1,10 +1,10 @@
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
-import { AgentExecutor, createStructuredChatAgent } from 'langchain/agents';
-import { GraphState, AgentType, Message } from '../types';
+import { AgentType } from '../types';
 import { createLLM, getSystemPrompt } from '../utils/llm';
+import { StateAnnotation } from '../types';
 
 // Determine which agent should handle the user request
-export const determineAgent = async (state: GraphState): Promise<AgentType> => {
+export const determineAgent = async (state: typeof StateAnnotation.State): Promise<AgentType> => {
   // Prepare context for the supervisor agent
   const context = {
     task: state.task,
@@ -63,7 +63,7 @@ Here's when to choose each agent:
 };
 
 // Generate a final response with the Supervisor agent
-export const generateResponse = async (state: GraphState): Promise<string> => {
+export const generateResponse = async (state: typeof StateAnnotation.State): Promise<string> => {
   // Create LLM
   const llm = createLLM('gpt-4o', 0.7); 
   
@@ -86,7 +86,7 @@ export const generateResponse = async (state: GraphState): Promise<string> => {
 
   // Create a prompt template for generating the final response
   const prompt = ChatPromptTemplate.fromMessages([
-    ['system', getSystemPrompt('supervisor') + `\n\nYou are generating the final response to the user. Make it helpful, supportive, and actionable. Maintain a consistent tone aligned with the user's coach and preferences.\n\nUser Context: ${userContext}\nTask Context: ${taskContext}`],
+    ['system', getSystemPrompt('supervisor') + `\n\nYou are generating the final response to the user. Make it concise, helpful, supportive, and actionable. Maintain a consistent tone aligned with the user's coach and preferences.\n\nUser Context: ${userContext}\nTask Context: ${taskContext}`],
     new MessagesPlaceholder('conversation_history'),
     ['human', 'Generate a final response based on the conversation history and the completed actions.']
   ]);

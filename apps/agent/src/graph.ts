@@ -1,5 +1,5 @@
 import { StateGraph, Annotation, BaseStore, InMemoryStore, START, END, MessagesAnnotation, messagesStateReducer } from '@langchain/langgraph';
-import { AgentType, GraphState, ActionItem } from './types/index';
+import { AgentType, ActionItem } from './types/index';
 import { determineAgent, generateResponse } from './agents/supervisor';
 import { processTaskCreation } from './agents/taskCreation';
 import { processPlanning } from './agents/planning';
@@ -10,26 +10,9 @@ import { executeActions } from './utils/actions';
 import { UserService, TaskService } from './services/database';
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { PostgresStore } from './utils/pg-store';
-import { AIMessage, BaseMessage, HumanMessage, isHumanMessage } from '@langchain/core/messages';
-
-// Define the state annotation for the graph, including reducers where appropriate
-const StateAnnotation = Annotation.Root({
-  userId: Annotation<string>(),
-  input: Annotation<string>(),
-  context: Annotation<any>(), // You can further annotate structure if needed
-  user: Annotation<any>(),
-  task: Annotation<any>(),
-  tasks: Annotation<any>(),
-  activeAgentType: Annotation<AgentType>(),
-  // https://langchain-ai.github.io/langgraphjs/reference/variables/langgraph.MessagesAnnotation.html
-  messages: Annotation<BaseMessage[]>({
-    reducer: messagesStateReducer,
-    default: () => [],
-  }),
-  agentResponse: Annotation<string>(),
-  actionItems: Annotation<ActionItem[]>(),
-  error: Annotation<string>(),
-});
+import { AIMessage, BaseMessage, HumanMessage, isHumanMessage, RemoveMessage } from '@langchain/core/messages';
+import { createLLM } from './utils/llm';
+import { StateAnnotation } from './types/index';
 
 // Define all node names as a union type for type safety
 // export type NodeNames =
@@ -98,7 +81,30 @@ export const createSupervisorGraph = async () => {
     return updates;
   });
 
-  graphBuilder.addNode('determineAgent', async (state: GraphState) => {
+  graphBuilder.addNode('generateSummary', async (state: typeof StateAnnotation.State) => {
+    const updates: Partial<typeof StateAnnotation.State> = {};
+    const summary = state.summary;
+    const conversationHistory = state.messages.map(msg => msg.content).join(' ');
+    console.log('conversationHistory---', conversationHistory)
+    try {
+      let prompt = '';
+      if (summary) {
+        prompt = `This is summary of the conversation to date: \n${summary}\n\n Extend the summary by taking into account the new messages below: \n${conversationHistory}`;
+      } else {
+        prompt = `Create a summary of the conversation below: \n${conversationHistory}`;
+      }
+      const llm = createLLM('gpt-4o-mini', 0.2);
+      const response = await llm.invoke(prompt);
+      updates.summary = (response.content as string) || '';
+      updates.messages = state.messages.slice(-2).map((msg) => (new RemoveMessage({ id: msg.id ?? '' })));
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      updates.error = `Failed to generate summary: ${error}`;
+    }
+    return updates;
+  });
+
+  graphBuilder.addNode('determineAgent', async (state: typeof StateAnnotation.State) => {
     const updates: Partial<GraphState> = {};
     try {
       const agentType = await determineAgent(state);
@@ -111,7 +117,7 @@ export const createSupervisorGraph = async () => {
     return updates;
   });
 
-  graphBuilder.addNode('taskCreationAgent', async (state: GraphState) => {
+  graphBuilder.addNode('taskCreationAgent', async (state: typeof StateAnnotation.State) => {
     const updates: Partial<GraphState> = {};
     try {
       const actions = await processTaskCreation(state);
@@ -123,7 +129,7 @@ export const createSupervisorGraph = async () => {
     return updates;
   });
 
-  graphBuilder.addNode('planningAgent', async (state: GraphState) => {
+  graphBuilder.addNode('planningAgent', async (state: typeof StateAnnotation.State) => {
     const updates: Partial<GraphState> = {};
     try {
       const actions = await processPlanning(state);
@@ -135,7 +141,7 @@ export const createSupervisorGraph = async () => {
     return updates;
   });
 
-  graphBuilder.addNode('executionCoachAgent', async (state: GraphState) => {
+  graphBuilder.addNode('executionCoachAgent', async (state: typeof StateAnnotation.State) => {
     const updates: Partial<GraphState> = {};
     try {
       const actions = await processExecutionCoach(state);
@@ -147,7 +153,7 @@ export const createSupervisorGraph = async () => {
     return updates;
   });
 
-  graphBuilder.addNode('adaptationAgent', async (state: GraphState) => {
+  graphBuilder.addNode('adaptationAgent', async (state: typeof StateAnnotation.State) => {
     const updates: Partial<GraphState> = {};
     try {
       const actions = await processAdaptation(state);
@@ -159,7 +165,7 @@ export const createSupervisorGraph = async () => {
     return updates;
   });
 
-  graphBuilder.addNode('analyticsAgent', async (state: GraphState) => {
+  graphBuilder.addNode('analyticsAgent', async (state: typeof StateAnnotation.State) => {
     const updates: Partial<GraphState> = {};
     try {
       const actions = await processAnalytics(state);
@@ -171,7 +177,7 @@ export const createSupervisorGraph = async () => {
     return updates;
   });
 
-  graphBuilder.addNode('executeActions', async (state: GraphState) => {
+  graphBuilder.addNode('executeActions', async (state: typeof StateAnnotation.State) => {
     if (!state.actionItems || state.actionItems.length === 0) {
       return {};
     }
@@ -184,7 +190,7 @@ export const createSupervisorGraph = async () => {
     }
   });
 
-  graphBuilder.addNode('generateResponse', async (state: GraphState, ...args: any[]) => {
+  graphBuilder.addNode('generateResponse', async (state: typeof StateAnnotation.State, ...args: any[]) => {
     // const store = args[0].store;
     // console.log('food pref---', await store.get(['1', 'memories'], '132'))
 
@@ -208,10 +214,11 @@ export const createSupervisorGraph = async () => {
   graphBuilder.addEdge(START, 'loadContext');
   // @ts-ignore
   graphBuilder.addEdge('loadContext', 'determineAgent');
+
   graphBuilder.addConditionalEdges(
     // @ts-ignore
     'determineAgent',
-    (state: GraphState) => {
+    (state: typeof StateAnnotation.State) => {
       switch(state.activeAgentType) {
         case AgentType.TaskCreation: return 'taskCreationAgent';
         case AgentType.Planning: return 'planningAgent';
@@ -235,7 +242,18 @@ export const createSupervisorGraph = async () => {
   // @ts-ignore
   graphBuilder.addEdge('executeActions', 'generateResponse');
   // @ts-ignore
-  graphBuilder.addEdge('generateResponse', END);
+  graphBuilder.addConditionalEdges(
+    // @ts-ignore
+    'generateResponse',
+    (state: typeof StateAnnotation.State) => {
+      if (state.messages.length > 6) {
+        return 'generateSummary';
+      }
+      return END;
+    }
+  );
+  // @ts-ignore
+  graphBuilder.addEdge('generateSummary', END);
 
   // Compile and return the graph
   return graphBuilder.compile({ checkpointer: checkpointer, store: pg_store });

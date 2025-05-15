@@ -1,3 +1,4 @@
+import { StateAnnotation } from './consts';
 import { createSupervisorGraph } from './graph';
 import { GraphState, AgentType } from './types';
 import dotenv from 'dotenv';
@@ -19,13 +20,21 @@ export async function processRequest(
   userId: string,
   input: string,
   context?: { taskId?: string; modelName?: string }
-): Promise<GraphState> {
+): Promise<typeof StateAnnotation.State> {
   // Initialize state with user input and context
-  const initialState: GraphState = {
+  const initialState: typeof StateAnnotation.State = {
     userId,
     input,
+    user: null,
+    task: null,
+    tasks: null,
+    activeAgentType: AgentType.TaskCreation,
     context,
     messages: [],
+    summary: null,
+    agentResponse: null,
+    actionItems: [],
+    error: null,
   };
 
   const config = { configurable: { thread_id: "2" } };
