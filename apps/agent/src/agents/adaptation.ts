@@ -8,7 +8,7 @@ import { AIMessage } from '@langchain/core/messages';
 import { StateAnnotation } from '../types';
 
 // Process the user input with Adaptation agent
-export const processAdaptation = async (state: typeof StateAnnotation.State): Promise<ActionItem[]> => {
+export const processAdaptation = async (state: typeof StateAnnotation.State): Promise<typeof StateAnnotation.State> => {
   // Create LLM
   const llm = createLLM('gpt-4o', 0.4); // Higher temperature for creative adaptations
 
@@ -27,7 +27,8 @@ export const processAdaptation = async (state: typeof StateAnnotation.State): Pr
         })
       ),
       adaptationStrategy: z.string().describe('The strategy you recommend for adapting the task or plan'),
-      reasoning: z.string().describe('Your explanation of why adaptation is needed and how it will help')
+      reasoning: z.string().describe('Your explanation of why adaptation is needed and how it will help'),
+      response: z.string().describe('A concise, helpful response to the user explaining the adaptation strategy and changes')
     })
   );
 
@@ -44,9 +45,9 @@ export const processAdaptation = async (state: typeof StateAnnotation.State): Pr
 
   // Create a prompt template
   const prompt = ChatPromptTemplate.fromMessages([
-    ['system', getSystemPrompt('adaptation') + `\n\nRespond with a structured output containing actions, an adaptation strategy, and reasoning.`],
+    ['system', getSystemPrompt('adaptation') + `\n\nRespond with a structured output containing actions, an adaptation strategy, reasoning, and a concise user-friendly response.`],
     new MessagesPlaceholder('conversation_history'),
-    ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nAnalyze if the current task/plan needs adaptation. Consider if the approach should be modified, if timelines need adjustment, or if goals need to be recalibrated. Provide a structured response with actions to take in JSON format. {format_instructions}`],
+    ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nAnalyze if the current task/plan needs adaptation. Consider if the approach should be modified, if timelines need adjustment, or if goals need to be recalibrated. Provide a structured response with actions to take in JSON format. Include a concise, helpful response to the user explaining the adaptation strategy and changes. {format_instructions}`],
   ]);
 
   // Create the chain
@@ -86,5 +87,23 @@ export const processAdaptation = async (state: typeof StateAnnotation.State): Pr
     }));
   }
 
-  return result.actions.filter((action) => action.type !== 'none') as ActionItem[];
+  // Store the actions for execution
+  state.actionItems = result.actions.filter((action) => action.type !== 'none') as ActionItem[];
+  
+  // Create response for the user
+  if (result.response) {
+    state.agentResponse = result.response;
+    
+    // Push the agent's response to the message history
+    state.messages.push(
+      new AIMessage({
+        content: state.agentResponse,
+        additional_kwargs: {
+          agentType: AgentType.Adaptation,
+        },
+      })
+    );
+  }
+  
+  return state;
 };

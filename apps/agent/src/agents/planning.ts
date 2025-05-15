@@ -8,7 +8,7 @@ import { AIMessage } from '@langchain/core/messages';
 import { StateAnnotation } from '../types';
 
 // Process the user input with Planning agent
-export const processPlanning = async (state: typeof StateAnnotation.State): Promise<ActionItem[]> => {
+export const processPlanning = async (state: typeof StateAnnotation.State): Promise<typeof StateAnnotation.State> => {
   // Create LLM
   const llm = createLLM('gpt-4o', 0.2);
 
@@ -26,7 +26,8 @@ export const processPlanning = async (state: typeof StateAnnotation.State): Prom
           payload: z.any()
         })
       ),
-      reasoning: z.string().describe('Your explanation of the breakdown or prioritization strategy')
+      reasoning: z.string().describe('Your explanation of the breakdown or prioritization strategy'),
+      response: z.string().describe('A concise, helpful response to the user explaining your actions and plans')
     })
   );
 
@@ -47,9 +48,9 @@ export const processPlanning = async (state: typeof StateAnnotation.State): Prom
 
   // Create a prompt template
   const prompt = ChatPromptTemplate.fromMessages([
-    ['system', getSystemPrompt('planning') + `\n\nRespond with a structured output containing actions and reasoning.`],
+    ['system', getSystemPrompt('planning') + `\n\nRespond with a structured output containing actions, reasoning, and a concise user-friendly response.`],
     new MessagesPlaceholder('conversation_history'),
-    ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nUser Context:\n${userContext}\n\nProvide a structured response with actions to take in JSON format. For task breakdown, create subtasks that can be completed in 10-15 minutes each. For prioritization, consider deadlines, importance, and user preferences. {format_instructions}`],
+    ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nUser Context:\n${userContext}\n\nProvide a structured response with actions to take in JSON format. For task breakdown, create subtasks that can be completed in 10-15 minutes each. For prioritization, consider deadlines, importance, and user preferences. Include a concise, helpful response to the user explaining your actions and plans. {format_instructions}`],
   ]);
 
   // Create the chain
@@ -78,5 +79,23 @@ export const processPlanning = async (state: typeof StateAnnotation.State): Prom
     }));
   }
 
-  return result.actions.filter((action) => action.type !== 'none') as ActionItem[];
+  // Store the actions for execution
+  state.actionItems = result.actions.filter((action) => action.type !== 'none') as ActionItem[];
+  
+  // Create response for the user
+  if (result.response) {
+    state.agentResponse = result.response;
+    
+    // Push the agent's response to the message history
+    state.messages.push(
+      new AIMessage({
+        content: state.agentResponse,
+        additional_kwargs: {
+          agentType: AgentType.Planning,
+        },
+      })
+    );
+  }
+  
+  return state;
 };

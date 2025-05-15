@@ -18,7 +18,7 @@ export const StateAnnotation = Annotation.Root({
       children?: Task[];
     } | null>(),
   tasks: Annotation<Task[] | null>(),
-  activeAgentType: Annotation<AgentType>(),
+  activeAgentType: Annotation<AgentType | null>(),
   // https://langchain-ai.github.io/langgraphjs/reference/variables/langgraph.MessagesAnnotation.html
   messages: Annotation<BaseMessage[]>({
     reducer: messagesStateReducer,

@@ -1,15 +1,29 @@
 import { ChatOpenAI } from '@langchain/openai';
 import dotenv from 'dotenv';
+import { DynamicStructuredTool } from 'langchain/tools';
 
 // Load environment variables
 dotenv.config();
 
-// Create and export a reusable LLM instance
-export const createLLM = (modelName = 'gpt-4o-mini', temperature = 0.2) => {
-  return new ChatOpenAI({
-    modelName: 'gpt-4o-mini', //modelName,
+/**
+ * Create and export a reusable LLM instance
+ * @param modelName - The name of the model to use
+ * @param temperature - Temperature parameter for generation
+ * @param options - Additional options including tool definitions
+ * @returns ChatOpenAI instance configured for the specified parameters
+ */
+export const createLLM = (
+  modelName = 'gpt-4o-mini', 
+  temperature = 0.2, 
+) => {
+  // Configure the base ChatOpenAI instance
+  const config: Record<string, any> = {
+    modelName: modelName, // Use the passed modelName directly
     temperature,
-  });
+  };
+  
+  // Create and return the LLM instance
+  return new ChatOpenAI(config);
 };
 
 // Get system prompt for an agent based on type

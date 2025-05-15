@@ -1,12 +1,12 @@
 import { StateGraph, Annotation, BaseStore, InMemoryStore, START, END, MessagesAnnotation, messagesStateReducer } from '@langchain/langgraph';
 import { AgentType, ActionItem } from './types/index';
-import { determineAgent, generateResponse } from './agents/supervisor';
+import { determineAgent } from './agents/supervisor';
 import { processTaskCreation } from './agents/taskCreation';
 import { processPlanning } from './agents/planning';
 import { processExecutionCoach } from './agents/executionCoach';
 import { processAdaptation } from './agents/adaptation';
 import { processAnalytics } from './agents/analytics';
-import { executeActions } from './utils/actions';
+// executeActions is now handled by specialized agents directly
 import { UserService, TaskService } from './services/database';
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { PostgresStore } from './utils/pg-store';
@@ -61,7 +61,8 @@ export const createSupervisorGraph = async () => {
     try {
       if (state.userId) {
         const user = await UserService.getUserWithProfile(state.userId);
-        updates.user = user;
+        // Fix type cast to match UserWithPsychProfile type
+        updates.user = user as unknown as typeof StateAnnotation.State['user'];
       }
       if (state.context?.taskId && state.userId) {
         const task = await TaskService.getTask(state.context.taskId, state.userId);
@@ -105,10 +106,9 @@ export const createSupervisorGraph = async () => {
   });
 
   graphBuilder.addNode('determineAgent', async (state: typeof StateAnnotation.State) => {
-    const updates: Partial<GraphState> = {};
+    let updates: Partial<typeof StateAnnotation.State> = {};
     try {
-      const agentType = await determineAgent(state);
-      updates.activeAgentType = agentType;
+      updates = await determineAgent(state);
     } catch (error) {
       console.error('Error determining agent:', error);
       updates.error = `Failed to determine agent: ${error}`;
@@ -118,107 +118,94 @@ export const createSupervisorGraph = async () => {
   });
 
   graphBuilder.addNode('taskCreationAgent', async (state: typeof StateAnnotation.State) => {
-    const updates: Partial<GraphState> = {};
     try {
-      const actions = await processTaskCreation(state);
-      updates.actionItems = actions;
+      // Now processTaskCreation returns the updated state directly
+      return await processTaskCreation(state, {});
     } catch (error) {
       console.error('Error in task creation agent:', error);
-      updates.error = `Task creation agent error: ${error}`;
+      return { error: `Task creation agent error: ${error}` };
     }
-    return updates;
   });
 
   graphBuilder.addNode('planningAgent', async (state: typeof StateAnnotation.State) => {
-    const updates: Partial<GraphState> = {};
     try {
-      const actions = await processPlanning(state);
-      updates.actionItems = actions;
+      // Now processPlanning returns the updated state directly
+      return await processPlanning(state);
     } catch (error) {
       console.error('Error in planning agent:', error);
-      updates.error = `Planning agent error: ${error}`;
+      return { error: `Planning agent error: ${error}` };
     }
-    return updates;
   });
 
   graphBuilder.addNode('executionCoachAgent', async (state: typeof StateAnnotation.State) => {
-    const updates: Partial<GraphState> = {};
     try {
-      const actions = await processExecutionCoach(state);
-      updates.actionItems = actions;
+      // Now processExecutionCoach returns the updated state directly
+      return await processExecutionCoach(state);
     } catch (error) {
       console.error('Error in execution coach agent:', error);
-      updates.error = `Execution coach agent error: ${error}`;
+      return { error: `Execution coach agent error: ${error}` };
     }
-    return updates;
   });
 
   graphBuilder.addNode('adaptationAgent', async (state: typeof StateAnnotation.State) => {
-    const updates: Partial<GraphState> = {};
     try {
-      const actions = await processAdaptation(state);
-      updates.actionItems = actions;
+      // Now processAdaptation returns the updated state directly
+      return await processAdaptation(state);
     } catch (error) {
       console.error('Error in adaptation agent:', error);
-      updates.error = `Adaptation agent error: ${error}`;
+      return { error: `Adaptation agent error: ${error}` };
     }
-    return updates;
   });
 
   graphBuilder.addNode('analyticsAgent', async (state: typeof StateAnnotation.State) => {
-    const updates: Partial<GraphState> = {};
     try {
-      const actions = await processAnalytics(state);
-      updates.actionItems = actions;
+      // Now processAnalytics returns the updated state directly
+      return await processAnalytics(state);
     } catch (error) {
       console.error('Error in analytics agent:', error);
-      updates.error = `Analytics agent error: ${error}`;
-    }
-    return updates;
-  });
-
-  graphBuilder.addNode('executeActions', async (state: typeof StateAnnotation.State) => {
-    if (!state.actionItems || state.actionItems.length === 0) {
-      return {};
-    }
-    try {
-      const newState = await executeActions(state, state.actionItems);
-      return newState;
-    } catch (error) {
-      console.error('Error executing actions:', error);
-      return { error: `Failed to execute actions: ${error}` };
+      return { error: `Analytics agent error: ${error}` };
     }
   });
 
-  graphBuilder.addNode('generateResponse', async (state: typeof StateAnnotation.State, ...args: any[]) => {
-    // const store = args[0].store;
-    // console.log('food pref---', await store.get(['1', 'memories'], '132'))
+  // Each specialized agent now executes its own actions and returns a response
 
-    const updates: Partial<GraphState> = {};
-    try {
-      const response = await generateResponse(state);
-      updates.agentResponse = response;
-      updates.messages = [new AIMessage({
-        content: response
-      })];
-    } catch (error) {
-      console.error('Error generating response:', error);
-      updates.error = `Failed to generate response: ${error}`;
-      updates.agentResponse = 'I apologize, but I encountered an error processing your request.';
-    }
-    return updates;
-  });
+  // generateResponse node removed as specialized agents now return responses directly
 
   // Define the workflow edges
   // @ts-ignore
-  graphBuilder.addEdge(START, 'loadContext');
+  graphBuilder.addEdge(START, 'determineAgent');
   // @ts-ignore
-  graphBuilder.addEdge('loadContext', 'determineAgent');
+  // graphBuilder.addEdge('loadContext', 'determineAgent');
 
+  // Supervisor node routing logic is defined later
+  // @ts-ignore
+  // Specialized agents now return to the supervisor for potential further routing
+  graphBuilder.addEdge('taskCreationAgent', 'determineAgent');
+  // @ts-ignore
+  graphBuilder.addEdge('planningAgent', 'determineAgent');
+  // @ts-ignore
+  graphBuilder.addEdge('executionCoachAgent', 'determineAgent');
+  // @ts-ignore
+  graphBuilder.addEdge('adaptationAgent', 'determineAgent');
+  // @ts-ignore
+  graphBuilder.addEdge('analyticsAgent', 'determineAgent');
+  // @ts-ignore
+  // @ts-ignore
+  // Add a conditional edge from determineAgent to handle completion
   graphBuilder.addConditionalEdges(
     // @ts-ignore
     'determineAgent',
     (state: typeof StateAnnotation.State) => {
+      // If an agent has already produced a response, we're done
+      if (state.activeAgentType === null) {
+        // Generate a summary if conversation is getting long
+        if (state.messages.length > 6) {
+          return 'generateSummary';
+        }
+        return END;
+      }
+
+      // Otherwise route to the appropriate specialized agent
       switch(state.activeAgentType) {
         case AgentType.TaskCreation: return 'taskCreationAgent';
         case AgentType.Planning: return 'planningAgent';
@@ -227,29 +214,6 @@ export const createSupervisorGraph = async () => {
         case AgentType.Analytics: return 'analyticsAgent';
         default: return 'taskCreationAgent';
       }
-    }
-  );
-  // @ts-ignore
-  graphBuilder.addEdge('taskCreationAgent', 'executeActions');
-  // @ts-ignore
-  graphBuilder.addEdge('planningAgent', 'executeActions');
-  // @ts-ignore
-  graphBuilder.addEdge('executionCoachAgent', 'executeActions');
-  // @ts-ignore
-  graphBuilder.addEdge('adaptationAgent', 'executeActions');
-  // @ts-ignore
-  graphBuilder.addEdge('analyticsAgent', 'executeActions');
-  // @ts-ignore
-  graphBuilder.addEdge('executeActions', 'generateResponse');
-  // @ts-ignore
-  graphBuilder.addConditionalEdges(
-    // @ts-ignore
-    'generateResponse',
-    (state: typeof StateAnnotation.State) => {
-      if (state.messages.length > 6) {
-        return 'generateSummary';
-      }
-      return END;
     }
   );
   // @ts-ignore

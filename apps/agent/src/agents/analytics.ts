@@ -8,7 +8,7 @@ import { AIMessage } from '@langchain/core/messages';
 import { StateAnnotation } from '../types';
 
 // Process the user input with Analytics agent
-export const processAnalytics = async (state: typeof StateAnnotation.State): Promise<ActionItem[]> => {
+export const processAnalytics = async (state: typeof StateAnnotation.State): Promise<typeof StateAnnotation.State> => {
   // Create LLM
   const llm = createLLM('gpt-4o', 0.2);
 
@@ -26,7 +26,8 @@ export const processAnalytics = async (state: typeof StateAnnotation.State): Pro
       ),
       insights: z.array(z.string()).describe('Key insights derived from analyzing task patterns and performance'),
       recommendations: z.array(z.string()).describe('Specific recommendations for improving productivity or task management'),
-      reasoning: z.string().describe('Your analytical process and methodology')
+      reasoning: z.string().describe('Your analytical process and methodology'),
+      response: z.string().describe('A concise, helpful response to the user summarizing the key insights and recommendations')
     })
   );
 
@@ -46,9 +47,9 @@ export const processAnalytics = async (state: typeof StateAnnotation.State): Pro
 
   // Create a prompt template
   const prompt = ChatPromptTemplate.fromMessages([
-    ['system', getSystemPrompt('analytics') + `\n\nRespond with a structured output containing actions, insights, recommendations, and reasoning.`],
+    ['system', getSystemPrompt('analytics') + `\n\nRespond with a structured output containing actions, insights, recommendations, reasoning, and a concise user-friendly response.`],
     new MessagesPlaceholder('conversation_history'),
-    ['human', `User request: {input}\n\nTasks Context:\n${tasksContext}\n\nAnalyze the user's task patterns and performance. Look for trends in completion rates, task types, and productivity patterns. Provide a structured response with insights, recommendations, and any actions to take in JSON format. {format_instructions}`],
+    ['human', `User request: {input}\n\nTasks Context:\n${tasksContext}\n\nAnalyze the user's task patterns and performance. Look for trends in completion rates, task types, and productivity patterns. Provide a structured response with insights, recommendations, and any actions to take in JSON format. Include a concise user-friendly response summarizing the key insights and recommendations. {format_instructions}`],
   ]);
 
   // Create the chain
@@ -99,5 +100,23 @@ export const processAnalytics = async (state: typeof StateAnnotation.State): Pro
     }));
   }
 
-  return result.actions.filter((action) => action.type !== 'none') as ActionItem[];
+  // Store the actions for execution
+  state.actionItems = result.actions.filter((action) => action.type !== 'none') as ActionItem[];
+  
+  // Create response for the user
+  if (result.response) {
+    state.agentResponse = result.response;
+    
+    // Push the agent's response to the message history
+    state.messages.push(
+      new AIMessage({
+        content: state.agentResponse,
+        additional_kwargs: {
+          agentType: AgentType.Analytics,
+        },
+      })
+    );
+  }
+  
+  return state;
 };

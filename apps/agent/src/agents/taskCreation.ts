@@ -1,73 +1,121 @@
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
-import { RunnableSequence } from '@langchain/core/runnables';
+import { AgentExecutor, AgentFinish, AgentStep, createToolCallingAgent } from 'langchain/agents';
 import { AgentType, ActionItem } from '../types';
 import { createLLM, getSystemPrompt } from '../utils/llm';
-import { StructuredOutputParser } from 'langchain/output_parsers';
-import { z } from 'zod';
-import { AIMessage } from '@langchain/core/messages';
+import { AIMessage, BaseMessage } from '@langchain/core/messages';
 import { StateAnnotation } from '../types';
+import { taskToolDefinitions } from '../utils/taskToolDefinitions';
+import { RunnableConfig } from '@langchain/core/runnables';
+import { ConsoleCallbackHandler } from '@langchain/core/tracers/console';
 
-// Process the user input with Task Creation agent
-export const processTaskCreation = async (state: typeof StateAnnotation.State): Promise<ActionItem[]> => {
-  // Create LLM
-  const llm = createLLM('gpt-4o', 0.2);
+// Main agent function with tool-calling using LangChain's native capabilities
+export const processTaskCreation = async (
+  state: typeof StateAnnotation.State,
+  context: any
+): Promise<typeof StateAnnotation.State> => {
+  try {
+    // Create LLM with tool-calling support
+    const llm = createLLM('gpt-4o', 0.2);
 
-  // Create parser for structured output
-  const outputParser = StructuredOutputParser.fromZodSchema(
-    z.object({
-      actions: z.array(
-        z.object({
-          type: z.enum([
-            'createTask',
-            'updateTask',
-            'searchTasks',
-            'none'
-          ]),
-          payload: z.any()
-        })
-      ),
-      reasoning: z.string().describe('Your explanation of the analysis and actions')
-    })
-  );
+    // Add context to tools before use
+    // We need to enrich tools with the context they need to execute
+    const toolsWithContext = taskToolDefinitions.map(tool => {
+      // Clone the tool
+      const clonedTool = Object.create(Object.getPrototypeOf(tool));
+      Object.assign(clonedTool, tool);
+      
+      // Add the context to the tool directly
+      // This is necessary because LangChain's tool executor doesn't pass context to tools
+      (clonedTool as any)._context = {
+        userId: state.userId,
+        prisma: context?.prisma,
+        TaskService: context?.TaskService,
+      };
 
-  // Prepare the conversation history
-  const conversationHistory = state.messages.filter(msg => 
-    msg.getType() === 'human' || 
-    (msg.getType() === 'ai' && msg.additional_kwargs.agentType === AgentType.TaskCreation)
-  );
+      return clonedTool;
+    });
 
-  // Create a prompt template 
-  const prompt = ChatPromptTemplate.fromMessages([
-    ['system', getSystemPrompt('taskCreation') + `\n\nRespond with a structured output containing actions and reasoning.`],
-    new MessagesPlaceholder('conversation_history'),
-    ['human', 'User request: {input}\n\nProvide a structured response with actions to take in JSON format. For task creation, include title, description, priority, and other relevant fields. {format_instructions}'],
-  ]);
+    // Prepare the conversation history for the agent
+    const conversationHistory = state.messages.filter(
+      (msg) =>
+        msg.getType() === 'human' ||
+        (msg.getType() === 'ai' && msg.additional_kwargs?.agentType === AgentType.TaskCreation)
+    );
+    
+    // Create the prompt template for the agent
+    const prompt = ChatPromptTemplate.fromMessages([
+      [
+        'system',
+        getSystemPrompt('taskCreation') +
+          `
 
-  // Create the chain
-  const chain = RunnableSequence.from([
-    {
-      input: (state: typeof StateAnnotation.State) => state.input,
-      conversation_history: (state: typeof StateAnnotation.State) => conversationHistory,
-      format_instructions: async () => outputParser.getFormatInstructions()
-    },
-    prompt,
-    llm,
-    outputParser
-  ]);
+You have access to tools for reading and modifying tasks. Use these tools to help manage the user's tasks.
 
-  // Execute the chain
-  const result = await chain.invoke(state);
+After executing any necessary tools, provide a helpful response summarizing what you've done.`
+      ],
+      new MessagesPlaceholder('chat_history'),
+      ['human', '{input}'],
+      new MessagesPlaceholder('agent_scratchpad'),
+    ]);
 
-  // Record the agent's thought process as a message
-  if (result.reasoning) {
-    state.messages.push(new AIMessage({
-      content: result.reasoning,
-      additional_kwargs: {
-        agentType: AgentType.TaskCreation,
-        name: 'reasoning'
-      }
-    }));
+    // Create the tool-calling agent
+    const agent = createToolCallingAgent({
+      llm,
+      tools: toolsWithContext,
+      prompt,
+    });
+
+    // Create the agent executor to run the agent with tools
+    const agentExecutor = new AgentExecutor({
+      agent,
+      tools: toolsWithContext,
+      verbose: true, // Set to false in production
+    });
+
+    // Run the agent with the user's input and conversation history
+    const result = await agentExecutor.invoke({
+      input: state.input,
+      chat_history: conversationHistory,
+    }, {
+      callbacks: [new ConsoleCallbackHandler()],
+    } as RunnableConfig);
+
+    console.log('result---', result)
+    // Extract the agent's response
+    const agentResponse = result.output;
+
+    // Save the response to the state
+    state.agentResponse = agentResponse;
+
+    // Update message history with the agent's response
+    state.messages.push(
+      new AIMessage({
+        content: agentResponse,
+        additional_kwargs: {
+          agentType: AgentType.TaskCreation,
+        },
+      })
+    );
+
+    return state;
+  } catch (error) {
+    console.error('Error in task creation agent:', error);
+    
+    // Handle error gracefully
+    state.error = `Task creation error: ${error instanceof Error ? error.message : String(error)}`;
+    state.agentResponse = 'I apologize, but I encountered an error processing your task request.';
+    
+    // Add error message to conversation
+    state.messages.push(
+      new AIMessage({
+        content: state.agentResponse,
+        additional_kwargs: {
+          agentType: AgentType.TaskCreation,
+          error: true,
+        },
+      })
+    );
+    
+    return state;
   }
-
-  return result.actions.filter((action) => action.type !== 'none') as ActionItem[];
 };

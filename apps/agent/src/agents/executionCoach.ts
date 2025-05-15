@@ -8,7 +8,7 @@ import { AIMessage } from '@langchain/core/messages';
 import { StateAnnotation } from '../types';
 
 // Process the user input with Execution Coach agent
-export const processExecutionCoach = async (state: typeof StateAnnotation.State): Promise<ActionItem[]> => {
+export const processExecutionCoach = async (state: typeof StateAnnotation.State): Promise<typeof StateAnnotation.State> => {
   // Create LLM
   const llm = createLLM('gpt-4o', 0.3); // Slightly higher temperature for more creative coaching
 
@@ -30,7 +30,8 @@ export const processExecutionCoach = async (state: typeof StateAnnotation.State)
         })
       ),
       motivationalMessage: z.string().describe('A motivational message tailored to the user\'s current task and preferences'),
-      reasoning: z.string().describe('Your explanation of the coaching approach')
+      reasoning: z.string().describe('Your explanation of the coaching approach'),
+      response: z.string().describe('A concise, helpful response to the user that incorporates coaching elements and addresses their query')
     })
   );
 
@@ -52,9 +53,9 @@ export const processExecutionCoach = async (state: typeof StateAnnotation.State)
 
   // Create a prompt template
   const prompt = ChatPromptTemplate.fromMessages([
-    ['system', getSystemPrompt('executionCoach') + `\n\nRespond with a structured output containing actions, a motivational message, and reasoning.`],
+    ['system', getSystemPrompt('executionCoach') + `\n\nRespond with a structured output containing actions, a motivational message, reasoning, and a concise user-friendly response.`],
     new MessagesPlaceholder('conversation_history'),
-    ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nCoach Information:\n${coachInfo}\n\nProvide a structured response with actions to take in JSON format. Include a motivational message that matches the assigned coach's style and the user's preferences. {format_instructions}`],
+    ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nCoach Information:\n${coachInfo}\n\nProvide a structured response with actions to take in JSON format. Include a motivational message that matches the assigned coach's style and the user's preferences. Also include a complete response to the user addressing their query with coaching elements. {format_instructions}`],
   ]);
 
   // Create the chain
@@ -94,5 +95,23 @@ export const processExecutionCoach = async (state: typeof StateAnnotation.State)
     }));
   }
 
-  return result.actions.filter((action) => action.type !== 'none') as ActionItem[];
+  // Store the actions for execution
+  state.actionItems = result.actions.filter((action) => action.type !== 'none') as ActionItem[];
+  
+  // Create response for the user
+  if (result.response) {
+    state.agentResponse = result.response;
+    
+    // Push the agent's response to the message history
+    state.messages.push(
+      new AIMessage({
+        content: state.agentResponse,
+        additional_kwargs: {
+          agentType: AgentType.ExecutionCoach,
+        },
+      })
+    );
+  }
+  
+  return state;
 };

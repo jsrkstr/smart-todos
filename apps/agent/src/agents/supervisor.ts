@@ -3,13 +3,33 @@ import { AgentType } from '../types';
 import { createLLM, getSystemPrompt } from '../utils/llm';
 import { StateAnnotation } from '../types';
 
-// Determine which agent should handle the user request
-export const determineAgent = async (state: typeof StateAnnotation.State): Promise<AgentType> => {
+/**
+ * The supervisor agent has two functions:
+ * 1. Determine which specialized agent should handle the initial request
+ * 2. After a specialized agent returns, determine if further actions are needed or if we can complete
+ * 
+ * This function manages the flow between specialized agents and completion of the conversation.
+ */
+export const determineAgent = async (state: typeof StateAnnotation.State): Promise<Partial<typeof StateAnnotation.State>> => {
+  // If an agent has already processed the request and provided a response,
+  // we're done and can exit the routing loop
+  if (state.agentResponse) {
+    // No other updates needed, the graph will check for agentResponse
+    // and either exit or generate a summary
+    return { agentResponse: null, activeAgentType: null };
+  }
+
+  // This is a new request or we need to route to a different agent
   // Prepare context for the supervisor agent
   const context = {
     task: state.task,
     user: state.user,
     input: state.input,
+    message_count: state.messages.length,
+    // Add information about what agents have already been involved
+    previous_agents: state.messages
+      .filter(msg => msg.additional_kwargs?.agentType)
+      .map(msg => msg.additional_kwargs?.agentType)
   };
 
   // Create LLM
@@ -38,7 +58,9 @@ Here's when to choose each agent:
 5. Analytics: For insights, metrics, or questions about task status, urgency, or patterns.
    Examples: "Which is my most urgent task?", "What tasks have I completed this week?"  
 `],
-    ['human', `User request: {input}\n\nContext: {context}`],
+    ['human', `User request: {input}
+
+Context: {context}`],
   ]);
 
   // Format messages
@@ -47,57 +69,26 @@ Here's when to choose each agent:
     context: JSON.stringify(context, null, 2),
   });
 
-  // Get response from LLM
-  const response = await llm.invoke(formattedPrompt);
-  const agentType = (response.content as string).toLowerCase().trim();
-
-  // Map text response to enum
-  if (agentType.includes('taskcreation')) return AgentType.TaskCreation;
-  if (agentType.includes('planning')) return AgentType.Planning;
-  if (agentType.includes('execution') || agentType.includes('coach')) return AgentType.ExecutionCoach;
-  if (agentType.includes('adaptation')) return AgentType.Adaptation;
-  if (agentType.includes('analytics')) return AgentType.Analytics;
-
-  // Default to TaskCreation if no clear match
-  return AgentType.TaskCreation;
+  try {
+    // Get response from LLM
+    const response = await llm.invoke(formattedPrompt);
+    const agentType = (response.content as string).toLowerCase().trim();
+    
+    // Map text response to enum and update state
+    let activeAgentType = AgentType.TaskCreation; // Default
+    
+    if (agentType.includes('taskcreation')) activeAgentType = AgentType.TaskCreation;
+    else if (agentType.includes('planning')) activeAgentType = AgentType.Planning;
+    else if (agentType.includes('execution') || agentType.includes('coach')) activeAgentType = AgentType.ExecutionCoach;
+    else if (agentType.includes('adaptation')) activeAgentType = AgentType.Adaptation;
+    else if (agentType.includes('analytics')) activeAgentType = AgentType.Analytics;
+    
+    // Return updated state with the active agent type
+    return { activeAgentType };
+  } catch (error) {
+    console.error('Error in supervisor agent:', error);
+    return { error: `Supervisor error: ${error instanceof Error ? error.message : String(error)}` };
+  }
 };
 
-// Generate a final response with the Supervisor agent
-export const generateResponse = async (state: typeof StateAnnotation.State): Promise<string> => {
-  // Create LLM
-  const llm = createLLM('gpt-4o', 0.7); 
-  
-  // Prepare the conversation history
-  const conversationHistory = state.messages.map((msg) => {
-    return {
-      role: msg.getType() as any,
-      content: msg.content
-    };
-  });
-
-  // Add any relevant context about the task and user
-  const userContext = state.user ? 
-    `User: ${state.user.name || 'Unknown'}, ${state.user.psychProfile?.coach ? `Coach: ${state.user.psychProfile.coach.name}` : 'No coach assigned'}` : 
-    'No user context available';
-
-  const taskContext = state.task ? 
-    `Current task: ${state.task.title}, Priority: ${state.task.priority}, Stage: ${state.task.stage}` : 
-    'No specific task in context';
-
-  // Create a prompt template for generating the final response
-  const prompt = ChatPromptTemplate.fromMessages([
-    ['system', getSystemPrompt('supervisor') + `\n\nYou are generating the final response to the user. Make it concise, helpful, supportive, and actionable. Maintain a consistent tone aligned with the user's coach and preferences.\n\nUser Context: ${userContext}\nTask Context: ${taskContext}`],
-    new MessagesPlaceholder('conversation_history'),
-    ['human', 'Generate a final response based on the conversation history and the completed actions.']
-  ]);
-
-  // Format messages
-  const formattedPrompt = await prompt.formatMessages({
-    conversation_history: conversationHistory
-  });
-
-  // Get response from LLM
-  const response = await llm.invoke(formattedPrompt);
-  
-  return response.content as string;
-};
+// The generateResponse function has been removed since specialized agents now return responses directly
