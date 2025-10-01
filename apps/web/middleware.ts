@@ -22,14 +22,35 @@ const loginRoute = '/login';
 export async function middleware(request: NextRequest) {
   try {
     console.log('Middleware executing for:', request.nextUrl.pathname);
-    
+
     // Get the pathname from the URL
     const { pathname } = request.nextUrl
-    
-    // Skip middleware for API routes except auth-related ones
-    if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
-      console.log('Skipping middleware for API route:', pathname);
-      return NextResponse.next();
+
+    // Handle CORS for API routes
+    if (pathname.startsWith('/api/')) {
+      const response = NextResponse.next();
+
+      // Add CORS headers
+      response.headers.set('Access-Control-Allow-Origin', '*');
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      response.headers.set('Access-Control-Allow-Credentials', 'true');
+
+      // Handle preflight requests
+      if (request.method === 'OPTIONS') {
+        return new NextResponse(null, {
+          status: 200,
+          headers: response.headers
+        });
+      }
+
+      // Skip auth middleware for non-auth API routes
+      if (!pathname.startsWith('/api/auth/')) {
+        console.log('Skipping auth middleware for API route:', pathname);
+        return response;
+      }
+
+      return response;
     }
     
     // Check if the path is a public route or starts with a public route

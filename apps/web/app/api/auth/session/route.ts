@@ -4,13 +4,21 @@ import { JWT } from '@/lib/jwt'
 import { prisma } from '@/lib/prisma'
 
 // GET /api/auth/session - Get current session information
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Get token from cookies
-    const token = (await cookies()).get('token')?.value
-    
+    // Get token from cookies or Authorization header
+    let token = (await cookies()).get('token')?.value
+
+    // If no cookie, check Authorization header
     if (!token) {
-      return NextResponse.json({ 
+      const authHeader = request.headers.get('authorization')
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7)
+      }
+    }
+
+    if (!token) {
+      return NextResponse.json({
         isAuthenticated: false,
         user: null
       })

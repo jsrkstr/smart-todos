@@ -8,13 +8,30 @@ export interface AuthenticatedApiRequest extends Request {
 }
 
 /**
+ * Add CORS headers to response
+ */
+function addCorsHeaders(response: Response): Response {
+  response.headers.set('Access-Control-Allow-Origin', '*')
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  response.headers.set('Access-Control-Allow-Credentials', 'true')
+  return response
+}
+
+/**
  * Middleware for API routes to handle authentication
  * @param handler The API route handler function
  * @returns A wrapped handler that includes authentication
  */
 export function withAuth(handler: (req: AuthenticatedApiRequest) => Promise<Response>) {
   return async (req: Request) => {
-    // Get token from cookies in the request headers
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      const response = new NextResponse(null, { status: 200 })
+      return addCorsHeaders(response)
+    }
+
+    // Try to get token from cookies first
     const cookieHeader = req.headers.get('cookie') || ''
     const cookies = Object.fromEntries(
       cookieHeader.split('; ').map(c => {
@@ -22,31 +39,43 @@ export function withAuth(handler: (req: AuthenticatedApiRequest) => Promise<Resp
         return [name, value.join('=')]
       })
     )
-    const token = cookies.token
-    
+    let token = cookies.token
+
+    // If no cookie, check Authorization header
     if (!token) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      const authHeader = req.headers.get('authorization')
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7)
+      }
     }
-    
+
+    if (!token) {
+      const response = NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      return addCorsHeaders(response)
+    }
+
     try {
       // Verify token
       const payload = await JWT.verify<{ userId: string }>(token)
-      
+
       if (!payload || !payload.userId) {
-        return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+        const response = NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+        return addCorsHeaders(response)
       }
-      
+
       // Extend request with authenticated user
       const authReq = req as AuthenticatedApiRequest
       authReq.user = {
         id: payload.userId
       }
-      
+
       // Call the original handler with the authenticated request
-      return handler(authReq)
+      const response = await handler(authReq)
+      return addCorsHeaders(response)
     } catch (error) {
       console.error('Authentication error:', error instanceof Error ? error.message : 'Unknown error')
-      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
+      const response = NextResponse.json({ error: 'Authentication failed' }, { status: 401 })
+      return addCorsHeaders(response)
     }
   }
 } 
