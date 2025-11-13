@@ -8,7 +8,7 @@ exports.taskToolDefinitions = [
         name: "read_all_tasks",
         description: "Fetch all tasks for the user with optional filters",
         schema: taskToolSchemas_1.readAllTasksSchema,
-        func: async (params) => {
+        func: async function (params) {
             try {
                 // Access the context from the tool instance
                 const tool = this;
@@ -30,7 +30,7 @@ exports.taskToolDefinitions = [
                     if (estimatedTimeMinutes.gte !== undefined)
                         where.estimatedTimeMinutes.gte = estimatedTimeMinutes.gte;
                 }
-                return await context.prisma.task.findMany({
+                const tasks = await context.prisma.task.findMany({
                     where,
                     include: {
                         children: true,
@@ -38,9 +38,10 @@ exports.taskToolDefinitions = [
                         notifications: true
                     }
                 });
+                return JSON.stringify(tasks);
             }
             catch (error) {
-                return { error: error instanceof Error ? error.message : String(error) };
+                return JSON.stringify({ error: error instanceof Error ? error.message : String(error) });
             }
         },
     }),
@@ -48,7 +49,7 @@ exports.taskToolDefinitions = [
         name: "read_user",
         description: "Fetch user details including preferences and settings",
         schema: taskToolSchemas_1.readUserSchema,
-        func: async (_params) => {
+        func: async function (_params) {
             try {
                 // Access the context from the tool instance
                 const tool = this;
@@ -56,13 +57,14 @@ exports.taskToolDefinitions = [
                 if (!context) {
                     throw new Error('Context not provided to tool');
                 }
-                return await context.prisma.user.findUnique({
+                const user = await context.prisma.user.findUnique({
                     where: { id: context.userId },
                     include: { settings: true, psychProfile: true }
                 });
+                return JSON.stringify(user);
             }
             catch (error) {
-                return { error: error instanceof Error ? error.message : String(error) };
+                return JSON.stringify({ error: error instanceof Error ? error.message : String(error) });
             }
         },
     }),
@@ -70,7 +72,7 @@ exports.taskToolDefinitions = [
         name: "update_task",
         description: "Update a single task with new data",
         schema: taskToolSchemas_1.updateTaskSchema,
-        func: async (params) => {
+        func: async function (params) {
             try {
                 // Access the context from the tool instance
                 const tool = this;
@@ -79,10 +81,11 @@ exports.taskToolDefinitions = [
                     throw new Error('Context not provided to tool');
                 }
                 const { taskId, data } = params;
-                return await context.TaskService.updateTask(Object.assign({ id: taskId, userId: context.userId }, data));
+                const result = await context.TaskService.updateTask(Object.assign({ id: taskId, userId: context.userId }, data));
+                return JSON.stringify(result);
             }
             catch (error) {
-                return { error: error instanceof Error ? error.message : String(error) };
+                return JSON.stringify({ error: error instanceof Error ? error.message : String(error) });
             }
         },
     }),
@@ -90,7 +93,7 @@ exports.taskToolDefinitions = [
         name: "update_tasks_many",
         description: "Update many tasks with new data",
         schema: taskToolSchemas_1.updateTasksManySchema,
-        func: async (params) => {
+        func: async function (params) {
             try {
                 // Access the context from the tool instance
                 const tool = this;
@@ -98,13 +101,14 @@ exports.taskToolDefinitions = [
                 if (!context) {
                     throw new Error('Context not provided to tool');
                 }
-                return await context.TaskService.updateTasksMany({
+                const result = await context.TaskService.updateTasksMany({
                     userId: context.userId,
                     data: params.data
                 });
+                return JSON.stringify(result);
             }
             catch (error) {
-                return { error: error instanceof Error ? error.message : String(error) };
+                return JSON.stringify({ error: error instanceof Error ? error.message : String(error) });
             }
         },
     }),
@@ -112,7 +116,7 @@ exports.taskToolDefinitions = [
         name: "create_task",
         description: "Create a new task",
         schema: taskToolSchemas_1.createTaskSchema,
-        func: async (params) => {
+        func: async function (params) {
             try {
                 // Access the context from the tool instance
                 const tool = this;
@@ -120,10 +124,11 @@ exports.taskToolDefinitions = [
                 if (!context) {
                     throw new Error('Context not provided to tool');
                 }
-                return await context.TaskService.createTask(Object.assign({ userId: context.userId }, params));
+                const result = await context.TaskService.createTask(Object.assign({ userId: context.userId }, params));
+                return JSON.stringify(result);
             }
             catch (error) {
-                return { error: error instanceof Error ? error.message : String(error) };
+                return JSON.stringify({ error: error instanceof Error ? error.message : String(error) });
             }
         },
     })

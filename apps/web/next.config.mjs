@@ -1,3 +1,9 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 let userConfig = undefined
 try {
   userConfig = await import('./v0-user-next.config')
@@ -23,13 +29,38 @@ const nextConfig = {
   },
   // Webpack configuration to handle Cloudflare imports from LangGraph
   webpack: (config, { webpack, isServer }) => {
+    // Use absolute path to empty module
+    const emptyModulePath = path.resolve(__dirname, 'lib/empty-module.js');
+
     // Replace cloudflare:sockets imports with empty module
     config.plugins.push(
       new webpack.NormalModuleReplacementPlugin(
         /^cloudflare:sockets$/,
-        `${process.cwd()}/apps/web/lib/empty-module.js`
+        emptyModulePath
       )
     );
+
+    // Replace pg-cloudflare with empty module for Next.js edge runtime
+    config.plugins.push(
+      new webpack.NormalModuleReplacementPlugin(
+        /pg-cloudflare/,
+        emptyModulePath
+      )
+    );
+
+    // Ignore node-specific modules that aren't needed in the browser
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+        stream: false,
+        os: false,
+        path: false,
+      };
+    }
 
     return config;
   },

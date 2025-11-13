@@ -7,7 +7,7 @@ import { processExecutionCoach } from './agents/executionCoach';
 import { processAdaptation } from './agents/adaptation';
 import { processAnalytics } from './agents/analytics';
 // executeActions is now handled by specialized agents directly
-import { UserService, TaskService } from './services/database';
+import { UserService, TaskService, prisma } from './services/database';
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { PostgresStore } from './utils/pg-store';
 import { AIMessage, BaseMessage, HumanMessage, isHumanMessage, RemoveMessage } from '@langchain/core/messages';
@@ -130,7 +130,10 @@ export const createSupervisorGraph = async (databaseUrl?: string) => {
   graphBuilder.addNode('taskCreationAgent', async (state: typeof StateAnnotation.State) => {
     try {
       // Now processTaskCreation returns the updated state directly
-      return await processTaskCreation(state, {});
+      return await processTaskCreation(state, {
+        prisma,
+        TaskService,
+      });
     } catch (error) {
       console.error('Error in task creation agent:', error);
       return { error: `Task creation agent error: ${error}` };

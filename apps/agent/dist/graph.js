@@ -123,7 +123,10 @@ const createSupervisorGraph = async (databaseUrl) => {
     graphBuilder.addNode('taskCreationAgent', async (state) => {
         try {
             // Now processTaskCreation returns the updated state directly
-            return await (0, taskCreation_1.processTaskCreation)(state, {});
+            return await (0, taskCreation_1.processTaskCreation)(state, {
+                prisma: database_1.prisma,
+                TaskService: database_1.TaskService,
+            });
         }
         catch (error) {
             console.error('Error in task creation agent:', error);
