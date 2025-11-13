@@ -7,13 +7,6 @@ import {
 } from './taskToolSchemas';
 
 import { DynamicStructuredTool } from 'langchain/tools';
-import {
-  readAllTasksSchema,
-  readUserSchema,
-  updateTaskSchema,
-  updateTasksManySchema,
-  createTaskSchema
-} from './taskToolSchemas';
 
 // Define the context type expected by all tools
 export type AgentToolContext = {

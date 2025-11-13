@@ -21,6 +21,18 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  // Webpack configuration to handle Cloudflare imports from LangGraph
+  webpack: (config, { webpack, isServer }) => {
+    // Replace cloudflare:sockets imports with empty module
+    config.plugins.push(
+      new webpack.NormalModuleReplacementPlugin(
+        /^cloudflare:sockets$/,
+        `${process.cwd()}/apps/web/lib/empty-module.js`
+      )
+    );
+
+    return config;
+  },
   // CORS configuration for API routes
   async headers() {
     return [

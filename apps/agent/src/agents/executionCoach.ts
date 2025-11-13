@@ -42,8 +42,13 @@ export const processExecutionCoach = async (state: typeof StateAnnotation.State)
   );
 
   // Task and user context
+  console.log('=== EXECUTION COACH ===');
+  console.log('state.task:', state.task?.id, state.task?.title);
+  console.log('state.tasks count:', state.tasks?.length);
   const allTasks = state.task ? [state.task] : state.tasks || []
+  console.log('allTasks count:', allTasks.length);
   const taskContext = `\n\nTasks:\n${allTasks.map((task: any) => `\n- TaskId: ${task.id}\nTask: ${task.title}\nDescription: ${task.description || 'None'}\nPriority: ${task.priority}\nStage: ${task.stage}\nStatus: ${task.stageStatus}\nDeadline: ${task.deadline ? new Date(task.deadline).toISOString() : 'None'}`).join('')}`;
+  console.log('taskContext:', taskContext);
 
   // Get coach info and preferences if available
   const coach = state.user?.psychProfile?.coach;

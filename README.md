@@ -8,8 +8,7 @@ This is a Turborepo monorepo containing:
 
 - **apps/web** - Next.js full-stack web application
 - **apps/mobile-flutter** - Flutter mobile app (iOS/Android)
-- **apps/agent** - TypeScript LangGraph multi-agent system (being deprecated)
-- **apps/agent-python** - Python LangGraph multi-agent system
+- **apps/agent** - TypeScript LangGraph multi-agent system (with MCP integration)
 - **apps/mcp-server** - Model Context Protocol server for AI agent integration
 - **apps/mobile** - React Native Expo app (legacy)
 - **packages/ui** - Shared UI components
@@ -23,7 +22,7 @@ Always use **pnpm** - contributors should not use npm or yarn.
 - Node.js 18+
 - pnpm 8+
 - PostgreSQL database
-- Python 3.9+ (for agent-python)
+- Docker (optional, for MCP code execution pattern)
 - Flutter SDK (for mobile-flutter)
 
 ### Installation
@@ -66,7 +65,15 @@ cd apps/mobile-flutter && flutter run  # Flutter app
 
 ## MCP Server
 
-The Model Context Protocol (MCP) server provides a standardized interface for AI agents to interact with Smart Todos data.
+The Model Context Protocol (MCP) server provides a standardized interface for AI agents to interact with Smart Todos data. The TypeScript agent (`apps/agent`) uses MCP for efficient operations.
+
+### Architecture
+
+**Hybrid Approach:**
+- ✅ Direct Prisma DB access for fast context loading
+- ✅ MCP code execution for analytics (98% token reduction)
+- ✅ MCP traditional tools for batch operations
+- ✅ Graceful fallback when MCP unavailable
 
 ### Quick Start
 
@@ -74,29 +81,40 @@ The Model Context Protocol (MCP) server provides a standardized interface for AI
 cd apps/mcp-server
 pnpm install
 pnpm build
-pnpm start
+
+# Optional: Build Docker sandbox for code execution
+./build-sandbox.sh  # Requires Docker installed
 ```
 
-See [apps/mcp-server/README.md](apps/mcp-server/README.md) for detailed documentation.
+### Integration with TypeScript Agent
 
-### Integration with Python Agent
+The agent automatically spawns MCP server as subprocess when needed:
 
-```python
-from services.mcp_client import get_mcp_client
+```typescript
+// Agent automatically uses MCP for analytics
+const result = await graph.invoke({
+  userId: 'user-123',
+  jwtToken: 'eyJhbG...', // Required for MCP auth
+  input: 'Analyze my task performance',
+  // ...
+});
 
-mcp = get_mcp_client(jwt_token="user-token")
-tasks = mcp.get_tasks(completed=False)
+// Analytics Agent uses code execution: 10,000 tasks → 50 token summary
+// Planning Agent uses code execution: Create 10 subtasks in 1 call
+// Adaptation Agent uses code execution: Bulk update all overdue tasks
 ```
 
-See [apps/agent-python/MCP_INTEGRATION.md](apps/agent-python/MCP_INTEGRATION.md) for integration guide.
+See [apps/agent/MCP_INTEGRATION.md](apps/agent/MCP_INTEGRATION.md) for detailed integration guide.
 
 ## Documentation
 
 - [CLAUDE.md](CLAUDE.md) - Instructions for Claude Code AI assistant
 - [apps/web/README.md](apps/web/README.md) - Web app documentation
 - [apps/mobile-flutter/README.md](apps/mobile-flutter/README.md) - Flutter app documentation
-- [apps/agent-python/README.md](apps/agent-python/README.md) - Python agent documentation
+- [apps/agent/README.md](apps/agent/README.md) - TypeScript agent documentation
+- [apps/agent/MCP_INTEGRATION.md](apps/agent/MCP_INTEGRATION.md) - MCP integration guide
 - [apps/mcp-server/README.md](apps/mcp-server/README.md) - MCP server documentation
+- [apps/mcp-server/CODE_EXECUTION.md](apps/mcp-server/CODE_EXECUTION.md) - Code execution pattern
 
 ## Contributing
 

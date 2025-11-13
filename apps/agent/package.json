@@ -1,8 +1,15 @@
 {
-  "name": "smart-todos-agent",
+  "name": "@smart-todos/agent",
   "version": "0.0.1",
   "description": "Multi-agent langGraph system for SmartTodos",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "dev": "ts-node src/index.ts",
     "build": "tsc",
@@ -16,6 +23,7 @@
     "@langchain/langgraph": "^0.2.68",
     "@langchain/langgraph-checkpoint-postgres": "^0.0.4",
     "@langchain/openai": "^0.5.10",
+    "@modelcontextprotocol/sdk": "^1.0.4",
     "@prisma/client": "^6.5.0",
     "dotenv": "^16.3.1",
     "langchain": "^0.3.24",

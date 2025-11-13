@@ -31,8 +31,10 @@ class ApiConfig {
   static const String tasksRefine = '/api/tasks/refine';
 
   static const String chat = '/api/chat';
-  static const String agentChat = '/api/agent/chat';
   static const String chatMessages = '/api/chat-messages';
+
+  // Note: /api/agent/chat has been deprecated
+  // All chat now goes through /api/chat with LangGraph agent integration
 
   static const String pomodoro = '/api/pomodoro';
 

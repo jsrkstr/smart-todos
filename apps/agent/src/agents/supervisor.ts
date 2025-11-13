@@ -14,9 +14,10 @@ export const determineAgent = async (state: typeof StateAnnotation.State): Promi
   // If an agent has already processed the request and provided a response,
   // we're done and can exit the routing loop
   if (state.agentResponse) {
-    // No other updates needed, the graph will check for agentResponse
-    // and either exit or generate a summary
-    return { agentResponse: null, activeAgentType: null };
+    console.log('[Supervisor] Agent response exists, completing workflow');
+    // Set activeAgentType to null to signal completion
+    // DO NOT clear agentResponse - it needs to be returned to the user
+    return { activeAgentType: null };
   }
 
   // This is a new request or we need to route to a different agent
@@ -73,16 +74,21 @@ Context: {context}`],
     // Get response from LLM
     const response = await llm.invoke(formattedPrompt);
     const agentType = (response.content as string).toLowerCase().trim();
-    
+
+    console.log('=== SUPERVISOR ===');
+    console.log('Routing to agent:', agentType);
+
     // Map text response to enum and update state
     let activeAgentType = AgentType.TaskCreation; // Default
-    
+
     if (agentType.includes('taskcreation')) activeAgentType = AgentType.TaskCreation;
     else if (agentType.includes('planning')) activeAgentType = AgentType.Planning;
     else if (agentType.includes('execution') || agentType.includes('coach')) activeAgentType = AgentType.ExecutionCoach;
     else if (agentType.includes('adaptation')) activeAgentType = AgentType.Adaptation;
     else if (agentType.includes('analytics')) activeAgentType = AgentType.Analytics;
-    
+
+    console.log('Mapped to AgentType:', activeAgentType);
+
     // Return updated state with the active agent type
     return { activeAgentType };
   } catch (error) {

@@ -7,6 +7,7 @@ import { StateAnnotation } from '../types';
 import { taskToolDefinitions } from '../utils/taskToolDefinitions';
 import { RunnableConfig } from '@langchain/core/runnables';
 import { ConsoleCallbackHandler } from '@langchain/core/tracers/console';
+import { getMCPClient } from '../services/mcp-client';
 
 // Main agent function with tool-calling using LangChain's native capabilities
 export const processTaskCreation = async (

@@ -29,22 +29,26 @@ import { StateAnnotation } from './types/index';
 //   | 'generateResponse';
 
 // Create the main supervisor graph
-export const createSupervisorGraph = async () => {
+export const createSupervisorGraph = async (databaseUrl?: string) => {
+  // Use provided DATABASE_URL or fall back to environment variable
+  const dbUrl = databaseUrl || process.env.DATABASE_URL;
 
-  // Example usage:
-  const pg_store = new PostgresStore(
-    `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:5432/${process.env.POSTGRES_DATABASE}?sslmode=require`
-  );
+  if (!dbUrl) {
+    throw new Error('DATABASE_URL must be provided or set as environment variable');
+  }
+
+  // Initialize PostgreSQL store for long-term memory
+  const pg_store = new PostgresStore(dbUrl);
   await pg_store.initialize();
-  
+
+  // Initialize checkpointer for conversation state
   const checkpointer = PostgresSaver.fromConnString(
-    `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:5432/${process.env.POSTGRES_DATABASE}?sslmode=require`,
-    // optional configuration object
+    dbUrl,
     {
       schema: "langgraph", // defaults to "public"
     }
   );
-  
+
   // NOTE: you need to call .setup() the first time you're using your checkpointer
   await checkpointer.setup();
 
@@ -55,7 +59,9 @@ export const createSupervisorGraph = async () => {
   graphBuilder.addNode('loadContext', async (state: typeof StateAnnotation.State, ...args: any[]) => {
     // const store = args[0].store;
     // await store.put(['1', 'memories'], '132', { 'food_preference': 'pizza' })
-    console.log('state---', state)
+    console.log('=== LOAD CONTEXT ===');
+    console.log('userId:', state.userId);
+    console.log('taskId from context:', state.context?.taskId);
 
     const updates: Partial<typeof StateAnnotation.State> = {};
     try {
@@ -63,15 +69,19 @@ export const createSupervisorGraph = async () => {
         const user = await UserService.getUserWithProfile(state.userId);
         // Fix type cast to match UserWithPsychProfile type
         updates.user = user as unknown as typeof StateAnnotation.State['user'];
+        console.log('Loaded user:', user?.id);
       }
       if (state.context?.taskId && state.userId) {
         const task = await TaskService.getTask(state.context.taskId, state.userId);
         updates.task = task;
+        console.log('Loaded task:', task?.id, task?.title);
       }
       if (!state.context?.taskId && state.userId) {
         const tasks = await TaskService.getTasks(state.userId);
         updates.tasks = tasks;
+        console.log('Loaded tasks count:', tasks?.length);
       }
+      console.log('=== END LOAD CONTEXT ===');
       // updates.messages = [new HumanMessage({
       //   content: state.input
       // })];
@@ -173,9 +183,9 @@ export const createSupervisorGraph = async () => {
 
   // Define the workflow edges
   // @ts-ignore
-  graphBuilder.addEdge(START, 'determineAgent');
+  graphBuilder.addEdge(START, 'loadContext');
   // @ts-ignore
-  // graphBuilder.addEdge('loadContext', 'determineAgent');
+  graphBuilder.addEdge('loadContext', 'determineAgent');
 
   // Supervisor node routing logic is defined later
   // @ts-ignore

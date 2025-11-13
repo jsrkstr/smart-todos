@@ -11,6 +11,7 @@ export interface UserWithPsychProfile extends User {
 // Define the state annotation for the graph, including reducers where appropriate
 export const StateAnnotation = Annotation.Root({
   userId: Annotation<string>(),
+  jwtToken: Annotation<string | null>(), // JWT token for MCP authentication
   input: Annotation<string>(),
   context: Annotation<any>(), // You can further annotate structure if needed
   user: Annotation<UserWithPsychProfile | null>(),

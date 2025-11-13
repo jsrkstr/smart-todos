@@ -1,552 +1,177 @@
 import { AuthenticatedApiRequest, withAuth } from "@/lib/api-middleware";
 import { NextResponse } from "next/server";
-import { appendResponseMessages, streamText } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { z } from "zod";
-import { TaskService } from "@/lib/services/taskService";
-import { LogService } from "@/lib/services/logService";
-import { prisma } from "@/lib/prisma";
-import { Task, TaskPriority, TaskStage, User, PsychProfile, Settings, ChatMessageRole } from "@prisma/client";
+import { processRequest } from "@smart-todos/agent";
 import { ChatMessageService } from "@/lib/services/chatMessageService";
-import { TagService } from "@/lib/services/tagService";
-import { writeFile } from "fs/promises";
+import { ChatMessageRole } from "@prisma/client";
+import { createDataStreamResponse } from "ai";
 
+/**
+ * Chat API Route - Integrated with LangGraph Multi-Agent System
+ *
+ * This endpoint processes user messages through the SmartTodos multi-agent system,
+ * which includes specialized agents for:
+ * - Task Creation & Refinement
+ * - Planning & Breakdown
+ * - Execution Coaching
+ * - Adaptation & Strategy
+ * - Analytics & Insights
+ *
+ * The agent system uses MCP integration for efficient operations.
+ *
+ * **Response Format:**
+ * - Web (Streaming): Returns AI SDK streaming format (text/x-unknown)
+ * - Mobile (JSON): Returns simple JSON with { content, role, agentType, actionItems }
+ *
+ * The API auto-detects client type based on the Accept header.
+ */
 export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Response> => {
   try {
     const { messages, taskId } = await req.json();
     const userId = req.user.id;
 
-    // Store the user message to the database
+    // Get JWT token from request for MCP authentication
+    const authHeader = req.headers.get('authorization');
+    const jwtToken = authHeader?.replace('Bearer ', '') || null;
+
+    // Extract the last user message
     const lastUserMessage = messages.findLast((m: any) => m.role === 'user');
-    if (lastUserMessage) {
+    if (!lastUserMessage) {
+      return NextResponse.json(
+        { error: 'No user message found' },
+        { status: 400 }
+      );
+    }
+
+    const userMessage = lastUserMessage.content;
+
+    // Store the user message to the database
+    await ChatMessageService.createMessage({
+      userId,
+      taskId: taskId || undefined,
+      content: userMessage,
+      role: ChatMessageRole.user
+    });
+
+    // Process the request through the multi-agent system
+    const result = await processRequest(userId, userMessage, {
+      taskId,
+      jwtToken: jwtToken || undefined,
+      databaseUrl: process.env.DATABASE_URL,
+    });
+
+    console.log('[Chat API] Agent result:', {
+      agentResponse: result.agentResponse,
+      activeAgentType: result.activeAgentType,
+      error: result.error,
+    });
+
+    // Store the agent's response to the database
+    if (result.agentResponse) {
       await ChatMessageService.createMessage({
         userId,
         taskId: taskId || undefined,
-        content: lastUserMessage.content,
-        role: ChatMessageRole.user
+        content: result.agentResponse,
+        role: ChatMessageRole.assistant,
+        metadata: {
+          agentType: result.activeAgentType,
+          actionItems: result.actionItems,
+        }
       });
     }
 
-    const storedMessages = await ChatMessageService.getMessages(userId, taskId);
+    const responseContent = result.agentResponse || 'No response generated';
 
-    const isSystemPromptSend = storedMessages.some(m => m.role === 'system');
+    // Detect client type based on Accept header
+    const acceptHeader = req.headers.get('accept') || '';
+    const isStreamingClient = acceptHeader.includes('text/event-stream') ||
+                              acceptHeader.includes('text/x-unknown');
 
-    // Modify the system prompt to ensure tool calls are always followed by a user-visible message
-    const systemPrompt = `
-      You are an AI assistant specializing in task management, helping users organize and complete their to-do list.
-      You have access to the user's tasks, profile information, and activity logs.
+    // For mobile/Flutter clients: return simple JSON
+    if (!isStreamingClient) {
+      console.log('[Chat API] Returning JSON response for mobile client');
+      return NextResponse.json({
+        content: responseContent,
+        role: 'assistant',
+        agentType: result.activeAgentType,
+        actionItems: result.actionItems || [],
+        id: `agent-${Date.now()}`,
+        error: result.error || null,
+      });
+    }
 
-      Your capabilities include:
-      1. Refining tasks:
-        Improve task title, description, suggest appropriate tags, set deadline and estimated time.
-        Steps:
-        - Get the task details
-        - Update the task fields: stage='Refinement', stageStatus='InProgress'
-        - Try to understand the task, if you less than 90% sure about the task, ask only 1 simple question to the user. Repeat until you have 90% or more understanding.
-        - Then update the task in db, also update fields: stageStatus='Completed'
-        - Finally, send a very short messsage to user
-      2. Breaking down:
-        Break down a given task into smaller, actionable sub-tasks.
-        Steps:
-        - Get the task details
-        - Update the task fields: stage='Breakdown', stageStatus='InProgress'
-        - Aim for sub-tasks that can be completed in roughly 10-15 minutes each (the '10-minute task' strategy)
-        - flexible based on the task complexity.
-        - If the task seems too complex or ambiguous to break down effectively, ask a clarifying question to the user
-        - Then update the task in db, update fields: stageStatus='Completed'
-        - Finally, send a very short messsage to user
-      3. Prioritizing tasks:
-        Reorder the tasks of user based on their deadline and priority.
-        Guidelines:
-        - Consider dependencies between parent tasks and subtasks
-        - Improve time estimates for tasks that don't have them
-        - Provide a clear reason for each task's placement in the priority order
-        - Set appropriate due dates on subtasks based on due date of parent task
-        - Then update the tasks in db using update_tasks_many tool
-        - Finally, send a very short messsage to user
-      4. Answering questions about the user's tasks and productivity
-
-      When helping users, always consider:
-      - Their psychological profile and preferences to personalize your assistance
-      - Recent activity and task completion patterns
-
-      Use a supportive, motivational tone that encourages productivity.
-      Be very concise and direct in your replies.
-
-      Important: Only send user-facing messages after all required tool invocations are done. Between tools, do not emit type: 'text' steps.
-
-      User is talking in context of  ${taskId ? `Task with id: ${taskId}` : `all his tasks`}
-      
-      Today is ${(new Date()).toISOString()}
-    `;
-
-    // Define the tools
-    const tools = {
-      read_task: {
-        description: "Fetch a specific task by ID with all its details including subtasks and notifications",
-        parameters: z.object({
-          taskId: z.string().describe("The ID of the task to fetch"),
-        }),
-        execute: async ({ taskId }: { taskId: string }) => {
-          console.log('tool-called: read_task');
-          const task = await TaskService.getTask(taskId, userId);
-          return task;
-        },
-      },
-      read_all_tasks: {
-        description: "Fetch all tasks for the user with optional filters",
-        parameters: z.object({
-          completed: z.boolean().optional().describe("Filter by completion status"),
-          priority: z.enum(["low", "medium", "high"]).optional().describe("Filter by priority"),
-          estimatedTimeMinutes: z.object({
-            lte: z.number().optional().describe("Less than or equal to this time in minutes"),
-            gte: z.number().optional().describe("Greater than or equal to this time in minutes"),
-          }).optional().describe("Filter by estimated time")
-        }),
-        execute: async ({ completed, priority, estimatedTimeMinutes }: {
-          completed?: boolean,
-          priority?: TaskPriority,
-          estimatedTimeMinutes?: { lte?: number, gte?: number }
-        }) => {
-          // Use prisma to fetch tasks with filters
-          const tasks = await prisma.task.findMany({
-            where: {
-              userId,
-              parentId: null, // don't fetch subtasks
-              ...(completed !== undefined ? { completed } : {}),
-              ...(priority ? { priority } : {}),
-              ...(estimatedTimeMinutes?.lte ? { estimatedTimeMinutes: { lte: estimatedTimeMinutes.lte } } : {}),
-              ...(estimatedTimeMinutes?.gte ? { estimatedTimeMinutes: { gte: estimatedTimeMinutes.gte } } : {})
-            },
-            include: {
-              children: true,
-              tags: {
-                include: {
-                  category: true
-                }
-              },
-              notifications: false
-            },
-            orderBy: [
-              { position: 'asc' },
-              { deadline: 'asc' },
-              { priority: 'desc' }
-            ]
-          });
-          return tasks;
-        },
-      },
-      read_user: {
-        description: "Fetch user details including preferences and settings",
-        parameters: z.object({}),
-        execute: async () => {
-          const user = await prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-              settings: true,
-              psychProfile: {
-                include: {
-                  coach: true
-                }
-              }
-            }
-          });
-          return user;
-        },
-      },
-      update_task: {
-        description: "Update a single task with new data",
-        parameters: z.object({
-          taskId: z.string().describe("The ID of the task to update"),
-          data: z.object({
-            title: z.string().optional().describe("New title for the task"),
-            description: z.string().optional().describe("New description for the task"),
-            priority: z.enum(["low", "medium", "high"]).optional().describe("New priority level"),
-            deadline: z.string().optional().describe("New deadline (ISO string)"),
-            date: z.string().optional().describe("New planned date (ISO string)"),
-            estimatedTimeMinutes: z.number().optional().describe("New estimated time in minutes"),
-            stage: z.enum(["Refinement", "Breakdown", "Planning", "Execution", "Reflection"]).optional().describe("New task stage"),
-            stageStatus: z.enum(["NotStarted", "InProgress", "QuestionAsked", "Completed"]).optional().describe("New stage status"),
-            completed: z.boolean().optional().describe("Mark as completed"),
-            location: z.string().optional().describe("Location for the task"),
-            repeats: z.string().optional().describe("Recurrence rule for repetitive tasks in RRULE format"),
-            why: z.string().optional().describe("Why of the task"),
-            points: z.number().optional().describe("Points allotted to user when he completes the task, is based on the estimatedTimeMinutes and priority of task"),
-            tags: z.array(z.object({
-              name: z.string().describe('name of tag'),
-              category: z.string().describe('category of tag'),
-            })).optional().describe('list of tags (max 1)'),
-            notifications: z.object({
-              create: z.array(z.object({
-                // type: z.enum(["low", "medium", "high"]).describe("Type of notification"),
-                trigger: z.enum(["RelativeTime", "FixedTime", "Location"]).describe('When the notification triggered'),
-                // mode: z.enum(["Push", "Email"]).describe('How notification is delivered'),
-                message: z.string().describe('Message shown to user'),
-                relativeTimeValue: z.number().optional().describe('Time before scheduled time of task, if trigger=RelativeTime'),
-                relativeTimeUnit: z.enum(["Minutes", "Hours", "Days"]).optional().describe('Unit of time before scheduled time of task'),
-                fixedTime: z.string().optional().describe("Time of notification delivery, if trigger=FixedTime (ISO string)"),
-                author: z.enum(["User", "Model", "Bot"]),
-              })).optional().describe('List of notifications to add'),
-              update: z.array(z.object({
-                id: z.string().describe('Id of notification to update'),
-                read: z.boolean().optional().describe('status of notification'),
-                // type: z.enum(["low", "medium", "high"]).describe("Type of notification"),
-                trigger: z.enum(["RelativeTime", "FixedTime", "Location"]).optional().describe('When the notification triggered'),
-                // mode: z.enum(["Push", "Email"]).optional().describe('How notification is delivered'),
-                message: z.string().optional().describe('Message shown to user'),
-                relativeTimeValue: z.number().optional().describe('Time before scheduled time of task, if trigger=RelativeTime'),
-                relativeTimeUnit: z.enum(["Minutes", "Hours", "Days"]).optional().describe('Unit of time before scheduled time of task'),
-                fixedTime: z.string().optional().describe("Time of notification delivery, if trigger=FixedTime (ISO string)"),
-              })).optional().describe('List of notifications to update'),
-              removeIds: z.array(z.string()).optional().describe('List of notification ids to remove'),
-            }).optional().describe('Notifications data'),
-          }).describe("The task data to update")
-        }),
-        execute: async ({ taskId, data }: { taskId: string, data: any }) => {
-          try {
-            const { tags, notifications, ...otherData } = data;
-            // Format date fields if they exist
-            const formattedData = {
-              ...otherData,
-              ...(otherData.deadline ? { deadline: new Date(otherData.deadline) } : {}),
-              ...(otherData.date ? { date: new Date(otherData.date) } : {}),
-              ...(notifications ? {
-                notifications: {
-                  create: notifications.create?.map(notification => ({
-                    message: notification.message,
-                    type: 'Reminder', // notification.type,
-                    trigger: notification.trigger,
-                    mode: 'Push', // notification.mode,
-                    relativeTimeValue: notification.relativeTimeValue,
-                    relativeTimeUnit: notification.relativeTimeUnit,
-                    fixedTime: notification.fixedTime,
-                    author: notification.author,
-                  })),
-                  update: notifications.update?.map(notification => ({
-                    id: notification.id,
-                    message: notification.message,
-                    type: 'Reminder', // notification.type,
-                    trigger: notification.trigger,
-                    mode: 'Push', // notification.mode,
-                    relativeTimeValue: notification.relativeTimeValue,
-                    relativeTimeUnit: notification.relativeTimeUnit,
-                    fixedTime: notification.fixedTime,
-                    author: notification.author,
-                  })),
-                  removeIds: notifications.removeIds || [],
-                }
-              } : {}),
-            };
-
-            // Handle tags from AI response
-            if (tags && Array.isArray(tags)) {
-              const [allTags, allCategories] = await Promise.all([
-                TagService.getTags(),
-                TagService.getTagCategories()
-              ])
-
-              const tagIds: string[] = []
-
-              for (const tagData of tags) {
-                let existingTag = allTags.find((t) => t.name.toLowerCase() === tagData.name.toLowerCase())
-
-                if (!existingTag) {
-                  console.log('creating tag', tagData);
-                  let categoryId: string | undefined
-
-                  if (tagData.category) {
-                    let category = allCategories.find((c) => c.name.toLowerCase() === tagData.category.toLowerCase())
-
-                    if (!category) {
-                      console.log('creating category', tagData);
-                      category = await TagService.createTagCategory({ name: tagData.category })
-                      allCategories.push(category)
-                    }
-
-                    categoryId = category.id
-                  }
-
-                  existingTag = await TagService.createTag({
-                    name: tagData.name,
-                    color: '#808080',
-                    categoryId
-                  })
-                  allTags.push(existingTag)
-                }
-
-                tagIds.push(existingTag.id)
-              }
-
-              formattedData.tagIds = tagIds
-            }
-
-            console.log('updating task', taskId, data);
-            const task = await TaskService.updateTask({
-              id: taskId,
-              userId,
-              ...formattedData
-            });
-            return { ok: true, data: {
-              id: taskId,
-              title: task.title
-            }};
-          } catch (error) {
-            console.error('Error updating task:', error);
-            return { ok: false, error: error as Error };
-          }
-        },
-      },
-      update_tasks_many: {
-        description: "Update many tasks with new data",
-        parameters: z.object({
-          data: z.array(
-            z.object({
-              id: z.string(),
-              priority: z.enum(["low", "medium", "high"]).optional().describe("New priority level"),
-              position: z.number().optional().describe("Position of task in the list"),
-              estimatedTimeMinutes: z.number().optional().describe("New estimated time"),
-              priorityReason: z.string().optional().describe("Clear explanation of why this task has this priority and position"),
-              deadline: z.string().optional().describe("New deadline (ISO string)"),
-              date: z.string().optional().describe("New planned date (ISO string)"),
-            }).describe("The task data to update")
-          ),
-        }),
-        execute: async ({ data }: { data: any }) => {
-          // Format date fields if they exist
-          const formattedData = [...data.map(updates => ({
-            ...updates,
-          }))];
-
-          await prisma.$transaction(
-            formattedData.map(updates => {
-              const { id, ...otherUpdates } = updates;
-              return prisma.task.update({
-                where: { id },
-                data: {
-                  ...otherUpdates,
-                },
-              })
-            })
-          );
-
-          return { ok: true };
-        },
-      },
-      // read_logs: {
-      //   description: "Fetch user activity logs",
-      //   parameters: z.object({
-      //     limit: z.number().optional().describe("Number of logs to fetch"),
-      //     type: z.string().optional().describe("Type of log to filter by"),
-      //     taskId: z.string().optional().describe("Filter logs by task ID")
-      //   }),
-      //   execute: async ({ limit = 20, type, taskId }: { limit?: number, type?: string, taskId?: string }) => {
-      //     const logs = await prisma.log.findMany({
-      //       where: {
-      //         userId,
-      //         ...(type ? { type: type as any } : {}),
-      //         ...(taskId ? { taskId } : {})
-      //       },
-      //       orderBy: { createdAt: 'desc' },
-      //       take: limit
-      //     });
-      //     return logs;
-      //   }
-      // },
-      create_task: {
-        description: "Create a new task",
-        parameters: z.object({
-          title: z.string().describe("Title of the task"),
-          description: z.string().optional().describe("Description of the task"),
-          priority: z.enum(["low", "medium", "high"]).optional().describe("Priority level"),
-          deadline: z.string().optional().describe("Deadline (ISO string)"),
-          date: z.string().optional().describe("Planned date (ISO string)"),
-          estimatedTimeMinutes: z.number().optional().describe("Estimated time in minutes"),
-          parentId: z.string().optional().describe("Parent task ID if this is a subtask")
-        }),
-        execute: async ({ title, description, priority, deadline, date, estimatedTimeMinutes, parentId }: {
-          title: string,
-          description?: string,
-          priority?: TaskPriority,
-          deadline?: string,
-          date?: string,
-          estimatedTimeMinutes?: number,
-          parentId?: string
-        }) => {
-          try {
-            const newTask = await TaskService.createTask({
-              title,
-              description,
-              priority: priority || "medium",
-              deadline: deadline ? new Date(deadline) : undefined,
-              date: date ? new Date(date) : undefined,
-              estimatedTimeMinutes: estimatedTimeMinutes || 0,
-              userId,
-              parentId
-            });
-
-            return newTask;
-          } catch (error) {
-            console.error('Error creating task:', error);
-            return { ok: false, error: error as Error };
-          }
-        }
-      },
-      create_subtasks: {
-        description: "Create multiple subtasks for a parent task",
-        parameters: z.object({
-          parentTaskId: z.string().describe("Parent task ID"),
-          subtasks: z.array(z.object({
-            title: z.string(),
-            description: z.string().optional(),
-            estimatedTimeMinutes: z.number().optional().describe("Estimated time in minutes"),
-          })).describe("List of subtasks to create")
-        }),
-        execute: async ({ parentTaskId, subtasks }: {
-          parentTaskId: string,
-          subtasks: Array<{ title: string, description?: string, estimatedTimeMinutes?: number }>
-        }) => {
-          try {
-            // Verify parent task exists and belongs to user
-            const parentTask = await TaskService.getTask(parentTaskId, userId);
-            if (!parentTask) {
-              throw new Error("Parent task not found");
-            }
-
-            // Create subtasks
-            const createdSubtasks = [];
-            for (const subtask of subtasks) {
-              const newTask = await TaskService.createTask({
-                ...subtask,
-                userId,
-                parentId: parentTaskId,
-                priority: parentTask.priority,
-                date: parentTask.date || undefined,
-                deadline: parentTask.deadline || undefined,
-                stage: "Breakdown" as TaskStage
-              });
-              createdSubtasks.push(newTask);
-            }
-
-            // Update parent task stage if it's in refinement
-            if (parentTask.stage === "Refinement") {
-              await TaskService.updateTask({
-                id: parentTaskId,
-                userId,
-                stage: "Breakdown" as TaskStage,
-                stageStatus: "Completed"
-              });
-            }
-
-            return { ok: true };
-          } catch (error) {
-            console.error('Error creating subtasks:', error);
-            return { ok: false, error: error as Error };
-          }
-        }
-      },
-      search_tasks: {
-        description: "Search for tasks by text in title or description",
-        parameters: z.object({
-          query: z.string().describe("Text to search for in task titles and descriptions"),
-          completed: z.boolean().optional().describe("Filter by completion status")
-        }),
-        execute: async ({ query, completed }: { query: string, completed?: boolean }) => {
-          // Use Prisma to search tasks (basic implementation)
-          const tasks = await prisma.task.findMany({
-            where: {
-              userId,
-              ...(completed !== undefined ? { completed } : {}),
-              OR: [
-                { title: { contains: query, mode: "insensitive" } },
-                { description: { contains: query, mode: "insensitive" } }
-              ]
-            },
-            include: {
-              children: true,
-              tags: {
-                include: {
-                  category: true
-                }
-              }
-            }
-          });
-
-          return tasks;
-        }
-      },
-      // save_chat_message: {
-      //   description: "Save a message to the chat history",
-      //   parameters: z.object({
-      //     content: z.string().describe("Content of the message"),
-      //     role: z.enum(["assistant", "system"]).describe("Role of the message sender"),
-      //     taskId: z.string().optional().describe("ID of the task this message is related to"),
-      //     metadata: z.record(z.any()).optional().describe("Additional metadata for the message")
-      //   }),
-      //   execute: async ({ content, role, taskId, metadata }: {
-      //     content: string,
-      //     role: "assistant" | "system",
-      //     taskId?: string,
-      //     metadata?: Record<string, any>
-      //   }) => {
-      //     // First create the chat message
-      //     const chatMessage = await ChatMessageService.createMessage({
-      //       userId,
-      //       taskId,
-      //       content,
-      //       role: role as ChatMessageRole,
-      //       metadata
-      //     });
-
-      //     return chatMessage;
-      //   }
-      // }
-    };
-
-    // Stream the response
-    const result = await streamText({
-      model: openai("gpt-4o"), //openai.responses('gpt-4o-mini')
-      system: systemPrompt,
-      messages,
-      tools,
-      maxSteps: 5,
-      async onError({ error }) {
-        console.error('Error in streamText:', error);
-      },
-      async onFinish({ response }) {
-        const allmessages = appendResponseMessages({
-          messages,
-          responseMessages: response.messages,
+    // For web clients: return AI SDK streaming format
+    console.log('[Chat API] Returning streaming response for web client');
+    return createDataStreamResponse({
+      execute: dataStream => {
+        const messageId = crypto.randomUUID();
+        dataStream.write(`f:${JSON.stringify({ messageId })}\n`);
+        dataStream.write(`0: "${responseContent.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"\n`);
+        dataStream.writeMessageAnnotation({
+          agentType: result.activeAgentType,
+          actionItems: result.actionItems || [],
         });
-
-        // Store the assistant's message to the database
-        const lastMessage = allmessages.findLast((m: any) => m.role === 'assistant');
-        if (lastMessage) {
-          await ChatMessageService.createMessage({
-            userId,
-            taskId: taskId || undefined,
-            content: lastMessage.content,
-            role: ChatMessageRole.assistant
-          });
-        }
+        dataStream.write(`e:${JSON.stringify({
+          finishReason: "stop",
+          usage: { promptTokens: 5, completionTokens: 5 },
+          isContinued: false
+        })}\n`);
+        dataStream.write(`d:${JSON.stringify({
+          finishReason: "stop",
+          usage: { promptTokens: 5, completionTokens: 5 }
+        })}\n`);
+      },
+      onError: error => {
+        return error instanceof Error ? error.message : String(error);
       },
     });
-
-    // Log the request body and headers being sent to the provider API
-    // result.request.then((request) => {
-    //   console.log('Provider API Request:', {
-    //     body: request.body,
-    //   });
-    //   writeFile('log.txt', request.body);
-    // });
-
-    // Return the streaming response
-    return result.toDataStreamResponse();
   } catch (error) {
-    console.error("Error in chat API:", error);
+    console.error('Chat API Error:', error);
+
+    // Log the error for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
     return NextResponse.json(
-      { error: "Failed to process chat request" },
+      {
+        error: 'Failed to process chat message',
+        details: errorMessage,
+      },
       { status: 500 }
     );
   }
 });
 
+/**
+ * GET endpoint to retrieve chat history
+ * Useful for loading previous conversations
+ */
+export const GET = withAuth(async (req: AuthenticatedApiRequest): Promise<Response> => {
+  try {
+    const { searchParams } = new URL(req.url);
+    const taskId = searchParams.get('taskId');
+    const userId = req.user.id;
+
+    const messages = await ChatMessageService.getMessages(
+      userId,
+      taskId || undefined
+    );
+
+    return NextResponse.json({
+      messages: messages.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        role: msg.role,
+        createdAt: msg.createdAt,
+        metadata: msg.metadata,
+      })),
+    });
+  } catch (error) {
+    console.error('Chat History Error:', error);
+
+    return NextResponse.json(
+      {
+        error: 'Failed to retrieve chat history',
+      },
+      { status: 500 }
+    );
+  }
+});

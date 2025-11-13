@@ -6,21 +6,25 @@ class ChatService {
 
   ChatService(this._dio);
 
-  /// Send a chat message to the agent
+  /// Send a chat message to the agent (LangGraph multi-agent system)
   Future<String> sendMessage({
     required String message,
     String? taskId,
   }) async {
     try {
       final response = await _dio.post(
-        ApiConfig.agentChat,
+        ApiConfig.chat,
         data: {
-          'message': message,
+          'messages': [
+            {'role': 'user', 'content': message}
+          ],
           if (taskId != null) 'taskId': taskId,
         },
       );
 
-      return response.data['response'] ?? 'No response';
+      // New response format from LangGraph agent
+      // Returns: { content, role, agentType, actionItems, id, error }
+      return response.data['content'] ?? 'No response';
     } on DioException catch (e) {
       print('Chat error: ${e.message}');
       if (e.response?.data != null) {

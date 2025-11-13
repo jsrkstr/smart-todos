@@ -44,7 +44,7 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
 
   const { messages, input, handleInputChange, handleSubmit, data, append, status } = useChat({
     initialMessages: initialMessages.length > 0 ? initialMessages : [],
-    // api: '/api/chat-messages',
+    api: '/api/chat',
     body: {
       taskId
     },

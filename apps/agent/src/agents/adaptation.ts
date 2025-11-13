@@ -6,6 +6,8 @@ import { StructuredOutputParser } from 'langchain/output_parsers';
 import { z } from 'zod';
 import { AIMessage } from '@langchain/core/messages';
 import { StateAnnotation } from '../types';
+import { getMCPClient } from '../services/mcp-client';
+import { generateBulkPriorityUpdateCode } from '../utils/code-generator';
 
 // Process the user input with Adaptation agent
 export const processAdaptation = async (state: typeof StateAnnotation.State): Promise<typeof StateAnnotation.State> => {
