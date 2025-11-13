@@ -107,6 +107,7 @@ class TasksNotifier extends StateNotifier<TasksState> {
     TaskPriority priority = TaskPriority.medium,
     DateTime? date,
     DateTime? dueDate,
+    String? parentId,
   }) async {
     try {
       final task = await _apiService.createTask({
@@ -115,6 +116,7 @@ class TasksNotifier extends StateNotifier<TasksState> {
         'priority': priority.name,
         if (date != null) 'date': date.toIso8601String(),
         if (dueDate != null) 'dueDate': dueDate.toIso8601String(),
+        if (parentId != null) 'parentId': parentId,
         'completed': false,
       });
 
@@ -146,6 +148,7 @@ class TasksNotifier extends StateNotifier<TasksState> {
   }
 
   /// Update task with named parameters
+  /// To clear a date field, pass a special sentinel value or use the clearDate/clearDueDate parameters
   Future<bool> updateTask({
     required String taskId,
     String? title,
@@ -154,14 +157,33 @@ class TasksNotifier extends StateNotifier<TasksState> {
     DateTime? date,
     DateTime? dueDate,
     bool? completed,
+    String? recurrenceRule,
+    int? estimatedMinutes,
+    bool clearDate = false,
+    bool clearDueDate = false,
+    bool clearRecurrenceRule = false,
   }) async {
     final updates = <String, dynamic>{};
     if (title != null) updates['title'] = title;
     if (description != null) updates['description'] = description;
     if (priority != null) updates['priority'] = priority.name;
-    if (date != null) updates['date'] = date.toIso8601String();
-    if (dueDate != null) updates['dueDate'] = dueDate.toIso8601String();
+    if (clearDate) {
+      updates['date'] = null;
+    } else if (date != null) {
+      updates['date'] = date.toIso8601String();
+    }
+    if (clearDueDate) {
+      updates['dueDate'] = null;
+    } else if (dueDate != null) {
+      updates['dueDate'] = dueDate.toIso8601String();
+    }
     if (completed != null) updates['completed'] = completed;
+    if (clearRecurrenceRule) {
+      updates['recurrenceRule'] = null;
+    } else if (recurrenceRule != null) {
+      updates['recurrenceRule'] = recurrenceRule;
+    }
+    if (estimatedMinutes != null) updates['estimatedMinutes'] = estimatedMinutes;
 
     return _updateTaskWithMap(taskId, updates);
   }

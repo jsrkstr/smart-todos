@@ -1,0 +1,20 @@
+// This file imports the schema from the web app to ensure consistency
+// The MCP server uses the same database and schema as the web app
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Import all models from the main schema
+// In practice, we reference the schema from apps/web/prisma/schema.prisma
+// Run: pnpm prisma generate --schema=../web/prisma/schema.prisma
+
+// Note: This is a placeholder. The actual schema is in apps/web/prisma/schema.prisma
+// To generate the Prisma client for this app, run from the root:
+// cd apps/web && pnpm prisma generate

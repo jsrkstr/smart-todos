@@ -11,7 +11,6 @@ import '../../../features/settings/screens/settings_screen.dart';
 import '../../../core/models/task.dart';
 import '../providers/tasks_provider.dart';
 import '../widgets/task_group.dart';
-import '../widgets/task_form_dialog.dart';
 import 'task_detail_screen.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
@@ -109,7 +108,8 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                     TaskGroup(
                       title: 'Today',
                       tasks: tasksState.todayTasks,
-                      onAddTask: () => _showAddTaskDialog(context, date: DateTime.now()),
+                      priority: null,
+                      date: DateTime.now(),
                       onTaskTap: (task) => _showTaskDetail(context, task),
                       onCheckboxChanged: (task, value) =>
                           ref.read(tasksProvider.notifier).toggleTaskCompletion(task),
@@ -122,7 +122,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                     TaskGroup(
                       title: 'High Priority',
                       tasks: tasksState.highPriorityTasks,
-                      onAddTask: () => _showAddTaskDialog(context, priority: TaskPriority.high),
+                      priority: TaskPriority.high,
                       onTaskTap: (task) => _showTaskDetail(context, task),
                       onCheckboxChanged: (task, value) =>
                           ref.read(tasksProvider.notifier).toggleTaskCompletion(task),
@@ -135,7 +135,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                     TaskGroup(
                       title: 'Medium Priority',
                       tasks: tasksState.mediumPriorityTasks,
-                      onAddTask: () => _showAddTaskDialog(context, priority: TaskPriority.medium),
+                      priority: TaskPriority.medium,
                       onTaskTap: (task) => _showTaskDetail(context, task),
                       onCheckboxChanged: (task, value) =>
                           ref.read(tasksProvider.notifier).toggleTaskCompletion(task),
@@ -148,7 +148,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                     TaskGroup(
                       title: 'Low Priority',
                       tasks: tasksState.lowPriorityTasks,
-                      onAddTask: () => _showAddTaskDialog(context, priority: TaskPriority.low),
+                      priority: TaskPriority.low,
                       onTaskTap: (task) => _showTaskDetail(context, task),
                       onCheckboxChanged: (task, value) =>
                           ref.read(tasksProvider.notifier).toggleTaskCompletion(task),
@@ -161,7 +161,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                     TaskGroup(
                       title: 'Completed',
                       tasks: tasksState.completedTasks,
-                      onAddTask: () => _showAddTaskDialog(context),
+                      priority: null,
                       onTaskTap: (task) => _showTaskDetail(context, task),
                       onCheckboxChanged: (task, value) =>
                           ref.read(tasksProvider.notifier).toggleTaskCompletion(task),
@@ -292,16 +292,6 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           shadowColor: AppColors.primary.withOpacity(0.5),
         ),
         child: const Text('Chat with Coach'),
-      ),
-    );
-  }
-
-  void _showAddTaskDialog(BuildContext context, {TaskPriority? priority, DateTime? date}) {
-    showDialog(
-      context: context,
-      builder: (context) => TaskFormDialog(
-        initialPriority: priority,
-        initialDate: date,
       ),
     );
   }

@@ -10,7 +10,7 @@ class ApiConfig {
   static String get baseUrl {
     if (kDebugMode) {
       // Local development
-      return 'http://192.168.1.89:3000';
+      return 'http://localhost:3000';
     } else {
       // Production
       return 'https://smart-todos-web.vercel.app';

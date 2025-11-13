@@ -1,0 +1,35 @@
+# Dockerfile for Smart Todos code execution sandbox
+# Provides a secure, isolated environment for running user code
+
+FROM node:20-alpine
+
+# Install necessary tools
+RUN apk add --no-cache \
+    bash \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user for code execution
+RUN addgroup -g 1001 sandbox && \
+    adduser -D -u 1001 -G sandbox sandbox
+
+# Set up workspace directory
+RUN mkdir -p /workspace && \
+    chown sandbox:sandbox /workspace && \
+    chmod 755 /workspace
+
+# Install TypeScript execution tools globally
+RUN npm install -g tsx typescript
+
+# Create a minimal package.json for the workspace
+RUN echo '{"name":"sandbox-workspace","version":"1.0.0","type":"module"}' > /workspace/package.json && \
+    chown sandbox:sandbox /workspace/package.json
+
+# Set working directory
+WORKDIR /workspace
+
+# Switch to non-root user
+USER sandbox
+
+# Default command (will be overridden)
+CMD ["/bin/sh"]

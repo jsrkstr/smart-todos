@@ -13,6 +13,7 @@ class TaskItem extends StatelessWidget {
   final Function(Task, bool?)? onCheckboxChanged;
   final VoidCallback? onDelete;
   final VoidCallback? onPlay;
+  final VoidCallback? onDateTimeTap;
   final bool showDetails;
 
   const TaskItem({
@@ -22,6 +23,7 @@ class TaskItem extends StatelessWidget {
     this.onCheckboxChanged,
     this.onDelete,
     this.onPlay,
+    this.onDateTimeTap,
     this.showDetails = false,
   });
 
@@ -106,16 +108,22 @@ class TaskItem extends StatelessWidget {
 
                         // Date
                         if (task.date != null)
-                          _MetadataItem(
-                            icon: Icons.calendar_today_outlined,
-                            text: _formatDate(task.date!),
+                          GestureDetector(
+                            onTap: onDateTimeTap,
+                            child: _MetadataItem(
+                              icon: Icons.calendar_today_outlined,
+                              text: _formatDate(task.date!),
+                            ),
                           ),
 
                         // Due date (with X icon)
                         if (task.dueDate != null)
-                          _MetadataItem(
-                            icon: Icons.close,
-                            text: _formatDate(task.dueDate!),
+                          GestureDetector(
+                            onTap: onDateTimeTap,
+                            child: _MetadataItem(
+                              icon: Icons.close,
+                              text: _formatDate(task.dueDate!),
+                            ),
                           ),
 
                         // Estimated time
