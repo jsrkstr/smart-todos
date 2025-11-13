@@ -83,11 +83,15 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
 
     // Detect client type based on Accept header
     const acceptHeader = req.headers.get('accept') || '';
-    const isStreamingClient = acceptHeader.includes('text/event-stream') ||
-                              acceptHeader.includes('text/x-unknown');
+    console.log('[Chat API] Accept header:', acceptHeader);
+
+    // Check if this is a mobile/Flutter client (doesn't send streaming accept headers)
+    // Web clients using useChat will send accept headers with */* or text/event-stream
+    const isMobileClient = acceptHeader.includes('application/json') &&
+                           !acceptHeader.includes('*/*');
 
     // For mobile/Flutter clients: return simple JSON
-    if (!isStreamingClient) {
+    if (isMobileClient) {
       console.log('[Chat API] Returning JSON response for mobile client');
       return NextResponse.json({
         content: responseContent,
@@ -101,11 +105,15 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
 
     // For web clients: return AI SDK streaming format
     console.log('[Chat API] Returning streaming response for web client');
+    console.log('[Chat API] Response content:', responseContent);
+    console.log('[Chat API] Response length:', responseContent.length);
+
+    // Use createDataStreamResponse - same as chat-messages route
     return createDataStreamResponse({
       execute: dataStream => {
         const messageId = crypto.randomUUID();
         dataStream.write(`f:${JSON.stringify({ messageId })}\n`);
-        dataStream.write(`0: "${responseContent.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"\n`);
+        dataStream.write(`0: "${responseContent}"\n`);
         dataStream.writeMessageAnnotation({
           agentType: result.activeAgentType,
           actionItems: result.actionItems || [],
@@ -121,6 +129,7 @@ export const POST = withAuth(async (req: AuthenticatedApiRequest): Promise<Respo
         })}\n`);
       },
       onError: error => {
+        console.error('[Chat API] Stream error:', error);
         return error instanceof Error ? error.message : String(error);
       },
     });

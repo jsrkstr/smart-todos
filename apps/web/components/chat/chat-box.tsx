@@ -42,33 +42,42 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
     parts: []
   }))
 
-  const { messages, input, handleInputChange, handleSubmit, data, append, status } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, data, append, status, error, isLoading } = useChat({
     initialMessages: initialMessages.length > 0 ? initialMessages : [],
     api: '/api/chat',
     body: {
       taskId
     },
     onToolCall: ({ toolCall }) => {
-      console.log('toolcall:', toolCall);
+      console.log('[ChatBox] toolcall:', toolCall);
     },
     onFinish: async (message: Message) => {
+      console.log('[ChatBox] onFinish called with message:', message);
       const toolNames = message.parts?.filter(part => part.type === 'tool-invocation')
         .map((part) => part.toolInvocation.toolName)
-      
-      console.log('onfinish', message, toolNames);
+
+      console.log('[ChatBox] onfinish', message, toolNames);
       const taskModifyingTools = ['update_task', 'update_tasks_many', 'create_subtasks', 'create_task'];
       if (toolNames?.some(tool => taskModifyingTools.includes(tool))) {
         fetchTasks(true);
         fetchTags(true);
       }
     },
+    onResponse: (response) => {
+      console.log('[ChatBox] onResponse called:', response.status, response.headers.get('content-type'));
+    },
+    onError: (error) => {
+      console.error('[ChatBox] onError called:', error);
+    },
   })
 
   useEffect(() => {
     const isLoading = status === "submitted" || status === "streaming";
     onLoadingChange && onLoadingChange(isLoading);
-    console.log('status', status)
-  }, [status])
+    console.log('[ChatBox] status changed:', status);
+    console.log('[ChatBox] isLoading:', isLoading);
+    console.log('[ChatBox] error:', error);
+  }, [status, error])
 
   // Load messages when component mounts
   useEffect(() => {
@@ -78,7 +87,8 @@ const ChatBox = forwardRef(({ taskId, slotContent, onLoadingChange }: ChatBoxPro
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
-    console.log('messages', messages);
+    console.log('[ChatBox] messages changed:', messages.length, 'messages');
+    console.log('[ChatBox] latest message:', messages[messages.length - 1]);
 
     // // Check if message contains annotations with a response_type property
     // const latestMessage = messages[messages.length-1];
