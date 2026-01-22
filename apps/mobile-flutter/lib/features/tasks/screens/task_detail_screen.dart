@@ -161,11 +161,85 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // TODO: Show more options menu
+            onSelected: (value) async {
+              switch (value) {
+                case 'delete':
+                  if (!mounted) return;
+                  final navigator = Navigator.of(context);
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Delete Task'),
+                      content: const Text('Are you sure you want to delete this task?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.destructive,
+                          ),
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true) {
+                    final success = await ref.read(tasksProvider.notifier).deleteTask(widget.taskId);
+                    if (mounted && success) {
+                      // Navigate back to tasks screen
+                      navigator.pop();
+                    }
+                  }
+                  break;
+                case 'duplicate':
+                  if (!mounted) return;
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
+                  final newTask = await ref.read(tasksProvider.notifier).duplicateTask(widget.taskId);
+                  if (mounted && newTask != null) {
+                    // Replace current screen with new task detail screen
+                    navigator.pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) => TaskDetailScreen(
+                          taskId: newTask.id,
+                        ),
+                      ),
+                    );
+                  } else if (mounted) {
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Failed to duplicate task')),
+                    );
+                  }
+                  break;
+              }
             },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'duplicate',
+                child: Row(
+                  children: [
+                    Icon(Icons.content_copy, size: 20),
+                    SizedBox(width: AppSpacing.md),
+                    Text('Duplicate'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, size: 20, color: AppColors.destructive),
+                    SizedBox(width: AppSpacing.md),
+                    Text('Delete', style: TextStyle(color: AppColors.destructive)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

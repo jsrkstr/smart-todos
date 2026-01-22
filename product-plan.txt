@@ -163,9 +163,9 @@ Lifecycle of a task
             2. Note that a there will be iterations between Task Execution, Tracking progress & Adapting plans steps until the task is completed
         2. Execution
             1. Goal
-                1. Help use execute the tasks, be more focused, find time to work on task
+                1. Help the user execute the tasks, be more focused, find time to work on task
             2. How
-                1. Introduce use to tools like Pomodoro time tracking
+                1. Introduce user to tools like Pomodoro time tracking
                     1. Start timer in various Modes like
                     2. Task mode
                         1. User Selects a task and starts timer, turn on DoNotDisturb mode on their device

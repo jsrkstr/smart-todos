@@ -207,6 +207,35 @@ class TasksNotifier extends StateNotifier<TasksState> {
     }
   }
 
+  /// Duplicate task
+  Future<Task?> duplicateTask(String id) async {
+    try {
+      // Find the original task
+      final originalTask = state.tasks.firstWhere((task) => task.id == id);
+
+      // Create a new task with the same properties but a new title
+      final newTask = await _apiService.createTask({
+        'title': '${originalTask.title} (copy)',
+        if (originalTask.description != null) 'description': originalTask.description,
+        'priority': originalTask.priority.name,
+        if (originalTask.date != null) 'date': originalTask.date!.toIso8601String(),
+        if (originalTask.dueDate != null) 'dueDate': originalTask.dueDate!.toIso8601String(),
+        if (originalTask.parentId != null) 'parentId': originalTask.parentId,
+        if (originalTask.estimatedMinutes != null) 'estimatedMinutes': originalTask.estimatedMinutes,
+        if (originalTask.recurrenceRule != null) 'recurrenceRule': originalTask.recurrenceRule,
+        'completed': false,
+      });
+
+      state = state.copyWith(
+        tasks: [...state.tasks, newTask],
+      );
+      return newTask;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return null;
+    }
+  }
+
   /// Select task for detail view
   void selectTask(Task? task) {
     state = state.copyWith(selectedTask: task);
