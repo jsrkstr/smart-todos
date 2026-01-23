@@ -41,6 +41,11 @@ model User {
   accountabilityPartnerships AccountabilityPartnership[] @relation("AccountabilityPartner")
   pomodoros      Pomodoro[]
   calendarConnections CalendarConnection[]
+
+  // Phase 2: Physical Context
+  userContexts   UserContext[]
+  savedLocations SavedLocation[]
+  userPatterns   UserPatterns?
 }
 
 model Coach {
@@ -95,6 +100,10 @@ model Settings {
   soundEnabled         Boolean  @default(true)
   notificationsEnabled Boolean  @default(true)
   defaultReminderTime  Int      @default(0)
+
+  // Secretary preferences
+  secretaryAggressiveness String @default("moderate") // conservative | moderate | proactive
+  locationTrackingLevel   String @default("minimal")  // off | minimal | moderate | full
 }
 
 enum TaskPriority {
@@ -538,4 +547,63 @@ enum PomodoroTaskMode {
   single
   multi
   free
+}
+
+// ============================================================================
+// Phase 2: Physical Context Models
+// ============================================================================
+
+// Real-time user context (activity, location, device state)
+model UserContext {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Activity detection (from accelerometer)
+  activity    String   // stationary, walking, running, driving, unknown
+  confidence  Float    // 0.0 to 1.0
+
+  // Location context (privacy-preserving)
+  locationType String  // home, work, commuting, shopping, gym, restaurant, unknown
+  savedLocationId String?
+  savedLocation SavedLocation? @relation(fields: [savedLocationId], references: [id])
+
+  // Device state
+  screenOn    Boolean
+  battery     Int      // 0-100 percentage
+  doNotDisturb Boolean
+
+  timestamp   DateTime @default(now())
+
+  @@index([userId, timestamp])
+}
+
+// User-defined locations for privacy-preserving location tracking
+model SavedLocation {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String   // "Home", "Work", "Gym", etc.
+  latitude    Float
+  longitude   Float
+  radius      Int      @default(100) // Detection radius in meters
+
+  createdAt   DateTime @default(now())
+
+  // Relations
+  userContexts UserContext[]
+
+  @@unique([userId, name])
+}
+
+// Behavioral patterns computed from historical data
+model UserPatterns {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  patterns    Json     // BehavioralPatterns object with energy, focus, task affinity, etc.
+  computedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

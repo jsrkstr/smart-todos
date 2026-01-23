@@ -22,11 +22,21 @@ export const determineAgent = async (state: typeof StateAnnotation.State): Promi
 
   // This is a new request or we need to route to a different agent
   // Prepare context for the supervisor agent
+  const historicalSummary = state.historicalContext ? `
+Historical Context:
+- User has completed ${state.historicalContext.tasksCompletedToday} tasks today (${state.historicalContext.tasksCompletedThisWeek} this week)
+- Current streak: ${state.historicalContext.currentDailyStreak} days
+- Notifications sent today: ${state.historicalContext.notificationsSentToday}
+- App opened today: ${state.historicalContext.appOpenedToday}
+- Average mood this week: ${state.historicalContext.averageMoodThisWeek?.toFixed(1) || 'N/A'}
+` : 'No historical context available';
+
   const context = {
     task: state.task,
     user: state.user,
     input: state.input,
     message_count: state.messages.length,
+    historical_summary: historicalSummary,
     // Add information about what agents have already been involved
     previous_agents: state.messages
       .filter(msg => msg.additional_kwargs?.agentType)

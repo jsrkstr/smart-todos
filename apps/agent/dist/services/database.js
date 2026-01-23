@@ -117,10 +117,9 @@ exports.TaskService = {
 // Service for logging activities
 exports.LogService = {
     async createLog(data) {
-        return null;
-        // return prisma.log.create({
-        //   data
-        // });
+        return exports.prisma.log.create({
+            data
+        });
     }
 };
 // Service for chat messages

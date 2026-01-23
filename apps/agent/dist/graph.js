@@ -11,6 +11,8 @@ const adaptation_1 = require("./agents/adaptation");
 const analytics_1 = require("./agents/analytics");
 // executeActions is now handled by specialized agents directly
 const database_1 = require("./services/database");
+const historicalContextService_1 = require("./services/historicalContextService");
+const physicalContextService_1 = require("./services/physicalContextService");
 const langgraph_checkpoint_postgres_1 = require("@langchain/langgraph-checkpoint-postgres");
 const pg_store_1 = require("./utils/pg-store");
 const messages_1 = require("@langchain/core/messages");
@@ -62,6 +64,29 @@ const createSupervisorGraph = async (databaseUrl) => {
                 // Fix type cast to match UserWithPsychProfile type
                 updates.user = user;
                 console.log('Loaded user:', user === null || user === void 0 ? void 0 : user.id);
+                // Load historical context
+                const historicalContextService = (0, historicalContextService_1.createHistoricalContextService)(database_1.prisma);
+                const historicalContext = await historicalContextService.loadHistoricalContext(state.userId);
+                updates.historicalContext = historicalContext;
+                console.log('Loaded historical context:', {
+                    notificationsSentToday: historicalContext.notificationsSentToday,
+                    tasksCompletedToday: historicalContext.tasksCompletedToday,
+                    appOpenedToday: historicalContext.appOpenedToday,
+                });
+                // Load physical context
+                const physicalContextService = (0, physicalContextService_1.createPhysicalContextService)(database_1.prisma);
+                const physicalContext = await physicalContextService.loadPhysicalContext(state.userId);
+                updates.physicalContext = physicalContext;
+                if (physicalContext) {
+                    console.log('Loaded physical context:', {
+                        activity: physicalContext.currentActivity,
+                        location: physicalContext.locationType,
+                        interruptible: physicalContextService.shouldAllowInterruption(physicalContext),
+                    });
+                }
+                else {
+                    console.log('No recent physical context available');
+                }
             }
             if (((_b = state.context) === null || _b === void 0 ? void 0 : _b.taskId) && state.userId) {
                 const task = await database_1.TaskService.getTask(state.context.taskId, state.userId);

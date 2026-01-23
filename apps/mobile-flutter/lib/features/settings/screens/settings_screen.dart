@@ -5,6 +5,8 @@ import '../../../theme/app_spacing.dart';
 import '../../../theme/app_text_styles.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../core/providers/notification_provider.dart';
+import '../../../core/api/api_service.dart';
+import '../../../core/api/dio_client.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -17,6 +19,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _emailNotificationsEnabled = true;
   bool _soundEnabled = true;
+  String _secretaryAggressiveness = 'moderate';
+  String _locationTrackingLevel = 'minimal';
 
   @override
   Widget build(BuildContext context) {
@@ -172,6 +176,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Sound settings coming soon')),
                   );
+                },
+              ),
+            ],
+          ),
+
+          const Divider(height: 1),
+
+          // AI Secretary Settings
+          _buildSection(
+            title: 'AI Secretary',
+            children: [
+              _buildListTile(
+                icon: Icons.psychology_outlined,
+                title: 'Secretary Aggressiveness',
+                subtitle: _getSecretaryAggressivenessLabel(_secretaryAggressiveness),
+                onTap: () {
+                  _showSecretaryAggressivenessDialog();
+                },
+              ),
+              _buildListTile(
+                icon: Icons.location_on_outlined,
+                title: 'Location Tracking',
+                subtitle: _getLocationTrackingLabel(_locationTrackingLevel),
+                onTap: () {
+                  _showLocationTrackingDialog();
                 },
               ),
             ],
@@ -355,5 +384,189 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  String _getSecretaryAggressivenessLabel(String value) {
+    switch (value) {
+      case 'conservative':
+        return 'Conservative - Only urgent items';
+      case 'moderate':
+        return 'Moderate - Daily briefings (default)';
+      case 'proactive':
+        return 'Proactive - Frequent check-ins';
+      default:
+        return 'Moderate';
+    }
+  }
+
+  String _getLocationTrackingLabel(String value) {
+    switch (value) {
+      case 'off':
+        return 'Off - No location tracking';
+      case 'minimal':
+        return 'Minimal - Saved locations only (default)';
+      case 'moderate':
+        return 'Moderate - Significant location changes';
+      case 'full':
+        return 'Full - Continuous tracking';
+      default:
+        return 'Minimal';
+    }
+  }
+
+  void _showSecretaryAggressivenessDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Secretary Aggressiveness'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Choose how proactive your AI secretary should be:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: AppSpacing.paddingMD),
+            RadioListTile<String>(
+              title: const Text('Conservative'),
+              subtitle: const Text('Only urgent items + explicit triggers'),
+              value: 'conservative',
+              groupValue: _secretaryAggressiveness,
+              onChanged: (value) {
+                setState(() => _secretaryAggressiveness = value!);
+                Navigator.of(context).pop();
+                _updateSecretarySettings();
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('Moderate'),
+              subtitle: const Text('Daily briefing + opportunistic moments'),
+              value: 'moderate',
+              groupValue: _secretaryAggressiveness,
+              onChanged: (value) {
+                setState(() => _secretaryAggressiveness = value!);
+                Navigator.of(context).pop();
+                _updateSecretarySettings();
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('Proactive'),
+              subtitle: const Text('Frequent check-ins throughout day'),
+              value: 'proactive',
+              groupValue: _secretaryAggressiveness,
+              onChanged: (value) {
+                setState(() => _secretaryAggressiveness = value!);
+                Navigator.of(context).pop();
+                _updateSecretarySettings();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationTrackingDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Location Tracking'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Choose your location tracking privacy level:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: AppSpacing.paddingMD),
+            RadioListTile<String>(
+              title: const Text('Off'),
+              subtitle: const Text('No location tracking'),
+              value: 'off',
+              groupValue: _locationTrackingLevel,
+              onChanged: (value) {
+                setState(() => _locationTrackingLevel = value!);
+                Navigator.of(context).pop();
+                _updateSecretarySettings();
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('Minimal'),
+              subtitle: const Text('Only saved locations, check every 15 min'),
+              value: 'minimal',
+              groupValue: _locationTrackingLevel,
+              onChanged: (value) {
+                setState(() => _locationTrackingLevel = value!);
+                Navigator.of(context).pop();
+                _updateSecretarySettings();
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('Moderate'),
+              subtitle: const Text('Significant location changes, background updates'),
+              value: 'moderate',
+              groupValue: _locationTrackingLevel,
+              onChanged: (value) {
+                setState(() => _locationTrackingLevel = value!);
+                Navigator.of(context).pop();
+                _updateSecretarySettings();
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('Full'),
+              subtitle: const Text('Continuous tracking with detailed history'),
+              value: 'full',
+              groupValue: _locationTrackingLevel,
+              onChanged: (value) {
+                setState(() => _locationTrackingLevel = value!);
+                Navigator.of(context).pop();
+                _updateSecretarySettings();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateSecretarySettings() async {
+    try {
+      final apiService = ApiService(DioClient());
+      await apiService.updateSettings({
+        'secretaryAggressiveness': _secretaryAggressiveness,
+        'locationTrackingLevel': _locationTrackingLevel,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Secretary settings updated'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update settings: $e'),
+            backgroundColor: AppColors.destructive,
+          ),
+        );
+      }
+    }
   }
 }

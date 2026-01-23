@@ -8,6 +8,8 @@ import { processAdaptation } from './agents/adaptation';
 import { processAnalytics } from './agents/analytics';
 // executeActions is now handled by specialized agents directly
 import { UserService, TaskService, prisma } from './services/database';
+import { createHistoricalContextService } from './services/historicalContextService';
+import { createPhysicalContextService } from './services/physicalContextService';
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { PostgresStore } from './utils/pg-store';
 import { AIMessage, BaseMessage, HumanMessage, isHumanMessage, RemoveMessage } from '@langchain/core/messages';
@@ -70,6 +72,30 @@ export const createSupervisorGraph = async (databaseUrl?: string) => {
         // Fix type cast to match UserWithPsychProfile type
         updates.user = user as unknown as typeof StateAnnotation.State['user'];
         console.log('Loaded user:', user?.id);
+
+        // Load historical context
+        const historicalContextService = createHistoricalContextService(prisma);
+        const historicalContext = await historicalContextService.loadHistoricalContext(state.userId);
+        updates.historicalContext = historicalContext;
+        console.log('Loaded historical context:', {
+          notificationsSentToday: historicalContext.notificationsSentToday,
+          tasksCompletedToday: historicalContext.tasksCompletedToday,
+          appOpenedToday: historicalContext.appOpenedToday,
+        });
+
+        // Load physical context
+        const physicalContextService = createPhysicalContextService(prisma);
+        const physicalContext = await physicalContextService.loadPhysicalContext(state.userId);
+        updates.physicalContext = physicalContext;
+        if (physicalContext) {
+          console.log('Loaded physical context:', {
+            activity: physicalContext.currentActivity,
+            location: physicalContext.locationType,
+            interruptible: physicalContextService.shouldAllowInterruption(physicalContext),
+          });
+        } else {
+          console.log('No recent physical context available');
+        }
       }
       if (state.context?.taskId && state.userId) {
         const task = await TaskService.getTask(state.context.taskId, state.userId);

@@ -127,10 +127,9 @@ export const TaskService = {
 // Service for logging activities
 export const LogService = {
   async createLog(data: any) {
-    return null
-    // return prisma.log.create({
-    //   data
-    // });
+    return prisma.log.create({
+      data
+    });
   }
 };
 

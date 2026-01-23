@@ -21,6 +21,10 @@ exports.StateAnnotation = langgraph_1.Annotation.Root({
     agentResponse: (0, langgraph_1.Annotation)(),
     actionItems: (0, langgraph_1.Annotation)(),
     error: (0, langgraph_1.Annotation)(),
+    // Historical context - what agents know about past interactions
+    historicalContext: (0, langgraph_1.Annotation)(),
+    // Physical context - real-time state from mobile device
+    physicalContext: (0, langgraph_1.Annotation)(),
 });
 // Types of agents in the system
 var AgentType;

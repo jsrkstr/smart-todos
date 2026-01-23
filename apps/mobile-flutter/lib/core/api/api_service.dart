@@ -264,4 +264,57 @@ class ApiService {
     );
     print('updateNotificationSettings - Updated successfully');
   }
+
+  // ============================================================================
+  // Physical Context & Location (Phase 2)
+  // ============================================================================
+
+  /// Report physical context (activity, location, device state)
+  Future<Map<String, dynamic>> reportContext(dynamic context) async {
+    final response = await _dio.post(
+      '/api/context/report',
+      data: context.toJson(),
+    );
+    return response.data;
+  }
+
+  /// Get all saved locations
+  Future<List<dynamic>> getSavedLocations() async {
+    final response = await _dio.get('/api/locations');
+    final List<dynamic> data = response.data;
+    return data;
+  }
+
+  /// Create a new saved location
+  Future<Map<String, dynamic>> createSavedLocation({
+    required String name,
+    required double latitude,
+    required double longitude,
+    int radius = 100,
+  }) async {
+    final response = await _dio.post(
+      '/api/locations',
+      data: {
+        'name': name,
+        'latitude': latitude,
+        'longitude': longitude,
+        'radius': radius,
+      },
+    );
+    return response.data;
+  }
+
+  /// Delete a saved location
+  Future<void> deleteSavedLocation(String id) async {
+    await _dio.delete('/api/locations/$id');
+  }
+
+  /// Update a saved location
+  Future<Map<String, dynamic>> updateSavedLocation(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _dio.put('/api/locations/$id', data: data);
+    return response.data;
+  }
 }

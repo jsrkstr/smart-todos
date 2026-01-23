@@ -37,6 +37,8 @@ export async function processRequest(
     agentResponse: null,
     actionItems: [],
     error: null,
+    historicalContext: null,
+    physicalContext: null,
   };
 
   // Use userId + taskId as thread ID for conversation continuity

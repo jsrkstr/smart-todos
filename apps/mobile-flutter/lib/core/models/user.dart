@@ -113,6 +113,8 @@ class Settings {
   final bool soundEnabled;
   final bool notificationsEnabled;
   final int defaultReminderTime;
+  final String secretaryAggressiveness;
+  final String locationTrackingLevel;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -130,6 +132,8 @@ class Settings {
     this.soundEnabled = true,
     this.notificationsEnabled = true,
     this.defaultReminderTime = 0,
+    this.secretaryAggressiveness = 'moderate',
+    this.locationTrackingLevel = 'minimal',
     required this.createdAt,
     required this.updatedAt,
   });

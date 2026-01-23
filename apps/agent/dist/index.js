@@ -40,6 +40,8 @@ async function processRequest(userId, input, context) {
         agentResponse: null,
         actionItems: [],
         error: null,
+        historicalContext: null,
+        physicalContext: null,
     };
     // Use userId + taskId as thread ID for conversation continuity
     // This ensures each task has its own conversation thread, and general chat has its own

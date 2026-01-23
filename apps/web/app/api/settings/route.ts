@@ -23,7 +23,9 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
           longBreakDuration: 15,
           soundEnabled: true,
           notificationsEnabled: true,
-          defaultReminderTime: 0
+          defaultReminderTime: 0,
+          secretaryAggressiveness: 'moderate',
+          locationTrackingLevel: 'minimal'
         },
       })
 
@@ -39,7 +41,7 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
 
     return NextResponse.json({
       theme: userSettings.theme,
-      notifications: userSettings.notifications, 
+      notifications: userSettings.notifications,
       emailNotifications: userSettings.emailNotifications,
       timezone: userSettings.timezone,
       language: userSettings.language,
@@ -48,7 +50,9 @@ export const GET = withAuth(async (req: AuthenticatedApiRequest) => {
       longBreakDuration: userSettings.longBreakDuration,
       soundEnabled: userSettings.soundEnabled,
       notificationsEnabled: userSettings.notificationsEnabled,
-      defaultReminderTime: userSettings.defaultReminderTime
+      defaultReminderTime: userSettings.defaultReminderTime,
+      secretaryAggressiveness: userSettings.secretaryAggressiveness,
+      locationTrackingLevel: userSettings.locationTrackingLevel
     })
   } catch (error) {
     // Safe error handling
@@ -100,7 +104,9 @@ export const PUT = withAuth(async (req: AuthenticatedApiRequest) => {
       longBreakDuration: updatedSettings.longBreakDuration,
       soundEnabled: updatedSettings.soundEnabled,
       notificationsEnabled: updatedSettings.notificationsEnabled,
-      defaultReminderTime: updatedSettings.defaultReminderTime
+      defaultReminderTime: updatedSettings.defaultReminderTime,
+      secretaryAggressiveness: updatedSettings.secretaryAggressiveness,
+      locationTrackingLevel: updatedSettings.locationTrackingLevel
     })
   } catch (error) {
     // Safe error handling

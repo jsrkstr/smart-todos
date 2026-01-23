@@ -8,6 +8,68 @@ export interface UserWithPsychProfile extends User {
   };
 }
 
+// Historical context - what happened in the app previously
+export interface HistoricalContext {
+  // Recent activity
+  lastAppOpen: Date | null;
+  appOpenedToday: boolean;
+  sessionCountThisWeek: number;
+
+  // Notification history
+  notificationsSentToday: number;
+  lastNotificationSent: Date | null;
+  notificationsThisWeekByType: Record<string, number>;
+
+  // Task completion patterns
+  tasksCompletedToday: number;
+  tasksCompletedThisWeek: number;
+  averageCompletionTimeByPriority: Record<string, number>;
+  overdueTaskCount: number;
+
+  // Pomodoro patterns
+  pomodorosCompletedToday: number;
+  totalFocusMinutesToday: number;
+  lastPomodoroCompletedAt: Date | null;
+
+  // Mood & energy (if available)
+  recentMoods: Array<{ mood: number; taskId: string; timestamp: Date }>;
+  averageMoodThisWeek: number | null;
+
+  // Streaks
+  currentDailyStreak: number;
+  longestStreak: number;
+
+  // Communication patterns
+  lastUserMessageAt: Date | null;
+  messagesExchangedToday: number;
+  preferredResponseLength: 'short' | 'medium' | 'detailed';
+}
+
+// Physical context - real-time user state from mobile device
+export interface PhysicalContext {
+  // Activity detection
+  currentActivity: 'stationary' | 'walking' | 'running' | 'driving' | 'unknown';
+  activityConfidence: number;
+  activityDurationMinutes: number;
+
+  // Location context (privacy-preserving)
+  locationType: 'home' | 'work' | 'commuting' | 'shopping' | 'gym' | 'restaurant' | 'unknown';
+  isAtSavedLocation: boolean;
+  savedLocationName?: string;
+
+  // Device state
+  screenOn: boolean;
+  batteryLevel: number;
+  isCharging: boolean;
+  doNotDisturb: boolean;
+
+  // Time context
+  localTime: string;
+  timezone: string;
+  isWeekend: boolean;
+  isWorkingHours: boolean;
+}
+
 // Define the state annotation for the graph, including reducers where appropriate
 export const StateAnnotation = Annotation.Root({
   userId: Annotation<string>(),
@@ -29,6 +91,12 @@ export const StateAnnotation = Annotation.Root({
   agentResponse: Annotation<string | null>(),
   actionItems: Annotation<ActionItem[]>(),
   error: Annotation<string | null>(),
+
+  // Historical context - what agents know about past interactions
+  historicalContext: Annotation<HistoricalContext | null>(),
+
+  // Physical context - real-time state from mobile device
+  physicalContext: Annotation<PhysicalContext | null>(),
 });
 
 

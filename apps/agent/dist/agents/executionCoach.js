@@ -47,11 +47,54 @@ const processExecutionCoach = async (state) => {
     const coachInfo = coach ?
         `Coach: ${coach.name}\nCoaching Style: ${coach.coachingStyle || 'balanced'}\nDirectness: ${coach.directness || 50}/100\nEncouragement Level: ${coach.encouragementLevel || 70}/100` :
         'No coach assigned';
+    // Get historical context
+    const historicalContext = state.historicalContext;
+    const physicalContext = state.physicalContext;
+    const historyInfo = historicalContext ?
+        `\n\n=== HISTORICAL CONTEXT ===
+Recent Activity:
+- App opened today: ${historicalContext.appOpenedToday ? 'Yes' : 'No'}
+- Sessions this week: ${historicalContext.sessionCountThisWeek}
+- Tasks completed today: ${historicalContext.tasksCompletedToday}
+- Tasks completed this week: ${historicalContext.tasksCompletedThisWeek}
+- Current streak: ${historicalContext.currentDailyStreak} days
+- Longest streak: ${historicalContext.longestStreak} days
+
+Notifications Sent:
+- Today: ${historicalContext.notificationsSentToday}
+- Last sent: ${historicalContext.lastNotificationSent ? new Date(historicalContext.lastNotificationSent).toLocaleString() : 'Never'}
+${Object.keys(historicalContext.notificationsThisWeekByType).length > 0 ? `- This week by type: ${JSON.stringify(historicalContext.notificationsThisWeekByType)}` : ''}
+
+Focus & Energy:
+- Pomodoros completed today: ${historicalContext.pomodorosCompletedToday}
+- Total focus time today: ${historicalContext.totalFocusMinutesToday} minutes
+${historicalContext.averageMoodThisWeek ? `- Average mood this week: ${historicalContext.averageMoodThisWeek.toFixed(1)}/5` : ''}
+
+IMPORTANT: Use this context to:
+1. Avoid redundant coaching if user already received similar intervention today
+2. Reference their progress positively (e.g., "Nice streak of ${historicalContext.currentDailyStreak} days!")
+3. Adjust your approach based on their mood and energy levels
+4. Be aware of notification fatigue if many notifications sent today
+` : '';
+    const physicalInfo = physicalContext ?
+        `\n\n=== PHYSICAL CONTEXT (Real-time) ===
+Current Activity: ${physicalContext.currentActivity} (${physicalContext.activityDurationMinutes} min, confidence: ${(physicalContext.activityConfidence * 100).toFixed(0)}%)
+Location: ${physicalContext.locationType}${physicalContext.savedLocationName ? ` (${physicalContext.savedLocationName})` : ''}
+Device: Battery ${physicalContext.batteryLevel}%${physicalContext.doNotDisturb ? ', DND ON' : ''}${!physicalContext.screenOn ? ', Screen OFF' : ''}
+Time: ${physicalContext.localTime}${physicalContext.isWeekend ? ' (Weekend)' : ''}${!physicalContext.isWorkingHours ? ' (Outside work hours)' : ''}
+
+IMPORTANT Context-Aware Coaching:
+- User is ${physicalContext.currentActivity} (consider energy level)
+- ${physicalContext.locationType === 'home' ? 'At home - can suggest home-based tasks' : physicalContext.locationType === 'work' ? 'At work - focus on work tasks' : physicalContext.locationType === 'commuting' ? 'Commuting - suggest light tasks or mental preparation' : 'Location unknown'}
+- ${physicalContext.doNotDisturb ? 'DND is ON - user wants minimal interruptions' : 'Available for engagement'}
+- ${physicalContext.batteryLevel < 20 ? 'Low battery - suggest quick tasks' : 'Battery okay'}
+- ${physicalContext.isWeekend && !physicalContext.isWorkingHours ? 'Weekend leisure time - balance productivity with rest' : ''}
+` : '';
     // Create a prompt template
     const prompt = prompts_1.ChatPromptTemplate.fromMessages([
         ['system', (0, llm_1.getSystemPrompt)('executionCoach') + `\n\nRespond with a structured output containing actions, a motivational message, reasoning, and a concise user-friendly response.`],
         new prompts_1.MessagesPlaceholder('conversation_history'),
-        ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nCoach Information:\n${coachInfo}\n\nProvide a structured response with actions to take in JSON format. Include a motivational message that matches the assigned coach's style and the user's preferences. Also include a complete response to the user addressing their query with coaching elements. {format_instructions}`],
+        ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nCoach Information:\n${coachInfo}${historyInfo}${physicalInfo}\n\nProvide a structured response with actions to take in JSON format. Include a motivational message that matches the assigned coach's style and the user's preferences. Also include a complete response to the user addressing their query with coaching elements. {format_instructions}`],
     ]);
     // Create the chain
     const chain = runnables_1.RunnableSequence.from([
