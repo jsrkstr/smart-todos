@@ -30,7 +30,7 @@ interface ChildTaskPayload {
 export const GET = withAuth(async (req: AuthenticatedApiRequest): Promise<NextResponse> => {
   try {
     const tasks = await TaskService.getTasks(req.user.id)
-
+    console.log('GET /api/tasks', tasks.length)
     return NextResponse.json(tasks)
   } catch (error) {
     const errorMessage: string = error instanceof Error ? error.message : 'Unknown error'

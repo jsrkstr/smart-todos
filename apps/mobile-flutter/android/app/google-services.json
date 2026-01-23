@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "228073665112",
+    "project_id": "smart-todos-3e81d",
+    "storage_bucket": "smart-todos-3e81d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:228073665112:android:5d614217b05b01b019502d",
+        "android_client_info": {
+          "package_name": "com.example.smart_todos_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBiVTVhsF3DVTTm-e_4gr4vEDqgv84Mcyc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -172,17 +172,17 @@ enum NotificationMode {
   push,
   @JsonValue('Email')
   email,
-  @JsonValue('SMS')
-  sms,
+  @JsonValue('Chat')
+  chat,
 }
 
 enum NotificationType {
   @JsonValue('Reminder')
   reminder,
-  @JsonValue('FollowUp')
-  followUp,
-  @JsonValue('Motivation')
-  motivation,
+  @JsonValue('Question')
+  question,
+  @JsonValue('Info')
+  info,
 }
 
 enum NotificationTrigger {

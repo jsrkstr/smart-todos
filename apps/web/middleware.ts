@@ -21,7 +21,7 @@ const loginRoute = '/login';
 
 export async function middleware(request: NextRequest) {
   try {
-    console.log('Middleware executing for:', request.nextUrl.pathname);
+    console.log('Middleware executing for:', request.method, request.nextUrl.pathname);
 
     // Get the pathname from the URL
     const { pathname } = request.nextUrl

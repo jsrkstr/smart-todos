@@ -14,6 +14,7 @@ class User {
   final List<String>? principles;
   final List<String>? inspirations;
   final int points;
+  final String? expoPushToken;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -28,6 +29,7 @@ class User {
     this.principles,
     this.inspirations,
     this.points = 0,
+    this.expoPushToken,
     this.createdAt,
     this.updatedAt,
   });
@@ -46,6 +48,7 @@ class User {
     List<String>? principles,
     List<String>? inspirations,
     int? points,
+    String? expoPushToken,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -60,6 +63,7 @@ class User {
       principles: principles ?? this.principles,
       inspirations: inspirations ?? this.inspirations,
       points: points ?? this.points,
+      expoPushToken: expoPushToken ?? this.expoPushToken,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

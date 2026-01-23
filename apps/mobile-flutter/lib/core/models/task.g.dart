@@ -126,13 +126,13 @@ Map<String, dynamic> _$NotificationToJson(Notification instance) =>
 const _$NotificationModeEnumMap = {
   NotificationMode.push: 'Push',
   NotificationMode.email: 'Email',
-  NotificationMode.sms: 'SMS',
+  NotificationMode.chat: 'Chat',
 };
 
 const _$NotificationTypeEnumMap = {
   NotificationType.reminder: 'Reminder',
-  NotificationType.followUp: 'FollowUp',
-  NotificationType.motivation: 'Motivation',
+  NotificationType.question: 'Question',
+  NotificationType.info: 'Info',
 };
 
 const _$NotificationTriggerEnumMap = {

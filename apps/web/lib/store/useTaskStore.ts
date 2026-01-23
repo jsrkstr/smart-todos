@@ -134,7 +134,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         throw new Error('Invalid task data');
       }
       
-      console.log("Sending task to server:", JSON.stringify(validatedTask, null, 2));
+      //console.log("Sending task to server:", JSON.stringify(validatedTask, null, 2));
 
       const response: Response = await fetch('/api/tasks', {
         method: 'POST',

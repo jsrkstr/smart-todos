@@ -21,6 +21,7 @@ User _$UserFromJson(Map<String, dynamic> json) => User(
           ?.map((e) => e as String)
           .toList(),
       points: (json['points'] as num?)?.toInt() ?? 0,
+      expoPushToken: json['expoPushToken'] as String?,
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -40,6 +41,7 @@ Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
       'principles': instance.principles,
       'inspirations': instance.inspirations,
       'points': instance.points,
+      'expoPushToken': instance.expoPushToken,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
     };

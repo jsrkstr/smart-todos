@@ -1,13 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_colors.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/tasks/screens/tasks_screen.dart';
+import 'core/services/notification_service.dart';
+import 'core/services/push_token_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp();
+    print('[main] Firebase initialized');
+  } catch (e) {
+    print('[main] Firebase initialization error: $e');
+    // Continue even if Firebase fails (for development without Firebase config)
+  }
+
+  // Initialize notification services
+  final notificationService = NotificationService();
+  final pushTokenService = PushTokenService();
+
+  try {
+    await notificationService.initialize();
+    print('[main] Notification service initialized');
+
+    await pushTokenService.initialize();
+    print('[main] Push token service initialized');
+
+    // Set up notification tap handler to navigate to task
+    notificationService.onNotificationTap = (taskId) {
+      print('[main] Notification tapped for task: $taskId');
+      // Navigation will be handled by router when available
+    };
+  } catch (e) {
+    print('[main] Notification initialization error: $e');
+  }
 
   runApp(
     const ProviderScope(

@@ -240,4 +240,28 @@ class ApiService {
     final List<dynamic> data = response.data;
     return data.map((json) => TagCategory.fromJson(json)).toList();
   }
+
+  // ============================================================================
+  // Notifications
+  // ============================================================================
+
+  /// Register push notification token
+  Future<void> registerPushToken(String token) async {
+    print('registerPushToken - Registering token: ${token.substring(0, 50)}...');
+    await _dio.post(
+      ApiConfig.notificationsRegisterToken,
+      data: {'token': token},
+    );
+    print('registerPushToken - Token registered successfully');
+  }
+
+  /// Update notification settings
+  Future<void> updateNotificationSettings(bool enabled) async {
+    print('updateNotificationSettings - Setting notifications to: $enabled');
+    await _dio.put(
+      ApiConfig.settings,
+      data: {'notificationsEnabled': enabled},
+    );
+    print('updateNotificationSettings - Updated successfully');
+  }
 }

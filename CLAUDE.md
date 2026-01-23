@@ -52,6 +52,8 @@ cd apps/agent
 pnpm install              # Install dependencies
 pnpm build                # Build TypeScript
 pnpm dev                  # Run in development
+pnpm scheduler            # Run task lifecycle scheduler (background service)
+pnpm scheduler:dev        # Run scheduler in development mode with auto-reload
 ```
 
 ## Architecture
@@ -141,6 +143,15 @@ pnpm dev                  # Run in development
 3. Execution Coach Agent
 4. Adaptation Agent
 5. Analytics Agent
+
+**Task Lifecycle Scheduler (NEW):**
+- Background service that proactively monitors tasks and sends interventions
+- Runs as HTTP service triggered by external cron (cron-job.org)
+- Analyzes tasks and invokes appropriate agents automatically
+- Sends notifications via push (Expo), in-app chat, and email (future)
+- Fully documented in [docs/TASK_LIFECYCLE_AGENT.md](docs/TASK_LIFECYCLE_AGENT.md)
+- Quick start: [apps/agent/QUICK_START.md](apps/agent/QUICK_START.md)
+- See `src/scheduler/` for implementation
 
 ## Database
 

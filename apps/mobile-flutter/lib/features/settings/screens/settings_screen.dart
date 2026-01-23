@@ -4,6 +4,7 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_spacing.dart';
 import '../../../theme/app_text_styles.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../../core/providers/notification_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -13,9 +14,14 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _notificationsEnabled = true;
+  bool _emailNotificationsEnabled = true;
+  bool _soundEnabled = true;
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
+    final notificationState = ref.watch(notificationProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -92,31 +98,80 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildSwitchTile(
                 icon: Icons.notifications_outlined,
                 title: 'Push Notifications',
-                subtitle: 'Get notified about task reminders',
-                value: true,
-                onChanged: (value) {
-                  // TODO: Toggle notifications
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Notification settings coming soon')),
-                  );
+                subtitle: notificationState.tokenRegistered
+                    ? 'Get notified about task reminders'
+                    : 'Tap to enable notifications',
+                value: _notificationsEnabled && notificationState.permissionsGranted,
+                onChanged: (value) async {
+                  setState(() => _notificationsEnabled = value);
+
+                  if (value && !notificationState.permissionsGranted) {
+                    // Request permissions
+                    final granted = await ref
+                        .read(notificationProvider.notifier)
+                        .requestPermissions();
+
+                    if (!granted) {
+                      setState(() => _notificationsEnabled = false);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Notification permission denied. Please enable in settings.'),
+                          ),
+                        );
+                      }
+                      return;
+                    }
+                  }
+
+                  // Update backend settings
+                  try {
+                    await ref
+                        .read(notificationProvider.notifier)
+                        .updateNotificationSettings(value);
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            value
+                                ? 'Notifications enabled'
+                                : 'Notifications disabled',
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to update: $e')),
+                      );
+                    }
+                  }
                 },
               ),
               _buildSwitchTile(
                 icon: Icons.email_outlined,
                 title: 'Email Notifications',
                 subtitle: 'Receive updates via email',
-                value: true,
+                value: _emailNotificationsEnabled,
                 onChanged: (value) {
-                  // TODO: Toggle email notifications
+                  setState(() => _emailNotificationsEnabled = value);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Email notification settings coming soon')),
+                  );
                 },
               ),
               _buildSwitchTile(
                 icon: Icons.volume_up_outlined,
                 title: 'Sound',
                 subtitle: 'Play sound for timer and notifications',
-                value: true,
+                value: _soundEnabled,
                 onChanged: (value) {
-                  // TODO: Toggle sound
+                  setState(() => _soundEnabled = value);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Sound settings coming soon')),
+                  );
                 },
               ),
             ],

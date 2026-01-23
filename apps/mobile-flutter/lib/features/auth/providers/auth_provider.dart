@@ -3,6 +3,7 @@ import '../../../core/models/user.dart';
 import '../../../core/api/api_service.dart';
 import '../../../core/api/dio_client.dart';
 import '../../../shared/providers/api_provider.dart';
+import '../../../core/providers/notification_provider.dart';
 
 /// Auth state
 class AuthState {
@@ -34,8 +35,9 @@ class AuthState {
 /// Auth notifier
 class AuthNotifier extends StateNotifier<AuthState> {
   final ApiService _apiService;
+  final Ref _ref;
 
-  AuthNotifier(this._apiService) : super(const AuthState()) {
+  AuthNotifier(this._apiService, this._ref) : super(const AuthState()) {
     _checkSession();
   }
 
@@ -55,9 +57,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = await _apiService.getSession();
       print('_checkSession - User fetched: ${user?.email}');
       state = AuthState(user: user, isLoading: false);
+
+      // Register push token if user is authenticated
+      if (user != null) {
+        _registerPushToken();
+      }
     } catch (e) {
       print('_checkSession - Error: $e');
       state = const AuthState(isLoading: false);
+    }
+  }
+
+  /// Register push notification token with backend
+  Future<void> _registerPushToken() async {
+    try {
+      final notificationNotifier = _ref.read(notificationProvider.notifier);
+      await notificationNotifier.initialize();
+      await notificationNotifier.registerPushToken();
+      print('[AuthProvider] Push token registered successfully');
+    } catch (e) {
+      print('[AuthProvider] Failed to register push token: $e');
+      // Don't fail auth flow if notification registration fails
     }
   }
 
@@ -81,6 +101,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       state = AuthState(user: user, isLoading: false);
+
+      // Register push token after successful login
+      if (user != null) {
+        _registerPushToken();
+      }
+
       return true;
     } catch (e) {
       print('Login error: $e');
@@ -114,6 +140,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Get user session
       final user = await _apiService.getSession();
       state = AuthState(user: user, isLoading: false);
+
+      // Register push token after successful registration
+      if (user != null) {
+        _registerPushToken();
+      }
+
       return true;
     } catch (e) {
       state = AuthState(
@@ -128,6 +160,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     state = state.copyWith(isLoading: true);
     try {
+      // Clear push token before logout
+      try {
+        final notificationNotifier = _ref.read(notificationProvider.notifier);
+        await notificationNotifier.clearPushToken();
+        print('[AuthProvider] Push token cleared');
+      } catch (e) {
+        print('[AuthProvider] Failed to clear push token: $e');
+      }
+
       await _apiService.logout();
       state = const AuthState(isLoading: false);
     } catch (e) {
@@ -147,5 +188,5 @@ class AuthNotifier extends StateNotifier<AuthState> {
 /// Auth provider
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final apiService = ref.watch(apiServiceProvider);
-  return AuthNotifier(apiService);
+  return AuthNotifier(apiService, ref);
 });
