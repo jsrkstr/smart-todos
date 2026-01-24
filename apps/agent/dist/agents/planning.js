@@ -10,7 +10,7 @@ const zod_1 = require("zod");
 const messages_1 = require("@langchain/core/messages");
 // Process the user input with Planning agent
 const processPlanning = async (state) => {
-    var _a;
+    var _a, _b;
     // Create LLM
     const llm = (0, llm_1.createLLM)('gpt-4o', 0.2);
     // Create parser for structured output
@@ -37,11 +37,33 @@ const processPlanning = async (state) => {
     const userContext = ((_a = state.user) === null || _a === void 0 ? void 0 : _a.psychProfile) ?
         `Productivity Time: ${state.user.psychProfile.productivityTime}\nTask Approach: ${state.user.psychProfile.taskApproach}\nDifficulty Preference: ${state.user.psychProfile.difficultyPreference}` :
         'No user profile available';
+    // External context (calendar)
+    const externalInfo = ((_b = state.externalContext) === null || _b === void 0 ? void 0 : _b.hasCalendarConnected) ?
+        `\n\n=== CALENDAR CONTEXT ===
+Events Today: ${state.externalContext.eventsToday.length} scheduled
+${state.externalContext.nextEvent ?
+            `Next Event: "${state.externalContext.nextEvent.title}" in ${state.externalContext.nextEvent.startsInMinutes} minutes${state.externalContext.nextEvent.location ? ` at ${state.externalContext.nextEvent.location}` : ''}` :
+            'No upcoming events in the next 4 hours'}
+
+Free Time Blocks Available:
+${state.externalContext.freeTimeBlocks.length > 0 ?
+            state.externalContext.freeTimeBlocks.map(block => `- ${block.durationMinutes} min window (${new Date(block.start).toLocaleTimeString()} - ${new Date(block.end).toLocaleTimeString()})`).join('\n') :
+            'No significant free time blocks (all booked or fragmented)'}
+
+IMPORTANT Calendar-Aware Planning:
+- Schedule tasks within available free time blocks
+- Leave buffer time (10-15 min) before meetings
+- Consider meeting locations when suggesting task execution times
+${state.externalContext.nextEvent && state.externalContext.nextEvent.startsInMinutes < 60 ?
+            `⚠️ URGENT: Only ${state.externalContext.nextEvent.startsInMinutes} minutes until next event! Suggest quick tasks or defer planning.` : ''}
+${state.externalContext.freeTimeBlocks.length > 0 && state.externalContext.freeTimeBlocks[0].durationMinutes >= 120 ?
+            `✓ Great news: ${state.externalContext.freeTimeBlocks[0].durationMinutes}-minute block available - perfect for deep work!` : ''}
+` : '';
     // Create a prompt template
     const prompt = prompts_1.ChatPromptTemplate.fromMessages([
         ['system', (0, llm_1.getSystemPrompt)('planning') + `\n\nRespond with a structured output containing actions, reasoning, and a concise user-friendly response.`],
         new prompts_1.MessagesPlaceholder('conversation_history'),
-        ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nUser Context:\n${userContext}\n\nProvide a structured response with actions to take in JSON format. For task breakdown, create subtasks that can be completed in 10-15 minutes each. For prioritization, consider deadlines, importance, and user preferences. Include a concise, helpful response to the user explaining your actions and plans. {format_instructions}`],
+        ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nUser Context:\n${userContext}${externalInfo}\n\nProvide a structured response with actions to take in JSON format. For task breakdown, create subtasks that can be completed in 10-15 minutes each. For prioritization, consider deadlines, importance, and user preferences. Include a concise, helpful response to the user explaining your actions and plans. {format_instructions}`],
     ]);
     // Create the chain
     const chain = runnables_1.RunnableSequence.from([

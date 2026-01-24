@@ -11,6 +11,7 @@ const tools_1 = require("langchain/tools");
 const console_1 = require("@langchain/core/tracers/console");
 // Main agent function with tool-calling using LangChain's native capabilities
 const processTaskCreation = async (state, context) => {
+    var _a;
     try {
         // Create LLM with tool-calling support
         const llm = (0, llm_1.createLLM)('gpt-4o', 0.2);
@@ -83,6 +84,26 @@ You are currently assisting with the following task:
 - Deadline: ${state.task.deadline || 'Not set'}
 
 When the user asks to update something without specifying which task, they are referring to THIS task (ID: ${state.task.id}).`;
+        }
+        // Add external context (calendar) if available
+        if ((_a = state.externalContext) === null || _a === void 0 ? void 0 : _a.hasCalendarConnected) {
+            systemMessage += `
+
+**CALENDAR CONTEXT:**
+Events Today: ${state.externalContext.eventsToday.length}
+${state.externalContext.nextEvent ?
+                `Next Event: "${state.externalContext.nextEvent.title}" in ${state.externalContext.nextEvent.startsInMinutes} minutes` :
+                'No upcoming events'}
+${state.externalContext.freeTimeBlocks.length > 0 ?
+                `Next Free Time: ${state.externalContext.freeTimeBlocks[0].durationMinutes} min starting ${new Date(state.externalContext.freeTimeBlocks[0].start).toLocaleTimeString()}` :
+                ''}
+
+IMPORTANT: When creating tasks with deadlines, consider the user's calendar:
+- Suggest realistic deadlines based on available free time
+- Warn if deadline conflicts with scheduled events
+- Recommend scheduling tasks in available free time blocks
+${state.externalContext.nextEvent && state.externalContext.nextEvent.startsInMinutes < 60 ?
+                `⚠️ User has "${state.externalContext.nextEvent.title}" in ${state.externalContext.nextEvent.startsInMinutes} minutes - keep this brief!` : ''}`;
         }
         // Create the prompt template for the agent
         const prompt = prompts_1.ChatPromptTemplate.fromMessages([

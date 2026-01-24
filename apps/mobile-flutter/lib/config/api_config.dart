@@ -9,8 +9,9 @@ class ApiConfig {
   /// - Production: Vercel deployment
   static String get baseUrl {
     if (kDebugMode) {
+      print('using dev API');
       // Local development
-      return 'http://localhost:3000';
+      return 'http://192.168.1.5:3000'; //'http://localhost:3000';
     } else {
       // Production
       return 'https://smart-todos-web.vercel.app';
@@ -51,6 +52,7 @@ class ApiConfig {
   static const String calendarEvents = '/api/calendar-events';
 
   static const String notifications = '/api/notifications';
+  static const String notificationsRegisterToken = '/api/notifications/register-token';
 
   /// HTTP headers
   static Map<String, String> get headers => {

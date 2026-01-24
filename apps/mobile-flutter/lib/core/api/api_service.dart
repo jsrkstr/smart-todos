@@ -278,6 +278,21 @@ class ApiService {
     return response.data;
   }
 
+  /// Trigger location-based intervention when arriving at a location
+  Future<Map<String, dynamic>> triggerLocationArrival(
+    String locationType,
+    String? savedLocationId,
+  ) async {
+    final response = await _dio.post(
+      '/api/scheduler/location-trigger',
+      data: {
+        'locationType': locationType,
+        if (savedLocationId != null) 'savedLocationId': savedLocationId,
+      },
+    );
+    return response.data;
+  }
+
   /// Get all saved locations
   Future<List<dynamic>> getSavedLocations() async {
     final response = await _dio.get('/api/locations');

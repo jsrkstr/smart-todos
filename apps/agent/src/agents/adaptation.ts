@@ -41,15 +41,39 @@ export const processAdaptation = async (state: typeof StateAnnotation.State): Pr
   );
 
   // Task and user context
-  const taskContext = state.task ? 
-    `Task: ${state.task.title}\nDescription: ${state.task.description || 'None'}\nPriority: ${state.task.priority}\nStage: ${state.task.stage}\nStatus: ${state.task.stageStatus}\nDeadline: ${state.task.deadline ? new Date(state.task.deadline).toISOString() : 'None'}` : 
+  const taskContext = state.task ?
+    `Task: ${state.task.title}\nDescription: ${state.task.description || 'None'}\nPriority: ${state.task.priority}\nStage: ${state.task.stage}\nStatus: ${state.task.stageStatus}\nDeadline: ${state.task.deadline ? new Date(state.task.deadline).toISOString() : 'None'}` :
     'No task provided';
+
+  // External context (calendar) for smart rescheduling
+  const externalInfo = state.externalContext?.hasCalendarConnected ?
+    `\n\n=== CALENDAR CONTEXT FOR RESCHEDULING ===
+Events Today: ${state.externalContext.eventsToday.length}
+${state.externalContext.eventsToday.length > 0 ?
+  `Scheduled: ${state.externalContext.eventsToday.map(e => `"${e.title}" ${new Date(e.startTime).toLocaleTimeString()}-${new Date(e.endTime).toLocaleTimeString()}`).join(', ')}` :
+  'No events scheduled'}
+
+Free Time Blocks Available:
+${state.externalContext.freeTimeBlocks.length > 0 ?
+  state.externalContext.freeTimeBlocks.map(block =>
+    `- ${block.durationMinutes} min: ${new Date(block.start).toLocaleTimeString()} - ${new Date(block.end).toLocaleTimeString()}`
+  ).join('\n') :
+  'No significant free blocks available'}
+
+IMPORTANT Calendar-Aware Adaptation:
+- When rescheduling tasks, suggest specific free time blocks
+- Consider task duration vs available free time
+- Avoid scheduling during or right before meetings
+- Propose realistic deadlines based on available calendar space
+${state.externalContext.freeTimeBlocks.length === 0 ?
+  '⚠️ Schedule is packed - may need to reschedule lower-priority tasks or suggest tomorrow' : ''}
+` : '';
 
   // Create a prompt template
   const prompt = ChatPromptTemplate.fromMessages([
     ['system', getSystemPrompt('adaptation') + `\n\nRespond with a structured output containing actions, an adaptation strategy, reasoning, and a concise user-friendly response.`],
     new MessagesPlaceholder('conversation_history'),
-    ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nAnalyze if the current task/plan needs adaptation. Consider if the approach should be modified, if timelines need adjustment, or if goals need to be recalibrated. Provide a structured response with actions to take in JSON format. Include a concise, helpful response to the user explaining the adaptation strategy and changes. {format_instructions}`],
+    ['human', `User request: {input}\n\nTask Context:\n${taskContext}${externalInfo}\n\nAnalyze if the current task/plan needs adaptation. Consider if the approach should be modified, if timelines need adjustment, or if goals need to be recalibrated. Provide a structured response with actions to take in JSON format. Include a concise, helpful response to the user explaining the adaptation strategy and changes. {format_instructions}`],
   ]);
 
   // Create the chain

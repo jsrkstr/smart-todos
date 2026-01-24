@@ -9,6 +9,7 @@ dotenv.config();
 // Export types and graph for external use
 export { StateAnnotation, AgentType } from './types';
 export { createSupervisorGraph } from './graph';
+export { createSecretaryStateService } from './services/secretaryStateService';
 
 /**
  * Process a user request through the SmartTodos multi-agent system
@@ -39,6 +40,8 @@ export async function processRequest(
     error: null,
     historicalContext: null,
     physicalContext: null,
+    externalContext: null,
+    behavioralPatterns: null,
   };
 
   // Use userId + taskId as thread ID for conversation continuity

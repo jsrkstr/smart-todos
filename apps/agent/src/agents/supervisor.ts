@@ -31,12 +31,25 @@ Historical Context:
 - Average mood this week: ${state.historicalContext.averageMoodThisWeek?.toFixed(1) || 'N/A'}
 ` : 'No historical context available';
 
+  // Get recent conversation topics for continuity
+  const conversationSummary = state.messages.length > 0 ? `
+Recent Conversation:
+${state.messages.slice(-6).map((msg, i) => {
+  const role = msg._getType() === 'human' ? 'User' : 'Assistant';
+  const preview = msg.content.toString().substring(0, 150);
+  return `[${role}]: ${preview}${msg.content.toString().length > 150 ? '...' : ''}`;
+}).join('\n')}
+
+IMPORTANT: Reference previous conversations when relevant. If the user asks a follow-up question or continues a topic, acknowledge the context.
+` : '';
+
   const context = {
     task: state.task,
     user: state.user,
     input: state.input,
     message_count: state.messages.length,
     historical_summary: historicalSummary,
+    conversation_summary: conversationSummary,
     // Add information about what agents have already been involved
     previous_agents: state.messages
       .filter(msg => msg.additional_kwargs?.agentType)

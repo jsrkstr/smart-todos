@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createSupervisorGraph = exports.AgentType = exports.StateAnnotation = void 0;
+exports.createSecretaryStateService = exports.createSupervisorGraph = exports.AgentType = exports.StateAnnotation = void 0;
 exports.processRequest = processRequest;
 const types_1 = require("./types");
 const graph_1 = require("./graph");
@@ -17,6 +17,8 @@ Object.defineProperty(exports, "StateAnnotation", { enumerable: true, get: funct
 Object.defineProperty(exports, "AgentType", { enumerable: true, get: function () { return types_2.AgentType; } });
 var graph_2 = require("./graph");
 Object.defineProperty(exports, "createSupervisorGraph", { enumerable: true, get: function () { return graph_2.createSupervisorGraph; } });
+var secretaryStateService_1 = require("./services/secretaryStateService");
+Object.defineProperty(exports, "createSecretaryStateService", { enumerable: true, get: function () { return secretaryStateService_1.createSecretaryStateService; } });
 /**
  * Process a user request through the SmartTodos multi-agent system
  * @param userId - The ID of the user making the request
@@ -42,6 +44,8 @@ async function processRequest(userId, input, context) {
         error: null,
         historicalContext: null,
         physicalContext: null,
+        externalContext: null,
+        behavioralPatterns: null,
     };
     // Use userId + taskId as thread ID for conversation continuity
     // This ensures each task has its own conversation thread, and general chat has its own

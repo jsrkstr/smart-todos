@@ -94,6 +94,27 @@ You are currently assisting with the following task:
 When the user asks to update something without specifying which task, they are referring to THIS task (ID: ${state.task.id}).`;
     }
 
+    // Add external context (calendar) if available
+    if (state.externalContext?.hasCalendarConnected) {
+      systemMessage += `
+
+**CALENDAR CONTEXT:**
+Events Today: ${state.externalContext.eventsToday.length}
+${state.externalContext.nextEvent ?
+  `Next Event: "${state.externalContext.nextEvent.title}" in ${state.externalContext.nextEvent.startsInMinutes} minutes` :
+  'No upcoming events'}
+${state.externalContext.freeTimeBlocks.length > 0 ?
+  `Next Free Time: ${state.externalContext.freeTimeBlocks[0].durationMinutes} min starting ${new Date(state.externalContext.freeTimeBlocks[0].start).toLocaleTimeString()}` :
+  ''}
+
+IMPORTANT: When creating tasks with deadlines, consider the user's calendar:
+- Suggest realistic deadlines based on available free time
+- Warn if deadline conflicts with scheduled events
+- Recommend scheduling tasks in available free time blocks
+${state.externalContext.nextEvent && state.externalContext.nextEvent.startsInMinutes < 60 ?
+  `⚠️ User has "${state.externalContext.nextEvent.title}" in ${state.externalContext.nextEvent.startsInMinutes} minutes - keep this brief!` : ''}`;
+    }
+
     // Create the prompt template for the agent
     const prompt = ChatPromptTemplate.fromMessages([
       ['system', systemMessage],

@@ -70,6 +70,29 @@ export interface PhysicalContext {
   isWorkingHours: boolean;
 }
 
+// External context - data from external services (calendar, weather)
+export interface ExternalContext {
+  // Calendar
+  eventsToday: Array<{
+    title: string;
+    startTime: Date;
+    endTime: Date;
+    location?: string;
+    isAllDay: boolean;
+  }>;
+  nextEvent?: {
+    title: string;
+    startsInMinutes: number;
+    location?: string;
+  };
+  freeTimeBlocks: Array<{
+    start: Date;
+    end: Date;
+    durationMinutes: number;
+  }>;
+  hasCalendarConnected: boolean;
+}
+
 // Define the state annotation for the graph, including reducers where appropriate
 export const StateAnnotation = Annotation.Root({
   userId: Annotation<string>(),
@@ -97,6 +120,12 @@ export const StateAnnotation = Annotation.Root({
 
   // Physical context - real-time state from mobile device
   physicalContext: Annotation<PhysicalContext | null>(),
+
+  // External context - data from external services (calendar, weather)
+  externalContext: Annotation<ExternalContext | null>(),
+
+  // Behavioral patterns - learned patterns about user's work habits
+  behavioralPatterns: Annotation<any | null>(),
 });
 
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { processRequest } from '@smart-todos/agent';
+import { processRequest, createSecretaryStateService } from '@smart-todos/agent';
 import {
   analyzeTask,
   shouldNotifyUser,
@@ -10,6 +10,7 @@ import {
   SchedulerResult,
   TaskAnalysis,
 } from '@/lib/scheduler/types';
+import { createInterventionEvaluator } from '@/lib/scheduler/intervention-evaluator';
 
 // Configure timeout for Vercel (300 seconds = 5 minutes with Fluid Compute)
 export const maxDuration = 300;
@@ -129,14 +130,25 @@ async function identifyTasksNeedingAttention(): Promise<TaskAnalysis[]> {
       `[Scheduler] User ${user.id} has ${tasks.length} incomplete tasks`
     );
 
-    // Analyze each task
+    // Load contexts for this user
+    const historicalContext = await loadHistoricalContext(user.id);
+    const physicalContext = await loadPhysicalContext(user.id);
+
+    console.log(
+      `[Scheduler] User ${user.id} context: ${physicalContext ? `${physicalContext.currentActivity} at ${physicalContext.locationType}` : 'no physical context'}`
+    );
+
+    // Analyze each task with context-aware evaluation
+    const evaluator = createInterventionEvaluator(prisma);
+
     for (const task of tasks) {
+      // First, use traditional analysis to identify candidates
       const analysis = analyzeTask({
         ...task,
         user: user,
       });
 
-      if (analysis.needsIntervention) {
+      if (analysis.needsIntervention && analysis.intervention) {
         // Check if we recently sent an intervention for this task
         const recentIntervention = await hasRecentIntervention(
           task.id,
@@ -144,7 +156,30 @@ async function identifyTasksNeedingAttention(): Promise<TaskAnalysis[]> {
         );
 
         if (!recentIntervention) {
-          tasksNeedingAttention.push(analysis);
+          // Now use context-aware evaluation to make final decision
+          const evaluation = await evaluator.evaluateIntervention(
+            user,
+            task,
+            historicalContext,
+            physicalContext
+          );
+
+          if (evaluation.shouldIntervene && evaluation.optimalTiming === 'now') {
+            // Update intervention priority and type based on context
+            analysis.intervention.priority = evaluation.suggestedPriority;
+            analysis.intervention.type = evaluation.suggestedInterventionType as any;
+            analysis.reason = evaluation.reason;
+
+            tasksNeedingAttention.push(analysis);
+
+            console.log(
+              `[Scheduler] Task ${task.id} approved with context-aware evaluation (interruptibility: ${evaluation.interruptibilityScore})`
+            );
+          } else {
+            console.log(
+              `[Scheduler] Task ${task.id} blocked by context-aware evaluation: ${evaluation.reason}`
+            );
+          }
         } else {
           console.log(
             `[Scheduler] Task ${task.id} has recent intervention, skipping`
@@ -264,6 +299,120 @@ async function hasRecentIntervention(
 }
 
 /**
+ * Load historical context for user
+ */
+async function loadHistoricalContext(userId: string) {
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const [notificationsToday, tasksToday, tasksWeek, streak, overdueCount, appOpenToday] = await Promise.all([
+    // Notifications sent today
+    prisma.chatMessage.count({
+      where: {
+        userId,
+        role: 'assistant',
+        createdAt: { gte: startOfToday },
+      },
+    }),
+    // Tasks completed today
+    prisma.task.count({
+      where: {
+        userId,
+        completed: true,
+        updatedAt: { gte: startOfToday },
+      },
+    }),
+    // Tasks completed this week
+    prisma.task.count({
+      where: {
+        userId,
+        completed: true,
+        updatedAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) },
+      },
+    }),
+    // Current streak
+    prisma.streak.findFirst({
+      where: {
+        userId,
+        type: 'daily',
+      },
+      orderBy: { count: 'desc' },
+    }),
+    // Overdue count
+    prisma.task.count({
+      where: {
+        userId,
+        completed: false,
+        deadline: { lt: now },
+      },
+    }),
+    // App opened today
+    prisma.log.findFirst({
+      where: {
+        userId,
+        type: 'app_opened',
+        createdAt: { gte: startOfToday },
+      },
+    }),
+  ]);
+
+  const lastNotification = await prisma.chatMessage.findFirst({
+    where: {
+      userId,
+      role: 'assistant',
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return {
+    notificationsSentToday: notificationsToday,
+    lastNotificationSent: lastNotification?.createdAt || null,
+    tasksCompletedToday: tasksToday,
+    tasksCompletedThisWeek: tasksWeek,
+    currentDailyStreak: streak?.count || 0,
+    pomodorosCompletedToday: 0, // Simplified for now
+    totalFocusMinutesToday: 0,
+    averageMoodThisWeek: null,
+    overdueTaskCount: overdueCount,
+    appOpenedToday: !!appOpenToday,
+  };
+}
+
+/**
+ * Load physical context for user
+ */
+async function loadPhysicalContext(userId: string) {
+  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+  const latestContext = await prisma.userContext.findFirst({
+    where: { userId },
+    orderBy: { timestamp: 'desc' },
+  });
+
+  if (!latestContext || latestContext.timestamp < thirtyMinutesAgo) {
+    return null; // Context is stale or unavailable
+  }
+
+  return {
+    currentActivity: latestContext.activity as any,
+    activityConfidence: latestContext.confidence,
+    locationType: latestContext.locationType as any,
+    isAtSavedLocation: !!latestContext.savedLocationId,
+    savedLocationName: undefined, // Could fetch if needed
+    screenOn: latestContext.screenOn,
+    batteryLevel: latestContext.battery,
+    doNotDisturb: latestContext.doNotDisturb,
+    isWeekend: new Date().getDay() === 0 || new Date().getDay() === 6,
+    isWorkingHours: (() => {
+      const hour = new Date().getHours();
+      const day = new Date().getDay();
+      return day >= 1 && day <= 5 && hour >= 9 && hour < 17;
+    })(),
+  };
+}
+
+/**
  * Process a single intervention
  */
 async function processIntervention(intervention: Intervention) {
@@ -350,6 +499,76 @@ async function processIntervention(intervention: Intervention) {
       },
     },
   });
+
+  // Create follow-up based on intervention type
+  await createFollowUpIfNeeded(intervention);
+}
+
+/**
+ * Create follow-up task based on intervention type
+ */
+async function createFollowUpIfNeeded(intervention: Intervention): Promise<void> {
+  const secretaryStateService = createSecretaryStateService(prisma);
+
+  // Get task to check if it has blockers or is overdue
+  const task = await prisma.task.findUnique({
+    where: { id: intervention.taskId },
+  });
+
+  if (!task) {
+    return;
+  }
+
+  let followUpType: 'blocked' | 'overdue' | 'check_progress' | 'celebration' | null = null;
+  let reason = '';
+  let scheduledFor = new Date();
+
+  switch (intervention.type) {
+    case 'consequence_warning':
+      // Task is overdue - follow up in 24 hours
+      followUpType = 'overdue';
+      reason = 'Task is overdue, checking if user needs help or wants to reschedule';
+      scheduledFor.setHours(scheduledFor.getHours() + 24);
+      break;
+
+    case 'progress_check':
+      // Progress check - follow up in 48 hours if not completed
+      followUpType = 'check_progress';
+      reason = 'Checking progress on task after initial check-in';
+      scheduledFor.setHours(scheduledFor.getHours() + 48);
+      break;
+
+    case 'idle_check':
+      // User was idle - follow up in 6 hours to see if they got started
+      followUpType = 'check_progress';
+      reason = 'Following up after idle detection to see if user got started';
+      scheduledFor.setHours(scheduledFor.getHours() + 6);
+      break;
+
+    case 'reminder':
+      // If task has a deadline approaching, celebrate when completed
+      if (task.deadline && new Date(task.deadline).getTime() - Date.now() < 24 * 60 * 60 * 1000) {
+        followUpType = 'celebration';
+        reason = 'Celebrate completion of urgent task';
+        scheduledFor = new Date(task.deadline);
+        scheduledFor.setHours(scheduledFor.getHours() + 2); // 2 hours after deadline
+      }
+      break;
+  }
+
+  if (followUpType) {
+    await secretaryStateService.addFollowUp(
+      intervention.userId,
+      intervention.taskId,
+      followUpType,
+      reason,
+      scheduledFor
+    );
+
+    console.log(
+      `[Scheduler] Created ${followUpType} follow-up for task ${intervention.taskId} scheduled for ${scheduledFor.toISOString()}`
+    );
+  }
 }
 
 /**
@@ -511,6 +730,8 @@ function getNotificationTitle(intervention: Intervention): string {
       return '⚠️ Important Notice';
     case 'celebration':
       return '🎉 Congratulations!';
+    case 'idle_check':
+      return '👋 Need Help Getting Started?';
     default:
       return '📋 SmartTodos';
   }
@@ -571,6 +792,8 @@ function mapInterventionToNotificationType(
       return 'Info';
     case 'celebration':
       return 'Info';
+    case 'idle_check':
+      return 'Question';
     default:
       return 'Info';
   }

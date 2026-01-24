@@ -10,6 +10,7 @@ const zod_1 = require("zod");
 const messages_1 = require("@langchain/core/messages");
 // Process the user input with Adaptation agent
 const processAdaptation = async (state) => {
+    var _a;
     // Create LLM
     const llm = (0, llm_1.createLLM)('gpt-4o', 0.4); // Higher temperature for creative adaptations
     // Create parser for structured output
@@ -34,11 +35,32 @@ const processAdaptation = async (state) => {
     const taskContext = state.task ?
         `Task: ${state.task.title}\nDescription: ${state.task.description || 'None'}\nPriority: ${state.task.priority}\nStage: ${state.task.stage}\nStatus: ${state.task.stageStatus}\nDeadline: ${state.task.deadline ? new Date(state.task.deadline).toISOString() : 'None'}` :
         'No task provided';
+    // External context (calendar) for smart rescheduling
+    const externalInfo = ((_a = state.externalContext) === null || _a === void 0 ? void 0 : _a.hasCalendarConnected) ?
+        `\n\n=== CALENDAR CONTEXT FOR RESCHEDULING ===
+Events Today: ${state.externalContext.eventsToday.length}
+${state.externalContext.eventsToday.length > 0 ?
+            `Scheduled: ${state.externalContext.eventsToday.map(e => `"${e.title}" ${new Date(e.startTime).toLocaleTimeString()}-${new Date(e.endTime).toLocaleTimeString()}`).join(', ')}` :
+            'No events scheduled'}
+
+Free Time Blocks Available:
+${state.externalContext.freeTimeBlocks.length > 0 ?
+            state.externalContext.freeTimeBlocks.map(block => `- ${block.durationMinutes} min: ${new Date(block.start).toLocaleTimeString()} - ${new Date(block.end).toLocaleTimeString()}`).join('\n') :
+            'No significant free blocks available'}
+
+IMPORTANT Calendar-Aware Adaptation:
+- When rescheduling tasks, suggest specific free time blocks
+- Consider task duration vs available free time
+- Avoid scheduling during or right before meetings
+- Propose realistic deadlines based on available calendar space
+${state.externalContext.freeTimeBlocks.length === 0 ?
+            '⚠️ Schedule is packed - may need to reschedule lower-priority tasks or suggest tomorrow' : ''}
+` : '';
     // Create a prompt template
     const prompt = prompts_1.ChatPromptTemplate.fromMessages([
         ['system', (0, llm_1.getSystemPrompt)('adaptation') + `\n\nRespond with a structured output containing actions, an adaptation strategy, reasoning, and a concise user-friendly response.`],
         new prompts_1.MessagesPlaceholder('conversation_history'),
-        ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nAnalyze if the current task/plan needs adaptation. Consider if the approach should be modified, if timelines need adjustment, or if goals need to be recalibrated. Provide a structured response with actions to take in JSON format. Include a concise, helpful response to the user explaining the adaptation strategy and changes. {format_instructions}`],
+        ['human', `User request: {input}\n\nTask Context:\n${taskContext}${externalInfo}\n\nAnalyze if the current task/plan needs adaptation. Consider if the approach should be modified, if timelines need adjustment, or if goals need to be recalibrated. Provide a structured response with actions to take in JSON format. Include a concise, helpful response to the user explaining the adaptation strategy and changes. {format_instructions}`],
     ]);
     // Create the chain
     const chain = runnables_1.RunnableSequence.from([

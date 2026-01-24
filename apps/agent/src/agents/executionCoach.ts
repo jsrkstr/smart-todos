@@ -73,7 +73,7 @@ Recent Activity:
 Notifications Sent:
 - Today: ${historicalContext.notificationsSentToday}
 - Last sent: ${historicalContext.lastNotificationSent ? new Date(historicalContext.lastNotificationSent).toLocaleString() : 'Never'}
-${Object.keys(historicalContext.notificationsThisWeekByType).length > 0 ? `- This week by type: ${JSON.stringify(historicalContext.notificationsThisWeekByType)}` : ''}
+${Object.keys(historicalContext.notificationsThisWeekByType).length > 0 ? `- This week by type: ${Object.entries(historicalContext.notificationsThisWeekByType).map(([type, count]) => `${type}=${count}`).join(', ')}` : ''}
 
 Focus & Energy:
 - Pomodoros completed today: ${historicalContext.pomodorosCompletedToday}
@@ -102,11 +102,82 @@ IMPORTANT Context-Aware Coaching:
 - ${physicalContext.isWeekend && !physicalContext.isWorkingHours ? 'Weekend leisure time - balance productivity with rest' : ''}
 ` : '';
 
+  // External context (calendar)
+  const externalInfo = state.externalContext?.hasCalendarConnected ?
+    `\n\n=== CALENDAR CONTEXT ===
+Events Today: ${state.externalContext.eventsToday.length} scheduled
+${state.externalContext.nextEvent ?
+  `⏰ Next Event: "${state.externalContext.nextEvent.title}" in ${state.externalContext.nextEvent.startsInMinutes} minutes` :
+  'No upcoming events in the next 4 hours'}
+${state.externalContext.freeTimeBlocks.length > 0 ?
+  `\nNext Free Block: ${state.externalContext.freeTimeBlocks[0].durationMinutes} min (${new Date(state.externalContext.freeTimeBlocks[0].start).toLocaleTimeString()})` :
+  '\nNo significant free time - schedule is packed'}
+
+IMPORTANT Calendar-Aware Coaching:
+${state.externalContext.nextEvent && state.externalContext.nextEvent.startsInMinutes < 30 ?
+  `⚠️ CRITICAL: Only ${state.externalContext.nextEvent.startsInMinutes} minutes until "${state.externalContext.nextEvent.title}"! Suggest wrapping up current task or taking a brief break before the meeting.` :
+  state.externalContext.nextEvent && state.externalContext.nextEvent.startsInMinutes < 60 ?
+  `⏳ Heads up: "${state.externalContext.nextEvent.title}" starts in ${state.externalContext.nextEvent.startsInMinutes} minutes. Good time for a quick task or preparation.` :
+  state.externalContext.freeTimeBlocks.length > 0 && state.externalContext.freeTimeBlocks[0].durationMinutes >= 90 ?
+  `✓ You have ${state.externalContext.freeTimeBlocks[0].durationMinutes} minutes of uninterrupted time - perfect for deep work!` :
+  'Schedule looks flexible for task work'}
+` : '';
+
+  // Behavioral patterns (learned habits)
+  const patternsInfo = state.behavioralPatterns ?
+    `\n\n=== BEHAVIORAL PATTERNS (Learned from ${state.behavioralPatterns.confidence.overall}% confidence) ===
+Productivity Patterns:
+- Most productive hours: ${state.behavioralPatterns.mostProductiveHours.map((h: number) => `${h}:00`).join(', ')}
+- Peak day: ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][state.behavioralPatterns.peakProductivityDayOfWeek]}
+- Averages ${state.behavioralPatterns.averageTasksCompletedPerDay.toFixed(1)} tasks/day
+
+Work Style:
+- Preferred task duration: ${state.behavioralPatterns.preferredTaskDuration} min
+- ${state.behavioralPatterns.takesBreaksRegularly ? 'Takes regular breaks' : 'Works in longer stretches'}
+- ${state.behavioralPatterns.respondsBetterToUrgency ? 'Responds well to urgency/deadlines' : 'Steady pace worker'}
+- ${state.behavioralPatterns.worksInBursts ? 'Works in bursts of activity' : 'Consistent work pattern'}
+
+Completion Patterns:
+- ${state.behavioralPatterns.completesTasksEarly ? 'Completes tasks early ✓' : state.behavioralPatterns.procrastinatesThenRushes ? '⚠️ Tends to procrastinate then rush' : 'On-time completer'}
+- ${state.behavioralPatterns.underestimatesTime ? '⚠️ Underestimates time needed' : state.behavioralPatterns.overestimatesTime ? 'Overestimates time (builds in buffer)' : 'Accurate time estimation'}
+
+Focus Capacity:
+- Max deep work: ${state.behavioralPatterns.maxDeepWorkMinutes} min
+- Optimal session: ${state.behavioralPatterns.optimalSessionLength} min
+- Needs breaks every ${state.behavioralPatterns.breakFrequencyNeeded} min
+
+Preferences:
+- Excels at: ${state.behavioralPatterns.excellsAt.length > 0 ? state.behavioralPatterns.excellsAt.join(', ') : 'various tasks'}
+- Avoids: ${state.behavioralPatterns.avoidsCertainTaskTypes.length > 0 ? state.behavioralPatterns.avoidsCertainTaskTypes.join(', ') : 'none identified'}
+- Prefers creative work: ${state.behavioralPatterns.prefersCreativeWork}
+- Prefers admin work: ${state.behavioralPatterns.prefersAdminWork}
+
+IMPORTANT Pattern-Based Coaching:
+- Suggest tasks that match current energy level and time of day
+- Respect learned work style (bursts vs steady, early vs deadline-driven)
+- Reference patterns positively ("You usually crush tasks at this hour!")
+- Warn about known challenges ("You tend to underestimate time - add buffer")
+- Suggest optimal session lengths based on learned focus capacity
+` : '';
+
+  // Get conversation continuity notes
+  const conversationContinuity = conversationHistory.length > 1 ? `
+\n=== CONVERSATION CONTINUITY ===
+You have access to the conversation history above. IMPORTANT:
+- Reference previous messages when relevant (e.g., "Earlier you mentioned...", "Following up on what we discussed...")
+- Acknowledge progress since last conversation (e.g., "Last time you were worried about X, how did that go?")
+- Build on previous coaching advice (e.g., "Remember when we talked about breaking tasks down?")
+- Show you remember their concerns and patterns
+- Make the conversation feel continuous, not like starting fresh each time
+
+This creates trust and shows you're paying attention to their journey.
+` : '';
+
   // Create a prompt template
   const prompt = ChatPromptTemplate.fromMessages([
     ['system', getSystemPrompt('executionCoach') + `\n\nRespond with a structured output containing actions, a motivational message, reasoning, and a concise user-friendly response.`],
     new MessagesPlaceholder('conversation_history'),
-    ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nCoach Information:\n${coachInfo}${historyInfo}${physicalInfo}\n\nProvide a structured response with actions to take in JSON format. Include a motivational message that matches the assigned coach's style and the user's preferences. Also include a complete response to the user addressing their query with coaching elements. {format_instructions}`],
+    ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nCoach Information:\n${coachInfo}${historyInfo}${physicalInfo}${externalInfo}${patternsInfo}${conversationContinuity}\n\nProvide a structured response with actions to take in JSON format. Include a motivational message that matches the assigned coach's style and the user's preferences. Also include a complete response to the user addressing their query with coaching elements. {format_instructions}`],
   ]);
 
   // Create the chain

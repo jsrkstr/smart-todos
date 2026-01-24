@@ -10,6 +10,8 @@ import { processAnalytics } from './agents/analytics';
 import { UserService, TaskService, prisma } from './services/database';
 import { createHistoricalContextService } from './services/historicalContextService';
 import { createPhysicalContextService } from './services/physicalContextService';
+import { createExternalContextService } from './services/externalContextService';
+import { createPatternAnalysisService } from './services/patternAnalysisService';
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { PostgresStore } from './utils/pg-store';
 import { AIMessage, BaseMessage, HumanMessage, isHumanMessage, RemoveMessage } from '@langchain/core/messages';
@@ -95,6 +97,63 @@ export const createSupervisorGraph = async (databaseUrl?: string) => {
           });
         } else {
           console.log('No recent physical context available');
+        }
+
+        // Load external context (calendar)
+        const externalContextService = createExternalContextService(prisma);
+        const externalContext = await externalContextService.loadExternalContext(state.userId);
+        updates.externalContext = externalContext;
+        if (externalContext && externalContext.hasCalendarConnected) {
+          console.log('Loaded external context:', {
+            eventsToday: externalContext.eventsToday.length,
+            nextEvent: externalContext.nextEvent?.title,
+            freeBlocks: externalContext.freeTimeBlocks.length,
+          });
+        } else {
+          console.log('No calendar connected or no external context');
+        }
+
+        // Load behavioral patterns
+        const patternAnalysisService = createPatternAnalysisService(prisma);
+        const behavioralPatterns = await patternAnalysisService.loadPatterns(state.userId);
+        updates.behavioralPatterns = behavioralPatterns;
+        if (behavioralPatterns) {
+          console.log('Loaded behavioral patterns:', {
+            confidence: behavioralPatterns.confidence.overall,
+            mostProductiveHours: behavioralPatterns.mostProductiveHours,
+            preferredTaskDuration: behavioralPatterns.preferredTaskDuration,
+          });
+        } else {
+          console.log('No behavioral patterns available - computing now...');
+          // Compute patterns on first use
+          const newPatterns = await patternAnalysisService.computePatterns(state.userId);
+          updates.behavioralPatterns = newPatterns;
+        }
+
+        // Load recent conversation history for continuity
+        const recentMessages = await prisma.chatMessage.findMany({
+          where: {
+            userId: state.userId,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 10, // Last 10 messages
+        });
+
+        // Convert to LangChain messages for context
+        const conversationHistory = recentMessages.reverse().map((msg) => {
+          if (msg.role === 'user') {
+            return new HumanMessage({ content: msg.content });
+          } else {
+            return new AIMessage({ content: msg.content });
+          }
+        });
+
+        // Add conversation history to messages (prepend to existing messages)
+        if (conversationHistory.length > 0) {
+          updates.messages = [...conversationHistory, ...(state.messages || [])];
+          console.log('Loaded conversation history:', conversationHistory.length, 'messages');
         }
       }
       if (state.context?.taskId && state.userId) {

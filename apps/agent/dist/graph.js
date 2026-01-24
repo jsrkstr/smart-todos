@@ -13,6 +13,8 @@ const analytics_1 = require("./agents/analytics");
 const database_1 = require("./services/database");
 const historicalContextService_1 = require("./services/historicalContextService");
 const physicalContextService_1 = require("./services/physicalContextService");
+const externalContextService_1 = require("./services/externalContextService");
+const patternAnalysisService_1 = require("./services/patternAnalysisService");
 const langgraph_checkpoint_postgres_1 = require("@langchain/langgraph-checkpoint-postgres");
 const pg_store_1 = require("./utils/pg-store");
 const messages_1 = require("@langchain/core/messages");
@@ -51,7 +53,7 @@ const createSupervisorGraph = async (databaseUrl) => {
     const graphBuilder = new langgraph_1.StateGraph(index_2.StateAnnotation);
     // Add nodes for each step in the workflow
     graphBuilder.addNode('loadContext', async (state, ...args) => {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         // const store = args[0].store;
         // await store.put(['1', 'memories'], '132', { 'food_preference': 'pizza' })
         console.log('=== LOAD CONTEXT ===');
@@ -87,13 +89,68 @@ const createSupervisorGraph = async (databaseUrl) => {
                 else {
                     console.log('No recent physical context available');
                 }
+                // Load external context (calendar)
+                const externalContextService = (0, externalContextService_1.createExternalContextService)(database_1.prisma);
+                const externalContext = await externalContextService.loadExternalContext(state.userId);
+                updates.externalContext = externalContext;
+                if (externalContext && externalContext.hasCalendarConnected) {
+                    console.log('Loaded external context:', {
+                        eventsToday: externalContext.eventsToday.length,
+                        nextEvent: (_b = externalContext.nextEvent) === null || _b === void 0 ? void 0 : _b.title,
+                        freeBlocks: externalContext.freeTimeBlocks.length,
+                    });
+                }
+                else {
+                    console.log('No calendar connected or no external context');
+                }
+                // Load behavioral patterns
+                const patternAnalysisService = (0, patternAnalysisService_1.createPatternAnalysisService)(database_1.prisma);
+                const behavioralPatterns = await patternAnalysisService.loadPatterns(state.userId);
+                updates.behavioralPatterns = behavioralPatterns;
+                if (behavioralPatterns) {
+                    console.log('Loaded behavioral patterns:', {
+                        confidence: behavioralPatterns.confidence.overall,
+                        mostProductiveHours: behavioralPatterns.mostProductiveHours,
+                        preferredTaskDuration: behavioralPatterns.preferredTaskDuration,
+                    });
+                }
+                else {
+                    console.log('No behavioral patterns available - computing now...');
+                    // Compute patterns on first use
+                    const newPatterns = await patternAnalysisService.computePatterns(state.userId);
+                    updates.behavioralPatterns = newPatterns;
+                }
+                // Load recent conversation history for continuity
+                const recentMessages = await database_1.prisma.chatMessage.findMany({
+                    where: {
+                        userId: state.userId,
+                    },
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                    take: 10, // Last 10 messages
+                });
+                // Convert to LangChain messages for context
+                const conversationHistory = recentMessages.reverse().map((msg) => {
+                    if (msg.role === 'user') {
+                        return new messages_1.HumanMessage({ content: msg.content });
+                    }
+                    else {
+                        return new messages_1.AIMessage({ content: msg.content });
+                    }
+                });
+                // Add conversation history to messages (prepend to existing messages)
+                if (conversationHistory.length > 0) {
+                    updates.messages = [...conversationHistory, ...(state.messages || [])];
+                    console.log('Loaded conversation history:', conversationHistory.length, 'messages');
+                }
             }
-            if (((_b = state.context) === null || _b === void 0 ? void 0 : _b.taskId) && state.userId) {
+            if (((_c = state.context) === null || _c === void 0 ? void 0 : _c.taskId) && state.userId) {
                 const task = await database_1.TaskService.getTask(state.context.taskId, state.userId);
                 updates.task = task;
                 console.log('Loaded task:', task === null || task === void 0 ? void 0 : task.id, task === null || task === void 0 ? void 0 : task.title);
             }
-            if (!((_c = state.context) === null || _c === void 0 ? void 0 : _c.taskId) && state.userId) {
+            if (!((_d = state.context) === null || _d === void 0 ? void 0 : _d.taskId) && state.userId) {
                 const tasks = await database_1.TaskService.getTasks(state.userId);
                 updates.tasks = tasks;
                 console.log('Loaded tasks count:', tasks === null || tasks === void 0 ? void 0 : tasks.length);

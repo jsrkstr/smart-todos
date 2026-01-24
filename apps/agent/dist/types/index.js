@@ -25,6 +25,10 @@ exports.StateAnnotation = langgraph_1.Annotation.Root({
     historicalContext: (0, langgraph_1.Annotation)(),
     // Physical context - real-time state from mobile device
     physicalContext: (0, langgraph_1.Annotation)(),
+    // External context - data from external services (calendar, weather)
+    externalContext: (0, langgraph_1.Annotation)(),
+    // Behavioral patterns - learned patterns about user's work habits
+    behavioralPatterns: (0, langgraph_1.Annotation)(),
 });
 // Types of agents in the system
 var AgentType;

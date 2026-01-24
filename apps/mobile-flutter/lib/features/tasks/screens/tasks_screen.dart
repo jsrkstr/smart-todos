@@ -231,7 +231,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.person_outline),
-            title: const Text('My Coach'),
+            title: const Text('My Pepper'),
             onTap: () {},
           ),
           ListTile(
@@ -291,7 +291,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           elevation: 4,
           shadowColor: AppColors.primary.withOpacity(0.5),
         ),
-        child: const Text('Chat with Coach'),
+        child: const Text('Chat with Pepper'),
       ),
     );
   }
