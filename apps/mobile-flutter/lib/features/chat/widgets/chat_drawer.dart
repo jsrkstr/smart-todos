@@ -115,7 +115,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
               child: messages.isEmpty && !isLoading
                   ? Center(
                       child: Text(
-                        'Send a message to start chatting with your coach',
+                        'Send a message to start chatting with Pepper',
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: AppColors.mutedForeground,
                         ),

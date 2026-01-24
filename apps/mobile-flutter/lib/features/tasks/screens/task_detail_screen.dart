@@ -647,7 +647,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                       borderRadius: BorderRadius.circular(AppSpacing.radiusMD),
                     ),
                   ),
-                  child: const Text('Chat with Coach'),
+                  child: const Text('Chat with Pepper'),
                 ),
               ),
             ),
