@@ -8,27 +8,38 @@ const messages_1 = require("@langchain/core/messages");
 const executeActions = async (state, actions) => {
     var _a, _b, _c, _d;
     const newState = Object.assign({}, state);
+    console.log(`Executing ${actions.length} action(s)...`);
     for (const action of actions) {
+        console.log(`Executing action: ${action.type}`);
         try {
             switch (action.type) {
                 case types_1.ActionType.CreateTask:
                     const newTask = await database_1.TaskService.createTask(Object.assign(Object.assign({}, action.payload), { userId: state.userId }));
                     newState.task = newTask;
+                    console.log(`Created task: ${newTask.id} - ${newTask.title}`);
                     break;
                 case types_1.ActionType.UpdateTask:
                     if ((_a = state.task) === null || _a === void 0 ? void 0 : _a.id) {
                         const updatedTask = await database_1.TaskService.updateTask(Object.assign({ id: state.task.id, userId: state.userId }, action.payload));
                         newState.task = updatedTask;
+                        console.log(`Updated task: ${updatedTask.id}`);
+                    }
+                    else {
+                        console.warn('Cannot update task: no task in state');
                     }
                     break;
                 case types_1.ActionType.CreateSubtasks:
                     if ((_b = state.task) === null || _b === void 0 ? void 0 : _b.id) {
                         await database_1.TaskService.createSubtasks(state.task.id, state.userId, action.payload.subtasks);
+                        console.log(`Created ${action.payload.subtasks.length} subtask(s) for task: ${state.task.id}`);
                         // Refresh the task to include the new subtasks
                         const refreshedTask = await database_1.TaskService.getTask(state.task.id, state.userId);
                         if (refreshedTask) {
                             newState.task = refreshedTask;
                         }
+                    }
+                    else {
+                        console.warn('Cannot create subtasks: no task in state');
                     }
                     break;
                 case types_1.ActionType.SearchTasks:
@@ -44,16 +55,48 @@ const executeActions = async (state, actions) => {
                     break;
                 case types_1.ActionType.LogActivity:
                     await database_1.LogService.createLog(Object.assign(Object.assign({}, action.payload), { userId: state.userId, author: 'Model' }));
+                    console.log(`Logged activity: ${action.payload.content || action.payload.type}`);
                     break;
                 case types_1.ActionType.ScheduleReminder:
                     if ((_c = state.task) === null || _c === void 0 ? void 0 : _c.id) {
+                        // Transform the payload to match Prisma schema
+                        // The LLM might generate fields like 'time' that don't exist in the schema
+                        const notificationData = {
+                            message: action.payload.message || 'Reminder',
+                            type: action.payload.type || 'Reminder',
+                            trigger: action.payload.trigger || 'RelativeTime',
+                            mode: action.payload.mode || 'Push',
+                            author: 'Model',
+                            userId: state.userId,
+                            triggered: false,
+                            triggeredAt: null
+                        };
+                        // Handle time-related fields
+                        if (action.payload.fixedTime) {
+                            notificationData.fixedTime = action.payload.fixedTime;
+                            notificationData.trigger = 'FixedTime';
+                        }
+                        else if (action.payload.relativeTimeValue && action.payload.relativeTimeUnit) {
+                            notificationData.relativeTimeValue = action.payload.relativeTimeValue;
+                            notificationData.relativeTimeUnit = action.payload.relativeTimeUnit;
+                            notificationData.trigger = 'RelativeTime';
+                        }
+                        else if (action.payload.time) {
+                            // Fallback: if LLM provides 'time' field, try to parse it
+                            // For now, we'll ignore it and log a warning
+                            console.warn(`Invalid 'time' field in notification payload. Use fixedTime or relativeTimeValue/relativeTimeUnit instead.`);
+                        }
                         await database_1.TaskService.updateTask({
                             id: state.task.id,
                             userId: state.userId,
                             notifications: {
-                                create: [action.payload]
+                                create: [notificationData]
                             }
                         });
+                        console.log(`Scheduled reminder for task: ${state.task.id}`);
+                    }
+                    else {
+                        console.warn('Cannot schedule reminder: no task in state');
                     }
                     break;
                 case types_1.ActionType.ProvideMotivation:

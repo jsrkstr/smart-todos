@@ -95,7 +95,7 @@ ${state.externalContext.nextEvent ?
                 `Next Event: "${state.externalContext.nextEvent.title}" in ${state.externalContext.nextEvent.startsInMinutes} minutes` :
                 'No upcoming events'}
 ${state.externalContext.freeTimeBlocks.length > 0 ?
-                `Next Free Time: ${state.externalContext.freeTimeBlocks[0].durationMinutes} min starting ${new Date(state.externalContext.freeTimeBlocks[0].start).toLocaleTimeString()}` :
+                `Next Free Time: ${state.externalContext.freeTimeBlocks[0].durationMinutes} min starting ${new Date(state.externalContext.freeTimeBlocks[0].start).toISOString()}` :
                 ''}
 
 IMPORTANT: When creating tasks with deadlines, consider the user's calendar:

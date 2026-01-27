@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../../config/api_config.dart';
 import '../models/user.dart';
 import '../models/task.dart';
+import '../models/notification.dart';
 import 'dio_client.dart';
 
 /// API service for making HTTP requests to Next.js backend
@@ -263,6 +264,49 @@ class ApiService {
       data: {'notificationsEnabled': enabled},
     );
     print('updateNotificationSettings - Updated successfully');
+  }
+
+  /// Get all notifications
+  Future<List<AppNotification>> getNotifications({
+    bool? readFilter,
+    int limit = 20,
+    int skip = 0,
+  }) async {
+    print('getNotifications - Fetching notifications (limit: $limit, skip: $skip)');
+    final queryParams = <String, dynamic>{};
+    if (readFilter != null) {
+      queryParams['read'] = readFilter.toString();
+    }
+    queryParams['limit'] = limit.toString();
+    queryParams['skip'] = skip.toString();
+
+    final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.notifications}')
+        .replace(queryParameters: queryParams);
+
+    final response = await _dio.getUri(uri);
+    final List<dynamic> data = response.data;
+    print('getNotifications - Received ${data.length} notifications');
+    return data.map((json) => AppNotification.fromJson(json)).toList();
+  }
+
+  /// Mark notification as read/unread
+  Future<AppNotification> markNotificationAsRead(String id, bool read) async {
+    print('markNotificationAsRead - Marking notification $id as read: $read');
+    final response = await _dio.patch(
+      '${ApiConfig.notifications}/$id',
+      data: {'read': read},
+    );
+    print('markNotificationAsRead - Updated successfully');
+    return AppNotification.fromJson(response.data);
+  }
+
+  /// Mark all notifications as read
+  Future<int> markAllNotificationsAsRead() async {
+    print('markAllNotificationsAsRead - Marking all as read');
+    final response = await _dio.post(ApiConfig.notificationsMarkAllRead);
+    final count = response.data['updatedCount'] ?? 0;
+    print('markAllNotificationsAsRead - Updated $count notifications');
+    return count;
   }
 
   // ============================================================================

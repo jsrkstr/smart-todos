@@ -8,22 +8,32 @@ const llm_1 = require("../utils/llm");
 const output_parsers_1 = require("langchain/output_parsers");
 const zod_1 = require("zod");
 const messages_1 = require("@langchain/core/messages");
+const actionPayloadSchemas_js_1 = require("../utils/actionPayloadSchemas.js");
 // Process the user input with Planning agent
 const processPlanning = async (state) => {
     var _a, _b;
     // Create LLM
     const llm = (0, llm_1.createLLM)('gpt-4o', 0.2);
-    // Create parser for structured output
+    // Create parser for structured output with strongly-typed action payloads
     const outputParser = output_parsers_1.StructuredOutputParser.fromZodSchema(zod_1.z.object({
-        actions: zod_1.z.array(zod_1.z.object({
-            type: zod_1.z.enum([
-                'createSubtasks',
-                'updateTask',
-                'updateManyTasks',
-                'none'
-            ]),
-            payload: zod_1.z.any()
-        })),
+        actions: zod_1.z.array(zod_1.z.discriminatedUnion('type', [
+            zod_1.z.object({
+                type: zod_1.z.literal('createSubtasks'),
+                payload: actionPayloadSchemas_js_1.createSubtasksPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('updateTask'),
+                payload: actionPayloadSchemas_js_1.updateTaskPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('updateManyTasks'),
+                payload: actionPayloadSchemas_js_1.updateManyTasksPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('none'),
+                payload: actionPayloadSchemas_js_1.nonePayloadSchema
+            })
+        ])),
         reasoning: zod_1.z.string().describe('Your explanation of the breakdown or prioritization strategy'),
         response: zod_1.z.string().describe('A concise, helpful response to the user explaining your actions and plans')
     }));
@@ -47,7 +57,7 @@ ${state.externalContext.nextEvent ?
 
 Free Time Blocks Available:
 ${state.externalContext.freeTimeBlocks.length > 0 ?
-            state.externalContext.freeTimeBlocks.map(block => `- ${block.durationMinutes} min window (${new Date(block.start).toLocaleTimeString()} - ${new Date(block.end).toLocaleTimeString()})`).join('\n') :
+            state.externalContext.freeTimeBlocks.map(block => `- ${block.durationMinutes} min window (${new Date(block.start).toISOString()} - ${new Date(block.end).toISOString()})`).join('\n') :
             'No significant free time blocks (all booked or fragmented)'}
 
 IMPORTANT Calendar-Aware Planning:

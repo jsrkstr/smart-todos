@@ -1,0 +1,19 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum NotificationType {
+  Reminder
+  Question
+  Info
+}
+
+model Notification {
+  id   String            @id @default(cuid())
+  type NotificationType @default(Reminder)
+}

@@ -10,6 +10,7 @@ const zod_1 = require("zod");
 const messages_1 = require("@langchain/core/messages");
 const mcp_client_1 = require("../services/mcp-client");
 const code_generator_1 = require("../utils/code-generator");
+const actionPayloadSchemas_js_1 = require("../utils/actionPayloadSchemas.js");
 // Process the user input with Analytics agent
 const processAnalytics = async (state) => {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
@@ -46,15 +47,18 @@ const processAnalytics = async (state) => {
     }
     // Create LLM
     const llm = (0, llm_1.createLLM)('gpt-4o', 0.2);
-    // Create parser for structured output
+    // Create parser for structured output with strongly-typed action payloads
     const outputParser = output_parsers_1.StructuredOutputParser.fromZodSchema(zod_1.z.object({
-        actions: zod_1.z.array(zod_1.z.object({
-            type: zod_1.z.enum([
-                'logActivity',
-                'none'
-            ]),
-            payload: zod_1.z.any()
-        })),
+        actions: zod_1.z.array(zod_1.z.discriminatedUnion('type', [
+            zod_1.z.object({
+                type: zod_1.z.literal('logActivity'),
+                payload: actionPayloadSchemas_js_1.logActivityPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('none'),
+                payload: actionPayloadSchemas_js_1.nonePayloadSchema
+            })
+        ])),
         insights: zod_1.z.array(zod_1.z.string()).describe('Key insights derived from analyzing task patterns and performance'),
         recommendations: zod_1.z.array(zod_1.z.string()).describe('Specific recommendations for improving productivity or task management'),
         reasoning: zod_1.z.string().describe('Your analytical process and methodology'),

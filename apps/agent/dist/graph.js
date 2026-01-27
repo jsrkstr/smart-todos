@@ -9,7 +9,7 @@ const planning_1 = require("./agents/planning");
 const executionCoach_1 = require("./agents/executionCoach");
 const adaptation_1 = require("./agents/adaptation");
 const analytics_1 = require("./agents/analytics");
-// executeActions is now handled by specialized agents directly
+const actions_1 = require("./utils/actions");
 const database_1 = require("./services/database");
 const historicalContextService_1 = require("./services/historicalContextService");
 const physicalContextService_1 = require("./services/physicalContextService");
@@ -53,7 +53,7 @@ const createSupervisorGraph = async (databaseUrl) => {
     const graphBuilder = new langgraph_1.StateGraph(index_2.StateAnnotation);
     // Add nodes for each step in the workflow
     graphBuilder.addNode('loadContext', async (state, ...args) => {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e, _f;
         // const store = args[0].store;
         // await store.put(['1', 'memories'], '132', { 'food_preference': 'pizza' })
         console.log('=== LOAD CONTEXT ===');
@@ -62,22 +62,37 @@ const createSupervisorGraph = async (databaseUrl) => {
         const updates = {};
         try {
             if (state.userId) {
-                const user = await database_1.UserService.getUserWithProfile(state.userId);
-                // Fix type cast to match UserWithPsychProfile type
-                updates.user = user;
-                console.log('Loaded user:', user === null || user === void 0 ? void 0 : user.id);
-                // Load historical context
+                // Cache user profile - only load if not already in state
+                if (!state.user) {
+                    const user = await database_1.UserService.getUserWithProfile(state.userId);
+                    // Fix type cast to match UserWithPsychProfile type
+                    updates.user = user;
+                    console.log('Loaded user:', user === null || user === void 0 ? void 0 : user.id);
+                }
+                else {
+                    console.log('Using cached user from state');
+                }
+                // Load all contexts in parallel for better performance
                 const historicalContextService = (0, historicalContextService_1.createHistoricalContextService)(database_1.prisma);
-                const historicalContext = await historicalContextService.loadHistoricalContext(state.userId);
+                const physicalContextService = (0, physicalContextService_1.createPhysicalContextService)(database_1.prisma);
+                const externalContextService = (0, externalContextService_1.createExternalContextService)(database_1.prisma);
+                const patternAnalysisService = (0, patternAnalysisService_1.createPatternAnalysisService)(database_1.prisma);
+                // Parallel execution of all context services
+                const [historicalContext, physicalContext, externalContext, behavioralPatterns] = await Promise.all([
+                    historicalContextService.loadHistoricalContext(state.userId),
+                    physicalContextService.loadPhysicalContext(state.userId),
+                    externalContextService.loadExternalContext(state.userId),
+                    patternAnalysisService.loadPatterns(state.userId).catch(async () => {
+                        console.log('No behavioral patterns available - computing now...');
+                        return await patternAnalysisService.computePatterns(state.userId);
+                    }),
+                ]);
                 updates.historicalContext = historicalContext;
                 console.log('Loaded historical context:', {
                     notificationsSentToday: historicalContext.notificationsSentToday,
                     tasksCompletedToday: historicalContext.tasksCompletedToday,
                     appOpenedToday: historicalContext.appOpenedToday,
                 });
-                // Load physical context
-                const physicalContextService = (0, physicalContextService_1.createPhysicalContextService)(database_1.prisma);
-                const physicalContext = await physicalContextService.loadPhysicalContext(state.userId);
                 updates.physicalContext = physicalContext;
                 if (physicalContext) {
                     console.log('Loaded physical context:', {
@@ -89,9 +104,6 @@ const createSupervisorGraph = async (databaseUrl) => {
                 else {
                     console.log('No recent physical context available');
                 }
-                // Load external context (calendar)
-                const externalContextService = (0, externalContextService_1.createExternalContextService)(database_1.prisma);
-                const externalContext = await externalContextService.loadExternalContext(state.userId);
                 updates.externalContext = externalContext;
                 if (externalContext && externalContext.hasCalendarConnected) {
                     console.log('Loaded external context:', {
@@ -103,9 +115,6 @@ const createSupervisorGraph = async (databaseUrl) => {
                 else {
                     console.log('No calendar connected or no external context');
                 }
-                // Load behavioral patterns
-                const patternAnalysisService = (0, patternAnalysisService_1.createPatternAnalysisService)(database_1.prisma);
-                const behavioralPatterns = await patternAnalysisService.loadPatterns(state.userId);
                 updates.behavioralPatterns = behavioralPatterns;
                 if (behavioralPatterns) {
                     console.log('Loaded behavioral patterns:', {
@@ -114,21 +123,18 @@ const createSupervisorGraph = async (databaseUrl) => {
                         preferredTaskDuration: behavioralPatterns.preferredTaskDuration,
                     });
                 }
-                else {
-                    console.log('No behavioral patterns available - computing now...');
-                    // Compute patterns on first use
-                    const newPatterns = await patternAnalysisService.computePatterns(state.userId);
-                    updates.behavioralPatterns = newPatterns;
-                }
                 // Load recent conversation history for continuity
+                // Filter by taskId to ensure each task has isolated conversation context
+                const conversationFilter = ((_c = state.context) === null || _c === void 0 ? void 0 : _c.taskId)
+                    ? { taskId: state.context.taskId }
+                    : { taskId: null };
+                console.log('Loading conversation history with filter:', conversationFilter);
                 const recentMessages = await database_1.prisma.chatMessage.findMany({
-                    where: {
-                        userId: state.userId,
-                    },
+                    where: Object.assign({ userId: state.userId }, conversationFilter),
                     orderBy: {
                         createdAt: 'desc',
                     },
-                    take: 10, // Last 10 messages
+                    take: 5, // Reduced from 10 to 5 for better performance
                 });
                 // Convert to LangChain messages for context
                 const conversationHistory = recentMessages.reverse().map((msg) => {
@@ -142,15 +148,15 @@ const createSupervisorGraph = async (databaseUrl) => {
                 // Add conversation history to messages (prepend to existing messages)
                 if (conversationHistory.length > 0) {
                     updates.messages = [...conversationHistory, ...(state.messages || [])];
-                    console.log('Loaded conversation history:', conversationHistory.length, 'messages');
+                    console.log('Loaded conversation history:', conversationHistory.length, 'messages for', ((_d = state.context) === null || _d === void 0 ? void 0 : _d.taskId) ? `task ${state.context.taskId}` : 'general chat');
                 }
             }
-            if (((_c = state.context) === null || _c === void 0 ? void 0 : _c.taskId) && state.userId) {
+            if (((_e = state.context) === null || _e === void 0 ? void 0 : _e.taskId) && state.userId) {
                 const task = await database_1.TaskService.getTask(state.context.taskId, state.userId);
                 updates.task = task;
                 console.log('Loaded task:', task === null || task === void 0 ? void 0 : task.id, task === null || task === void 0 ? void 0 : task.title);
             }
-            if (!((_d = state.context) === null || _d === void 0 ? void 0 : _d.taskId) && state.userId) {
+            if (!((_f = state.context) === null || _f === void 0 ? void 0 : _f.taskId) && state.userId) {
                 const tasks = await database_1.TaskService.getTasks(state.userId);
                 updates.tasks = tasks;
                 console.log('Loaded tasks count:', tasks === null || tasks === void 0 ? void 0 : tasks.length);
@@ -255,6 +261,30 @@ const createSupervisorGraph = async (databaseUrl) => {
             return { error: `Analytics agent error: ${error}` };
         }
     });
+    // Add executeActions node to process actions generated by agents
+    graphBuilder.addNode('executeActions', async (state) => {
+        var _a;
+        try {
+            console.log('=== EXECUTE ACTIONS ===');
+            console.log('Action items to execute:', ((_a = state.actionItems) === null || _a === void 0 ? void 0 : _a.length) || 0);
+            // If there are no actions to execute, skip gracefully
+            if (!state.actionItems || state.actionItems.length === 0) {
+                console.log('No actions to execute, skipping...');
+                return {};
+            }
+            // Execute all actions and return updated state
+            const updatedState = await (0, actions_1.executeActions)(state, state.actionItems);
+            console.log('Actions executed successfully');
+            console.log('=== END EXECUTE ACTIONS ===');
+            return updatedState;
+        }
+        catch (error) {
+            console.error('Error executing actions:', error);
+            // Don't fail the entire flow if action execution fails
+            // Just log the error and continue
+            return { error: `Action execution error: ${error}` };
+        }
+    });
     // Each specialized agent now executes its own actions and returns a response
     // generateResponse node removed as specialized agents now return responses directly
     // Define the workflow edges
@@ -264,16 +294,69 @@ const createSupervisorGraph = async (databaseUrl) => {
     graphBuilder.addEdge('loadContext', 'determineAgent');
     // Supervisor node routing logic is defined later
     // @ts-ignore
-    // Specialized agents now return to the supervisor for potential further routing
-    graphBuilder.addEdge('taskCreationAgent', 'determineAgent');
+    // Specialized agents now route through executeActions before returning to supervisor
+    graphBuilder.addEdge('taskCreationAgent', 'executeActions');
     // @ts-ignore
-    graphBuilder.addEdge('planningAgent', 'determineAgent');
+    graphBuilder.addEdge('planningAgent', 'executeActions');
     // @ts-ignore
-    graphBuilder.addEdge('executionCoachAgent', 'determineAgent');
+    graphBuilder.addEdge('executionCoachAgent', 'executeActions');
     // @ts-ignore
-    graphBuilder.addEdge('adaptationAgent', 'determineAgent');
+    graphBuilder.addEdge('adaptationAgent', 'executeActions');
     // @ts-ignore
-    graphBuilder.addEdge('analyticsAgent', 'determineAgent');
+    graphBuilder.addEdge('analyticsAgent', 'executeActions');
+    // @ts-ignore
+    // executeActions routes to checkCompletion to prevent loops
+    graphBuilder.addEdge('executeActions', 'checkCompletion');
+    // @ts-ignore
+    // Add checkCompletion node to prevent graph loops after action execution
+    graphBuilder.addNode('checkCompletion', async (state) => {
+        var _a;
+        // Always set activeAgentType to null after executeActions to force completion
+        // This prevents the graph from looping back to loadContext
+        console.log('=== CHECK COMPLETION ===');
+        const updates = {
+            activeAgentType: null
+        };
+        // Check if there were any errors during action execution
+        if (state.error) {
+            console.error('Error detected in state:', state.error);
+            // Replace the agent's response with a user-friendly error message
+            const errorResponse = `I apologize, but I wasn't able to complete that action due to a technical issue. Please try again, or let me know if you need help with something else.`;
+            // Update the agent response to reflect the error
+            updates.agentResponse = errorResponse;
+            // Add an error message to the conversation
+            const errorMessage = new messages_1.AIMessage({
+                content: errorResponse,
+                name: 'system_error'
+            });
+            // Replace the last message (which was the agent's optimistic response) with the error
+            updates.messages = [errorMessage];
+            // Store error message in database with technical details in metadata
+            try {
+                const { ChatMessageService } = await import('./services/database.js');
+                await ChatMessageService.createMessage({
+                    userId: state.userId,
+                    taskId: (_a = state.task) === null || _a === void 0 ? void 0 : _a.id,
+                    content: errorResponse,
+                    role: 'assistant',
+                    metadata: { error: state.error, isError: true }
+                });
+                console.log('Error message stored in database');
+            }
+            catch (dbError) {
+                console.error('Failed to store error message in database:', dbError);
+            }
+            // Clear the error from state after handling it
+            updates.error = undefined;
+        }
+        else {
+            console.log('No errors detected, setting activeAgentType to null to prevent loops');
+        }
+        console.log('=== END CHECK COMPLETION ===');
+        return updates;
+    });
+    // @ts-ignore
+    graphBuilder.addEdge('checkCompletion', 'determineAgent');
     // @ts-ignore
     // @ts-ignore
     // Add a conditional edge from determineAgent to handle completion

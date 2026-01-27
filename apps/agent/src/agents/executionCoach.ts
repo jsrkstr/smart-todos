@@ -6,28 +6,53 @@ import { StructuredOutputParser } from 'langchain/output_parsers';
 import { z } from 'zod';
 import { AIMessage } from '@langchain/core/messages';
 import { StateAnnotation } from '../types';
+import {
+  updateTaskPayloadSchema,
+  scheduleReminderPayloadSchema,
+  logActivityPayloadSchema,
+  communicationPayloadSchema,
+  nonePayloadSchema
+} from '../utils/actionPayloadSchemas.js';
 
 // Process the user input with Execution Coach agent
 export const processExecutionCoach = async (state: typeof StateAnnotation.State): Promise<typeof StateAnnotation.State> => {
   // Create LLM
   const llm = createLLM('gpt-4o', 0.3); // Slightly higher temperature for more creative coaching
 
-  // Create parser for structured output
+  // Create parser for structured output with strongly-typed action payloads
   const outputParser = StructuredOutputParser.fromZodSchema(
     z.object({
       actions: z.array(
-        z.object({
-          type: z.enum([
-            'updateTask',
-            'logActivity',
-            'scheduleReminder',
-            'provideMotivation',
-            'giveAdvice',
-            'askQuestion',
-            'none'
-          ]),
-          payload: z.any()
-        })
+        z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('updateTask'),
+            payload: updateTaskPayloadSchema
+          }),
+          z.object({
+            type: z.literal('scheduleReminder'),
+            payload: scheduleReminderPayloadSchema
+          }),
+          z.object({
+            type: z.literal('logActivity'),
+            payload: logActivityPayloadSchema
+          }),
+          z.object({
+            type: z.literal('provideMotivation'),
+            payload: communicationPayloadSchema
+          }),
+          z.object({
+            type: z.literal('giveAdvice'),
+            payload: communicationPayloadSchema
+          }),
+          z.object({
+            type: z.literal('askQuestion'),
+            payload: communicationPayloadSchema
+          }),
+          z.object({
+            type: z.literal('none'),
+            payload: nonePayloadSchema
+          })
+        ])
       ),
       motivationalMessage: z.string().describe('A motivational message tailored to the user\'s current task and preferences'),
       reasoning: z.string().describe('Your explanation of the coaching approach'),
@@ -110,7 +135,7 @@ ${state.externalContext.nextEvent ?
   `⏰ Next Event: "${state.externalContext.nextEvent.title}" in ${state.externalContext.nextEvent.startsInMinutes} minutes` :
   'No upcoming events in the next 4 hours'}
 ${state.externalContext.freeTimeBlocks.length > 0 ?
-  `\nNext Free Block: ${state.externalContext.freeTimeBlocks[0].durationMinutes} min (${new Date(state.externalContext.freeTimeBlocks[0].start).toLocaleTimeString()})` :
+  `\nNext Free Block: ${state.externalContext.freeTimeBlocks[0].durationMinutes} min (${new Date(state.externalContext.freeTimeBlocks[0].start).toISOString()})` :
   '\nNo significant free time - schedule is packed'}
 
 IMPORTANT Calendar-Aware Coaching:

@@ -153,6 +153,13 @@ pnpm scheduler:dev        # Run scheduler in development mode with auto-reload
 - Quick start: [apps/agent/QUICK_START.md](apps/agent/QUICK_START.md)
 - See `src/scheduler/` for implementation
 
+**LangSmith Integration:**
+- All LLM calls are automatically traced to LangSmith for debugging
+- Setup guide: [apps/agent/LANGSMITH_SETUP.md](apps/agent/LANGSMITH_SETUP.md)
+- Requires environment variables: `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT`
+- View traces at [smith.langchain.com](https://smith.langchain.com/)
+- Test integration: `cd apps/agent && ts-node test-langsmith.ts`
+
 ## Database
 
 **Prisma + PostgreSQL:**
@@ -172,6 +179,9 @@ pnpm scheduler:dev        # Run scheduler in development mode with auto-reload
 - `DATABASE_URL` - PostgreSQL connection string
 - `JWT_SECRET` - For signing JWT tokens
 - `OPENAI_API_KEY` - For AI features
+- `LANGCHAIN_TRACING_V2` - Enable LangSmith tracing (true/false)
+- `LANGCHAIN_API_KEY` - LangSmith API key (starts with ls__)
+- `LANGCHAIN_PROJECT` - LangSmith project name
 - `NEXT_PUBLIC_*` - Client-side accessible variables
 
 **Flutter App** (`apps/mobile-flutter/lib/config/api_config.dart`):

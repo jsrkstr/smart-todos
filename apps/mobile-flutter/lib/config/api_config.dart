@@ -11,7 +11,7 @@ class ApiConfig {
     if (kDebugMode) {
       print('using dev API');
       // Local development
-      return 'http://192.168.1.5:3000'; //'http://localhost:3000';
+      return 'http://192.168.1.3:3000'; //'http://localhost:3000';
     } else {
       // Production
       return 'https://smart-todos-web.vercel.app';
@@ -53,6 +53,7 @@ class ApiConfig {
 
   static const String notifications = '/api/notifications';
   static const String notificationsRegisterToken = '/api/notifications/register-token';
+  static const String notificationsMarkAllRead = '/api/notifications/mark-all-read';
 
   /// HTTP headers
   static Map<String, String> get headers => {
@@ -64,4 +65,7 @@ class ApiConfig {
   static const Duration connectTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
   static const Duration sendTimeout = Duration(seconds: 30);
+
+  /// Chat-specific timeout (longer due to LLM processing and action execution)
+  static const Duration chatReceiveTimeout = Duration(seconds: 60);
 }

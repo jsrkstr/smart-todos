@@ -20,6 +20,9 @@ class ChatService {
           ],
           if (taskId != null) 'taskId': taskId,
         },
+        options: Options(
+          receiveTimeout: ApiConfig.chatReceiveTimeout,
+        ),
       );
 
       // New response format from LangGraph agent

@@ -175,6 +175,37 @@ model TagCategory {
   tags      Tag[]
 }
 
+
+enum NotificationAuthor {
+  User
+  Bot
+  Model
+}
+
+enum NotificationType {
+  Reminder
+  Question
+  Info
+}
+
+enum NotificationTrigger {
+  FixedTime
+  RelativeTime
+  Location
+}
+
+enum NotificationMode {
+  Push
+  Email
+  Chat
+}
+
+enum NotificationRelativeTimeUnit {
+  Minutes
+  Hours
+  Days
+}
+
 model Notification {
   id        String   @id @default(cuid())
   type      NotificationType @default(Reminder)
@@ -182,6 +213,8 @@ model Notification {
   mode      NotificationMode @default(Push)
   message   String
   read      Boolean  @default(false)
+  triggered Boolean  @default(false)
+  triggeredAt DateTime?
   relativeTimeValue Int?
   relativeTimeUnit NotificationRelativeTimeUnit?
   fixedTime DateTime?
@@ -414,36 +447,6 @@ enum LogAuthor {
     Bot
     Model
     App
-}
-
-enum NotificationAuthor {
-    User
-    Bot
-    Model
-}
-
-enum NotificationType {
-  Reminder
-  Question
-  Info
-}
-
-enum NotificationTrigger {
-    FixedTime
-    RelativeTime
-    Location
-}
-
-enum NotificationMode {
-    Push
-    Email
-    Chat
-}
-
-enum NotificationRelativeTimeUnit {
-  Minutes
-  Hours
-  Days
 }
 
 enum TaskStage {

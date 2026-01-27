@@ -63,8 +63,17 @@ export function IntegrationsStep({
   // Track connected services and their permissions
   const [connectedServices, setConnectedServices] = React.useState<Record<string, boolean>>({});
   const [servicePermissions, setServicePermissions] = React.useState<Record<string, string[]>>({});
+  const [isConnecting, setIsConnecting] = React.useState(false);
 
-  const handleServiceToggle = (serviceId: string) => {
+  const handleServiceToggle = async (serviceId: string) => {
+    // If toggling on Google service, initiate OAuth flow
+    if (serviceId === 'google' && !connectedServices[serviceId]) {
+      setIsConnecting(true);
+      // Redirect to Google OAuth with calendar scopes
+      window.location.href = '/api/auth/google?calendar=true';
+      return;
+    }
+
     const newServices = { ...connectedServices, [serviceId]: !connectedServices[serviceId] };
     setConnectedServices(newServices);
 

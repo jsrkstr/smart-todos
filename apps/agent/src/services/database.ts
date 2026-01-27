@@ -76,10 +76,48 @@ export const TaskService = {
   // Update a task
   async updateTask(data: any) {
     const { id, userId, tagIds, ...updateData } = data;
-    
-    const update: any = {
-      ...updateData
+
+    // Define valid Task fields according to Prisma schema
+    const validTaskFields = [
+      'title', 'description', 'date', 'deadline', 'completed', 'stage',
+      'stageStatus', 'priority', 'priorityReason', 'position', 'estimatedTimeMinutes',
+      'repeats', 'reminderTime', 'location', 'why', 'points', 'estimatedPomodoros',
+      'isCalendarEvent', 'externalEventId', 'createdAt', 'updatedAt', 'tags',
+      'notifications', 'pomodoroTasks', 'reward', 'excuses', 'moods', 'flashcards',
+      'logs', 'quiz', 'calendarEvents', 'parent', 'children', 'chatMessages'
+    ];
+
+    // Common field name mappings for LLM-generated payloads
+    const fieldMappings: Record<string, string> = {
+      'task': 'title',  // LLMs often use 'task' instead of 'title'
+      'name': 'title',
+      'dueDate': 'deadline',
+      'due': 'deadline',
+      'scheduledTime': 'date',
+      'scheduledDate': 'date',
+      'isDone': 'completed',
+      'done': 'completed',
+      'status': 'stageStatus',
+      'estimate': 'estimatedTimeMinutes',
+      'duration': 'estimatedTimeMinutes',  // LLMs sometimes use 'duration'
+      'durationMinutes': 'estimatedTimeMinutes',
+      'estimatedMinutes': 'estimatedTimeMinutes',
+      'reason': 'why'
     };
+
+    // Filter and map fields to valid Prisma fields
+    const update: any = {};
+    for (const [key, value] of Object.entries(updateData)) {
+      // Map the field name if needed
+      const mappedKey = fieldMappings[key] || key;
+
+      // Only include valid fields
+      if (validTaskFields.includes(mappedKey)) {
+        update[mappedKey] = value;
+      } else {
+        console.warn(`Ignoring invalid field in updateTask: ${key} (mapped to: ${mappedKey})`);
+      }
+    }
 
     // Handle tag connection/disconnection if tagIds are provided
     if (tagIds) {

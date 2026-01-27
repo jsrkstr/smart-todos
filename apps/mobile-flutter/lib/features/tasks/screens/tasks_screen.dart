@@ -8,6 +8,8 @@ import '../../../features/chat/widgets/chat_drawer.dart';
 import '../../../features/pomodoro/widgets/pomodoro_modal.dart';
 import '../../../features/pomodoro/providers/pomodoro_provider.dart';
 import '../../../features/settings/screens/settings_screen.dart';
+import '../../../features/notifications/screens/notifications_screen.dart';
+import '../../../features/notifications/providers/notifications_provider.dart';
 import '../../../core/models/task.dart';
 import '../providers/tasks_provider.dart';
 import '../widgets/task_group.dart';
@@ -55,10 +57,38 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
             },
           ),
           // Notifications
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // TODO: Open notifications
+          Consumer(
+            builder: (context, ref, child) {
+              final notificationsState = ref.watch(notificationsProvider);
+              final unreadCount = notificationsState.unreadCount;
+
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              );
             },
           ),
           // Theme toggle

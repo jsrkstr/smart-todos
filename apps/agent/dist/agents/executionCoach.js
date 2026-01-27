@@ -8,25 +8,44 @@ const llm_1 = require("../utils/llm");
 const output_parsers_1 = require("langchain/output_parsers");
 const zod_1 = require("zod");
 const messages_1 = require("@langchain/core/messages");
+const actionPayloadSchemas_js_1 = require("../utils/actionPayloadSchemas.js");
 // Process the user input with Execution Coach agent
 const processExecutionCoach = async (state) => {
     var _a, _b, _c, _d, _e, _f;
     // Create LLM
     const llm = (0, llm_1.createLLM)('gpt-4o', 0.3); // Slightly higher temperature for more creative coaching
-    // Create parser for structured output
+    // Create parser for structured output with strongly-typed action payloads
     const outputParser = output_parsers_1.StructuredOutputParser.fromZodSchema(zod_1.z.object({
-        actions: zod_1.z.array(zod_1.z.object({
-            type: zod_1.z.enum([
-                'updateTask',
-                'logActivity',
-                'scheduleReminder',
-                'provideMotivation',
-                'giveAdvice',
-                'askQuestion',
-                'none'
-            ]),
-            payload: zod_1.z.any()
-        })),
+        actions: zod_1.z.array(zod_1.z.discriminatedUnion('type', [
+            zod_1.z.object({
+                type: zod_1.z.literal('updateTask'),
+                payload: actionPayloadSchemas_js_1.updateTaskPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('scheduleReminder'),
+                payload: actionPayloadSchemas_js_1.scheduleReminderPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('logActivity'),
+                payload: actionPayloadSchemas_js_1.logActivityPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('provideMotivation'),
+                payload: actionPayloadSchemas_js_1.communicationPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('giveAdvice'),
+                payload: actionPayloadSchemas_js_1.communicationPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('askQuestion'),
+                payload: actionPayloadSchemas_js_1.communicationPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('none'),
+                payload: actionPayloadSchemas_js_1.nonePayloadSchema
+            })
+        ])),
         motivationalMessage: zod_1.z.string().describe('A motivational message tailored to the user\'s current task and preferences'),
         reasoning: zod_1.z.string().describe('Your explanation of the coaching approach'),
         response: zod_1.z.string().describe('A concise, helpful response to the user that incorporates coaching elements and addresses their query')
@@ -98,7 +117,7 @@ ${state.externalContext.nextEvent ?
             `⏰ Next Event: "${state.externalContext.nextEvent.title}" in ${state.externalContext.nextEvent.startsInMinutes} minutes` :
             'No upcoming events in the next 4 hours'}
 ${state.externalContext.freeTimeBlocks.length > 0 ?
-            `\nNext Free Block: ${state.externalContext.freeTimeBlocks[0].durationMinutes} min (${new Date(state.externalContext.freeTimeBlocks[0].start).toLocaleTimeString()})` :
+            `\nNext Free Block: ${state.externalContext.freeTimeBlocks[0].durationMinutes} min (${new Date(state.externalContext.freeTimeBlocks[0].start).toISOString()})` :
             '\nNo significant free time - schedule is packed'}
 
 IMPORTANT Calendar-Aware Coaching:

@@ -8,6 +8,10 @@ import { AIMessage } from '@langchain/core/messages';
 import { StateAnnotation } from '../types';
 import { getMCPClient } from '../services/mcp-client';
 import { generateAnalyticsCode, generateTaskPatternsAnalysisCode, generateSmartTaskRecommendationsCode } from '../utils/code-generator';
+import {
+  logActivityPayloadSchema,
+  nonePayloadSchema
+} from '../utils/actionPayloadSchemas.js';
 
 // Process the user input with Analytics agent
 export const processAnalytics = async (state: typeof StateAnnotation.State): Promise<typeof StateAnnotation.State> => {
@@ -61,17 +65,20 @@ export const processAnalytics = async (state: typeof StateAnnotation.State): Pro
   // Create LLM
   const llm = createLLM('gpt-4o', 0.2);
 
-  // Create parser for structured output
+  // Create parser for structured output with strongly-typed action payloads
   const outputParser = StructuredOutputParser.fromZodSchema(
     z.object({
       actions: z.array(
-        z.object({
-          type: z.enum([
-            'logActivity',
-            'none'
-          ]),
-          payload: z.any()
-        })
+        z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('logActivity'),
+            payload: logActivityPayloadSchema
+          }),
+          z.object({
+            type: z.literal('none'),
+            payload: nonePayloadSchema
+          })
+        ])
       ),
       insights: z.array(z.string()).describe('Key insights derived from analyzing task patterns and performance'),
       recommendations: z.array(z.string()).describe('Specific recommendations for improving productivity or task management'),

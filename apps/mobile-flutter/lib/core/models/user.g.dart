@@ -85,6 +85,10 @@ Settings _$SettingsFromJson(Map<String, dynamic> json) => Settings(
       soundEnabled: json['soundEnabled'] as bool? ?? true,
       notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
       defaultReminderTime: (json['defaultReminderTime'] as num?)?.toInt() ?? 0,
+      secretaryAggressiveness:
+          json['secretaryAggressiveness'] as String? ?? 'moderate',
+      locationTrackingLevel:
+          json['locationTrackingLevel'] as String? ?? 'minimal',
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -103,6 +107,8 @@ Map<String, dynamic> _$SettingsToJson(Settings instance) => <String, dynamic>{
       'soundEnabled': instance.soundEnabled,
       'notificationsEnabled': instance.notificationsEnabled,
       'defaultReminderTime': instance.defaultReminderTime,
+      'secretaryAggressiveness': instance.secretaryAggressiveness,
+      'locationTrackingLevel': instance.locationTrackingLevel,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
     };

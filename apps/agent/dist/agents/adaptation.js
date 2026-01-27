@@ -8,22 +8,32 @@ const llm_1 = require("../utils/llm");
 const output_parsers_1 = require("langchain/output_parsers");
 const zod_1 = require("zod");
 const messages_1 = require("@langchain/core/messages");
+const actionPayloadSchemas_js_1 = require("../utils/actionPayloadSchemas.js");
 // Process the user input with Adaptation agent
 const processAdaptation = async (state) => {
     var _a;
     // Create LLM
     const llm = (0, llm_1.createLLM)('gpt-4o', 0.4); // Higher temperature for creative adaptations
-    // Create parser for structured output
+    // Create parser for structured output with strongly-typed action payloads
     const outputParser = output_parsers_1.StructuredOutputParser.fromZodSchema(zod_1.z.object({
-        actions: zod_1.z.array(zod_1.z.object({
-            type: zod_1.z.enum([
-                'updateTask',
-                'updateManyTasks',
-                'logActivity',
-                'none'
-            ]),
-            payload: zod_1.z.any()
-        })),
+        actions: zod_1.z.array(zod_1.z.discriminatedUnion('type', [
+            zod_1.z.object({
+                type: zod_1.z.literal('updateTask'),
+                payload: actionPayloadSchemas_js_1.updateTaskPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('updateManyTasks'),
+                payload: actionPayloadSchemas_js_1.updateManyTasksPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('logActivity'),
+                payload: actionPayloadSchemas_js_1.logActivityPayloadSchema
+            }),
+            zod_1.z.object({
+                type: zod_1.z.literal('none'),
+                payload: actionPayloadSchemas_js_1.nonePayloadSchema
+            })
+        ])),
         adaptationStrategy: zod_1.z.string().describe('The strategy you recommend for adapting the task or plan'),
         reasoning: zod_1.z.string().describe('Your explanation of why adaptation is needed and how it will help'),
         response: zod_1.z.string().describe('A concise, helpful response to the user explaining the adaptation strategy and changes')
@@ -40,12 +50,12 @@ const processAdaptation = async (state) => {
         `\n\n=== CALENDAR CONTEXT FOR RESCHEDULING ===
 Events Today: ${state.externalContext.eventsToday.length}
 ${state.externalContext.eventsToday.length > 0 ?
-            `Scheduled: ${state.externalContext.eventsToday.map(e => `"${e.title}" ${new Date(e.startTime).toLocaleTimeString()}-${new Date(e.endTime).toLocaleTimeString()}`).join(', ')}` :
+            `Scheduled: ${state.externalContext.eventsToday.map(e => `"${e.title}" ${new Date(e.startTime).toISOString()}-${new Date(e.endTime).toISOString()}`).join(', ')}` :
             'No events scheduled'}
 
 Free Time Blocks Available:
 ${state.externalContext.freeTimeBlocks.length > 0 ?
-            state.externalContext.freeTimeBlocks.map(block => `- ${block.durationMinutes} min: ${new Date(block.start).toLocaleTimeString()} - ${new Date(block.end).toLocaleTimeString()}`).join('\n') :
+            state.externalContext.freeTimeBlocks.map(block => `- ${block.durationMinutes} min: ${new Date(block.start).toISOString()} - ${new Date(block.end).toISOString()}`).join('\n') :
             'No significant free blocks available'}
 
 IMPORTANT Calendar-Aware Adaptation:

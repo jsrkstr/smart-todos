@@ -11,14 +11,30 @@ const client = new OAuth2Client(
 )
 
 export async function GET(request: Request) {
-  const searchParams = new URL(request.url).searchParams
+  const requestUrl = new URL(request.url)
+  const searchParams = requestUrl.searchParams
   const code = searchParams.get('code')
+  const enableCalendar = searchParams.get('calendar') === 'true'
+
+  // Get base URL for redirects
+  const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`
 
   if (!code) {
     // Generate OAuth URL and redirect to Google
+    const scopes = ['profile', 'email']
+
+    // Add calendar scopes if calendar integration is requested
+    if (enableCalendar) {
+      scopes.push(
+        'https://www.googleapis.com/auth/calendar.readonly',
+        'https://www.googleapis.com/auth/calendar.events'
+      )
+    }
+
     const url = client.generateAuthUrl({
       access_type: 'offline',
-      scope: ['profile', 'email']
+      scope: scopes,
+      prompt: 'consent' // Force consent to get refresh token
     })
     return NextResponse.redirect(url)
   }
@@ -45,24 +61,78 @@ export async function GET(request: Request) {
       }
     })
 
+    // Check if calendar scopes were granted
+    const hasCalendarScope = tokens.scope?.includes('calendar')
+
+    // Create or update calendar connection if calendar scopes were granted
+    if (hasCalendarScope && tokens.access_token) {
+      const tokenExpiry = tokens.expiry_date
+        ? new Date(tokens.expiry_date)
+        : new Date(Date.now() + 3600 * 1000) // Default 1 hour
+
+      await prisma.calendarConnection.upsert({
+        where: {
+          userId_provider_calendarId: {
+            userId: user.id,
+            provider: 'google',
+            calendarId: 'primary'
+          }
+        },
+        update: {
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token || undefined,
+          tokenExpiry,
+          isActive: true
+        },
+        create: {
+          userId: user.id,
+          provider: 'google',
+          name: 'Google Calendar',
+          calendarId: 'primary',
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token || undefined,
+          tokenExpiry,
+          isActive: true,
+          syncFrequency: 'hourly'
+        }
+      })
+    }
+
     // Generate JWT
     const jwt = await JWT.sign({ userId: user.id })
-    
-    // Set cookie
-    cookies().set('token', jwt, {
+
+    // Set cookie (await for Next.js 15+)
+    const cookieStore = await cookies()
+    cookieStore.set('token', jwt, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7 // 1 week
     })
 
-    // Redirect to home or onboarding
+    // Redirect to home or onboarding (use absolute URLs)
     if (user.principles.length === 0) {
-      return NextResponse.redirect('/onboarding')
+      return NextResponse.redirect(new URL('/onboarding', baseUrl))
     }
-    return NextResponse.redirect('/')
-  } catch (error) {
+    return NextResponse.redirect(new URL('/', baseUrl))
+  } catch (error: any) {
     console.error('Google OAuth error:', error)
-    return NextResponse.redirect('/login?error=oauth_failed')
+
+    // Handle specific error cases (use absolute URLs)
+    if (error.message?.includes('invalid_grant')) {
+      return NextResponse.redirect(new URL('/login?error=invalid_grant', baseUrl))
+    }
+
+    if (error.message?.includes('access_denied')) {
+      return NextResponse.redirect(new URL('/login?error=access_denied', baseUrl))
+    }
+
+    if (error.code === 'P2002') {
+      // Prisma unique constraint violation
+      console.error('Database constraint violation:', error)
+      return NextResponse.redirect(new URL('/login?error=db_error', baseUrl))
+    }
+
+    return NextResponse.redirect(new URL('/login?error=oauth_failed', baseUrl))
   }
 } 

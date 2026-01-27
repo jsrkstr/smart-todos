@@ -769,6 +769,8 @@ async function createNotificationRecord(
       trigger: 'RelativeTime',
       author: 'Bot',
       read: false,
+      triggered: true,
+      triggeredAt: new Date(),
     },
   });
 }

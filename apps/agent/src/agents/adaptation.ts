@@ -8,25 +8,40 @@ import { AIMessage } from '@langchain/core/messages';
 import { StateAnnotation } from '../types';
 import { getMCPClient } from '../services/mcp-client';
 import { generateBulkPriorityUpdateCode } from '../utils/code-generator';
+import {
+  updateTaskPayloadSchema,
+  updateManyTasksPayloadSchema,
+  logActivityPayloadSchema,
+  nonePayloadSchema
+} from '../utils/actionPayloadSchemas.js';
 
 // Process the user input with Adaptation agent
 export const processAdaptation = async (state: typeof StateAnnotation.State): Promise<typeof StateAnnotation.State> => {
   // Create LLM
   const llm = createLLM('gpt-4o', 0.4); // Higher temperature for creative adaptations
 
-  // Create parser for structured output
+  // Create parser for structured output with strongly-typed action payloads
   const outputParser = StructuredOutputParser.fromZodSchema(
     z.object({
       actions: z.array(
-        z.object({
-          type: z.enum([
-            'updateTask',
-            'updateManyTasks',
-            'logActivity',
-            'none'
-          ]),
-          payload: z.any()
-        })
+        z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('updateTask'),
+            payload: updateTaskPayloadSchema
+          }),
+          z.object({
+            type: z.literal('updateManyTasks'),
+            payload: updateManyTasksPayloadSchema
+          }),
+          z.object({
+            type: z.literal('logActivity'),
+            payload: logActivityPayloadSchema
+          }),
+          z.object({
+            type: z.literal('none'),
+            payload: nonePayloadSchema
+          })
+        ])
       ),
       adaptationStrategy: z.string().describe('The strategy you recommend for adapting the task or plan'),
       reasoning: z.string().describe('Your explanation of why adaptation is needed and how it will help'),
@@ -50,13 +65,13 @@ export const processAdaptation = async (state: typeof StateAnnotation.State): Pr
     `\n\n=== CALENDAR CONTEXT FOR RESCHEDULING ===
 Events Today: ${state.externalContext.eventsToday.length}
 ${state.externalContext.eventsToday.length > 0 ?
-  `Scheduled: ${state.externalContext.eventsToday.map(e => `"${e.title}" ${new Date(e.startTime).toLocaleTimeString()}-${new Date(e.endTime).toLocaleTimeString()}`).join(', ')}` :
+  `Scheduled: ${state.externalContext.eventsToday.map(e => `"${e.title}" ${new Date(e.startTime).toISOString()}-${new Date(e.endTime).toISOString()}`).join(', ')}` :
   'No events scheduled'}
 
 Free Time Blocks Available:
 ${state.externalContext.freeTimeBlocks.length > 0 ?
   state.externalContext.freeTimeBlocks.map(block =>
-    `- ${block.durationMinutes} min: ${new Date(block.start).toLocaleTimeString()} - ${new Date(block.end).toLocaleTimeString()}`
+    `- ${block.durationMinutes} min: ${new Date(block.start).toISOString()} - ${new Date(block.end).toISOString()}`
   ).join('\n') :
   'No significant free blocks available'}
 

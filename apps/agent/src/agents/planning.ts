@@ -8,25 +8,40 @@ import { AIMessage } from '@langchain/core/messages';
 import { StateAnnotation } from '../types';
 import { getMCPClient } from '../services/mcp-client';
 import { generateBulkSubtaskCreationCode } from '../utils/code-generator';
+import {
+  createSubtasksPayloadSchema,
+  updateTaskPayloadSchema,
+  updateManyTasksPayloadSchema,
+  nonePayloadSchema
+} from '../utils/actionPayloadSchemas.js';
 
 // Process the user input with Planning agent
 export const processPlanning = async (state: typeof StateAnnotation.State): Promise<typeof StateAnnotation.State> => {
   // Create LLM
   const llm = createLLM('gpt-4o', 0.2);
 
-  // Create parser for structured output
+  // Create parser for structured output with strongly-typed action payloads
   const outputParser = StructuredOutputParser.fromZodSchema(
     z.object({
       actions: z.array(
-        z.object({
-          type: z.enum([
-            'createSubtasks',
-            'updateTask',
-            'updateManyTasks',
-            'none'
-          ]),
-          payload: z.any()
-        })
+        z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('createSubtasks'),
+            payload: createSubtasksPayloadSchema
+          }),
+          z.object({
+            type: z.literal('updateTask'),
+            payload: updateTaskPayloadSchema
+          }),
+          z.object({
+            type: z.literal('updateManyTasks'),
+            payload: updateManyTasksPayloadSchema
+          }),
+          z.object({
+            type: z.literal('none'),
+            payload: nonePayloadSchema
+          })
+        ])
       ),
       reasoning: z.string().describe('Your explanation of the breakdown or prioritization strategy'),
       response: z.string().describe('A concise, helpful response to the user explaining your actions and plans')
@@ -59,7 +74,7 @@ ${state.externalContext.nextEvent ?
 Free Time Blocks Available:
 ${state.externalContext.freeTimeBlocks.length > 0 ?
   state.externalContext.freeTimeBlocks.map(block =>
-    `- ${block.durationMinutes} min window (${new Date(block.start).toLocaleTimeString()} - ${new Date(block.end).toLocaleTimeString()})`
+    `- ${block.durationMinutes} min window (${new Date(block.start).toISOString()} - ${new Date(block.end).toISOString()})`
   ).join('\n') :
   'No significant free time blocks (all booked or fragmented)'}
 
