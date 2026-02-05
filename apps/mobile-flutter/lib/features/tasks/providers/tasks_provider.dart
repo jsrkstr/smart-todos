@@ -1,7 +1,10 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/task.dart';
 import '../../../core/api/api_service.dart';
 import '../../../shared/providers/api_provider.dart';
+import '../../../core/services/push_token_service.dart';
 
 /// Tasks state
 class TasksState {
@@ -74,9 +77,60 @@ class TasksState {
 /// Tasks notifier
 class TasksNotifier extends StateNotifier<TasksState> {
   final ApiService _apiService;
+  Timer? _pollTimer;
+  final PushTokenService _pushTokenService = PushTokenService();
 
   TasksNotifier(this._apiService) : super(const TasksState()) {
+    _initializeRealtimeSync();
+  }
+
+  /// Initialize real-time synchronization
+  void _initializeRealtimeSync() {
+    debugPrint('[TasksNotifier] Initializing real-time sync...');
+
+    // Setup push notification listener for instant updates
+    _pushTokenService.onDataNotification = _handleTaskUpdateNotification;
+
+    // Initial fetch
     fetchTasks();
+
+    // Setup fallback polling (every 60 seconds) as a safety net
+    _startPolling();
+  }
+
+  /// Handle task update notification from push
+  void _handleTaskUpdateNotification(Map<String, dynamic> data) {
+    debugPrint('[TasksNotifier] Received task update notification: $data');
+
+    final type = data['changeType'] as String?;
+    final taskId = data['taskId'] as String?;
+
+    debugPrint('[TasksNotifier] Change type: $type, Task ID: $taskId');
+
+    // Immediately sync tasks when notification received
+    fetchTasks();
+  }
+
+  /// Start polling timer (fallback mechanism)
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      // Only poll if app is in foreground
+      debugPrint('[TasksNotifier] Fallback polling - syncing tasks');
+      fetchTasks();
+    });
+  }
+
+  /// Stop polling timer
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _stopPolling();
+    super.dispose();
   }
 
   /// Fetch all tasks

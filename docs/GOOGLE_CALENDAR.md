@@ -1,6 +1,6 @@
-# Google Calendar Integration Setup Guide
+# Google Calendar Integration
 
-This guide will help you complete the Google Calendar integration for SmartTodos.
+This guide covers setting up and using the Google Calendar integration for SmartTodos.
 
 ## Overview
 
@@ -10,6 +10,41 @@ The Google Calendar integration allows users to:
 - Manually link tasks to calendar events (optional feature)
 
 **Integration Type:** One-way sync (Calendar → SmartTodos only)
+
+## Quick Start
+
+### 1. Environment Variables
+```bash
+# Add to apps/web/.env
+GOOGLE_CLIENT_ID=your_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google
+CALENDAR_SYNC_SECRET=$(openssl rand -base64 32)
+```
+
+### 2. Database
+```bash
+cd apps/web
+pnpm prisma:generate
+pnpm prisma:push
+```
+
+### 3. Start Development
+```bash
+pnpm dev  # From root
+```
+
+### 4. Test OAuth
+Visit: `http://localhost:3000/api/calendar/connect`
+
+### 5. Trigger Sync
+```bash
+curl -X POST http://localhost:3000/api/calendar/sync \
+  -H "Authorization: Bearer YOUR_JWT" \
+  -H "Content-Type: application/json"
+```
+
+---
 
 ## Prerequisites
 
@@ -27,6 +62,8 @@ The Google Calendar integration allows users to:
 3. Navigate to **APIs & Services > Library**
 4. Search for "Google Calendar API"
 5. Click **Enable**
+
+**Direct link:** https://console.cloud.google.com/apis/library/calendar-json.googleapis.com
 
 ### 1.2 Configure OAuth Consent Screen
 
@@ -101,18 +138,9 @@ pnpm prisma:studio
 
 You should see the `CalendarConnection` and `CalendarEvent` tables.
 
-## Step 4: Install Dependencies
+## Step 4: Test the Integration
 
-Dependencies are already installed via the setup script, but if needed:
-
-```bash
-cd apps/web
-pnpm add googleapis
-```
-
-## Step 5: Test the Integration
-
-### 5.1 Start the Development Server
+### 4.1 Start the Development Server
 
 ```bash
 # From root
@@ -123,7 +151,7 @@ cd apps/web
 pnpm dev
 ```
 
-### 5.2 Test OAuth Flow
+### 4.2 Test OAuth Flow
 
 1. Navigate to `http://localhost:3000/api/calendar/connect`
 2. You should be redirected to Google's OAuth consent screen
@@ -131,7 +159,7 @@ pnpm dev
 4. You should be redirected back to the app
 5. Check that a `CalendarConnection` was created in the database
 
-### 5.3 Test Manual Sync
+### 4.3 Test Manual Sync
 
 ```bash
 # Using curl
@@ -142,7 +170,7 @@ curl -X POST http://localhost:3000/api/calendar/sync \
 
 Or visit the calendar connections page in the UI and click "Sync Now".
 
-### 5.4 Verify Events Synced
+### 4.4 Verify Events Synced
 
 Check Prisma Studio to see if `CalendarEvent` records were created:
 
@@ -151,7 +179,7 @@ cd apps/web
 pnpm prisma:studio
 ```
 
-## Step 6: Set Up Background Sync (Optional)
+## Step 5: Set Up Background Sync (Optional)
 
 ### Option A: Use cron-job.org (Recommended)
 
@@ -185,9 +213,9 @@ Create `vercel.json` in `apps/web/`:
 
 Note: Vercel cron requires a paid plan.
 
-## Step 7: Mobile App Setup (Flutter)
+## Step 6: Mobile App Setup (Flutter)
 
-### 7.1 Run Code Generator
+### 6.1 Run Code Generator
 
 ```bash
 cd apps/mobile-flutter
@@ -195,52 +223,11 @@ flutter pub get
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
-### 7.2 Test Mobile OAuth Flow
+### 6.2 Test Mobile OAuth Flow
 
 The mobile app will open the browser for OAuth. After successful authentication, users will be redirected back to the app.
 
 **Note:** For production, configure deep linking to handle OAuth callbacks properly.
-
-## Step 8: Verify Everything Works
-
-### Checklist
-
-- [ ] OAuth flow works (redirects to Google and back)
-- [ ] Calendar connection is created in database
-- [ ] Manual sync fetches events from Google Calendar
-- [ ] Events appear in database (`CalendarEvent` table)
-- [ ] Events are displayed in the web calendar view
-- [ ] Background sync runs automatically (if configured)
-- [ ] Mobile app can view calendar connections
-- [ ] Token refresh works (test by expiring a token manually)
-- [ ] AI agents can see calendar events for context
-
-## Troubleshooting
-
-### "OAuth failed" error
-
-- Check that `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are correct
-- Verify redirect URI matches exactly (including http/https)
-- Check Google Cloud Console for OAuth consent screen status
-
-### "Invalid grant" error
-
-- Refresh token may have expired or been revoked
-- User needs to reconnect their calendar
-- Check that `prompt: 'consent'` is set in OAuth URL generation
-
-### No events syncing
-
-- Check that calendar connection has `isActive: true`
-- Verify `accessToken` and `refreshToken` are saved
-- Look for errors in server logs during sync
-- Test with `curl` to see detailed error messages
-
-### Token refresh fails
-
-- Check that `refreshToken` exists in database
-- Verify Google OAuth credentials are correct
-- User may need to re-authenticate
 
 ## API Endpoints
 
@@ -261,6 +248,23 @@ The mobile app will open the browser for OAuth. After successful authentication,
 
 - `GET /api/auth/google?calendar=true` - Start OAuth with calendar scopes
 - `GET /api/calendar/connect` - Convenience redirect to OAuth
+
+## Key Files
+
+**Backend:**
+- `apps/web/lib/services/calendarSyncService.ts` - Core sync logic
+- `apps/web/app/api/calendar/sync/route.ts` - Manual sync
+- `apps/web/app/api/cron/calendar-sync/route.ts` - Background sync
+- `apps/web/app/api/calendar/connections/route.ts` - CRUD
+
+**Frontend:**
+- `apps/web/hooks/use-calendar-connections.ts` - React hook
+- `apps/web/components/calendar/calendar-connections.tsx` - UI
+
+**Mobile:**
+- `apps/mobile-flutter/lib/core/api/calendar_api_service.dart` - API
+- `apps/mobile-flutter/lib/features/calendar/providers/calendar_provider.dart` - State
+- `apps/mobile-flutter/lib/features/calendar/screens/calendar_connections_screen.dart` - UI
 
 ## Architecture Notes
 
@@ -284,6 +288,65 @@ The mobile app will open the browser for OAuth. After successful authentication,
 - Network errors are retried automatically
 - Users are notified of sync failures in UI
 
+## Troubleshooting
+
+### "OAuth failed" error
+
+- Check that `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are correct
+- Verify redirect URI matches exactly (including http/https)
+- Check Google Cloud Console for OAuth consent screen status
+
+### "Login Required (401)" error
+
+This typically means the Google Calendar API is not enabled in your Google Cloud project:
+
+1. Visit: https://console.cloud.google.com/
+2. Select your project (the one with your OAuth credentials)
+3. In the left sidebar, click **"APIs & Services"** → **"Library"**
+4. Search for **"Google Calendar API"**
+5. Click on **"Google Calendar API"**
+6. Click the blue **"Enable"** button
+7. Wait 1-2 minutes for it to propagate, then test again
+
+### "Invalid grant" error
+
+- Refresh token may have expired or been revoked
+- User needs to reconnect their calendar
+- Check that `prompt: 'consent'` is set in OAuth URL generation
+
+### No events syncing
+
+- Check that calendar connection has `isActive: true`
+- Verify `accessToken` and `refreshToken` are saved
+- Look for errors in server logs during sync
+- Test with `curl` to see detailed error messages
+
+### Token refresh fails
+
+- Check that `refreshToken` exists in database
+- Verify Google OAuth credentials are correct
+- User may need to re-authenticate
+
+## Testing Checklist
+
+- [ ] OAuth redirects to Google
+- [ ] Tokens saved in database
+- [ ] Manual sync works
+- [ ] Events appear in database
+- [ ] All calendars synced
+- [ ] Token refresh works
+- [ ] UI shows connections
+- [ ] Mobile app connects
+- [ ] AI agents can see calendar events for context
+
+## Security Notes
+
+- Never commit `.env` files to git
+- Rotate `CALENDAR_SYNC_SECRET` periodically
+- Use HTTPS in production
+- Tokens are stored encrypted in database (via Prisma)
+- OAuth credentials should be restricted to your domain
+
 ## Future Enhancements
 
 Planned features (not in current MVP):
@@ -295,20 +358,3 @@ Planned features (not in current MVP):
 - [ ] Calendar event filtering by keywords
 - [ ] Per-calendar sync settings
 - [ ] Conflict resolution UI
-
-## Support
-
-For issues or questions:
-1. Check server logs for error messages
-2. Verify environment variables are set correctly
-3. Test API endpoints directly with `curl`
-4. Check Prisma Studio for database state
-5. Review Google Cloud Console for API quotas/limits
-
-## Security Notes
-
-- Never commit `.env` files to git
-- Rotate `CALENDAR_SYNC_SECRET` periodically
-- Use HTTPS in production
-- Tokens are stored encrypted in database (via Prisma)
-- OAuth credentials should be restricted to your domain

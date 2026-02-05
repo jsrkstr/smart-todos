@@ -90,9 +90,13 @@ ${state.externalContext.freeTimeBlocks.length > 0 && state.externalContext.freeT
 
   // Create a prompt template
   const prompt = ChatPromptTemplate.fromMessages([
-    ['system', getSystemPrompt('planning') + `\n\nRespond with a structured output containing actions, reasoning, and a concise user-friendly response.`],
+    ['system', getSystemPrompt('planning') + `\n\nRespond with a structured output containing actions, reasoning, and a concise user-friendly response. IMPORTANT: Output ONLY raw JSON, NO markdown code fences or formatting.`],
     new MessagesPlaceholder('conversation_history'),
-    ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nUser Context:\n${userContext}${externalInfo}\n\nProvide a structured response with actions to take in JSON format. For task breakdown, create subtasks that can be completed in 10-15 minutes each. For prioritization, consider deadlines, importance, and user preferences. Include a concise, helpful response to the user explaining your actions and plans. {format_instructions}`],
+    ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nUser Context:\n${userContext}${externalInfo}\n\nProvide a structured response with actions to take in JSON format. For task breakdown, create subtasks that can be completed in 10-15 minutes each. For prioritization, consider deadlines, importance, and user preferences. Include a concise, helpful response to the user explaining your actions and plans.
+
+IMPORTANT for updateTask actions: Only include fields that are actually changing. Do NOT include fields with empty strings, null values, or unchanged values.
+
+{format_instructions}`],
   ]);
 
   // Create the chain

@@ -179,9 +179,13 @@ This creates trust and shows you're paying attention to their journey.
 ` : '';
     // Create a prompt template
     const prompt = prompts_1.ChatPromptTemplate.fromMessages([
-        ['system', (0, llm_1.getSystemPrompt)('executionCoach') + `\n\nRespond with a structured output containing actions, a motivational message, reasoning, and a concise user-friendly response.`],
+        ['system', (0, llm_1.getSystemPrompt)('executionCoach') + `\n\nRespond with a structured output containing actions, a motivational message, reasoning, and a concise user-friendly response. IMPORTANT: Output ONLY raw JSON, NO markdown code fences or formatting.`],
         new prompts_1.MessagesPlaceholder('conversation_history'),
-        ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nCoach Information:\n${coachInfo}${historyInfo}${physicalInfo}${externalInfo}${patternsInfo}${conversationContinuity}\n\nProvide a structured response with actions to take in JSON format. Include a motivational message that matches the assigned coach's style and the user's preferences. Also include a complete response to the user addressing their query with coaching elements. {format_instructions}`],
+        ['human', `User request: {input}\n\nTask Context:\n${taskContext}\n\nCoach Information:\n${coachInfo}${historyInfo}${physicalInfo}${externalInfo}${patternsInfo}${conversationContinuity}\n\nProvide a structured response with actions to take in JSON format. Include a motivational message that matches the assigned coach's style and the user's preferences. Also include a complete response to the user addressing their query with coaching elements.
+
+IMPORTANT for updateTask/scheduleReminder actions: Only include fields that are actually changing. Do NOT include fields with empty strings, null values, or unchanged values.
+
+{format_instructions}`],
     ]);
     // Create the chain
     const chain = runnables_1.RunnableSequence.from([

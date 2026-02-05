@@ -134,6 +134,7 @@ model Task {
   location             String?
   why                  String?
   userId               String
+  version              Int                 @default(1)
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   notifications        Notification[]
@@ -629,4 +630,21 @@ model SecretaryState {
 
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+}
+
+// ============================================================================
+// Master Scheduler Job Tracking
+// ============================================================================
+
+// Tracks execution state for scheduled jobs
+model SchedulerJob {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  intervalMins  Int      // Interval in minutes (e.g., 5, 15, 60, 1440)
+  lastRunAt     DateTime?
+  lastRunStatus String?  // success, error, timeout
+  lastError     String?  @db.Text
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

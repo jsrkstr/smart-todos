@@ -23,6 +23,9 @@ class PushTokenService {
   /// Callback when notification received in foreground
   Function(RemoteMessage message)? onForegroundMessage;
 
+  /// Callback for data-only notifications (for real-time updates)
+  Function(Map<String, dynamic> data)? onDataNotification;
+
   /// Initialize push token service
   Future<void> initialize() async {
     debugPrint('[PushTokenService] Initializing...');
@@ -142,13 +145,27 @@ class PushTokenService {
   /// Handle foreground message
   void _handleForegroundMessage(RemoteMessage message) {
     debugPrint('[PushTokenService] Foreground message: ${message.notification?.title}');
+    debugPrint('[PushTokenService] Message data: ${message.data}');
+
+    // Check if this is a silent data notification for task updates
+    if (message.data['type'] == 'TASK_UPDATE' && message.data['silent'] == 'true') {
+      debugPrint('[PushTokenService] Task update notification received');
+
+      // Trigger data notification callback for immediate sync
+      if (onDataNotification != null) {
+        onDataNotification!(message.data);
+      }
+
+      // Don't show a visible notification for silent updates
+      return;
+    }
 
     // Notify callback
     if (onForegroundMessage != null) {
       onForegroundMessage!(message);
     }
 
-    // Show local notification
+    // Show local notification for regular notifications
     if (message.notification != null) {
       final taskId = message.data['taskId'] as String?;
       final channelId = message.data['channelId'] as String? ?? 'default';
@@ -183,5 +200,17 @@ class PushTokenService {
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('[PushTokenService] Background message: ${message.notification?.title}');
+  debugPrint('[PushTokenService] Background message data: ${message.data}');
+
+  // Check if this is a task update notification
+  if (message.data['type'] == 'TASK_UPDATE') {
+    debugPrint('[PushTokenService] Task update notification in background - triggering sync');
+
+    // NOTE: In background, we can't directly update the UI
+    // The app will need to sync when it comes to foreground
+    // Or we could use background fetch/workmanager to sync immediately
+    // For now, we'll rely on the foreground handler and notification tap
+  }
+
   // Firebase handles showing the notification automatically in background
 }

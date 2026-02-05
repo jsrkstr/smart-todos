@@ -166,7 +166,7 @@ export const processAnalytics = async (state: typeof StateAnnotation.State): Pro
 
   // Create a prompt template
   const prompt = ChatPromptTemplate.fromMessages([
-    ['system', getSystemPrompt('analytics') + `\n\n${contextInstructions}\n\nRespond with a structured output containing actions, insights, recommendations, reasoning, and a concise user-friendly response.`],
+    ['system', getSystemPrompt('analytics') + `\n\n${contextInstructions}\n\nRespond with a structured output containing actions, insights, recommendations, reasoning, and a concise user-friendly response. IMPORTANT: Output ONLY raw JSON, NO markdown code fences or formatting.`],
     new MessagesPlaceholder('conversation_history'),
     ['human', `User request: {input}\n\nTasks Context:\n${tasksContext}\n\nAnalyze the user's request and provide relevant information. ${isTaskSpecific ? 'Focus on answering their specific question about this task.' : 'Look for trends in completion rates, task types, and productivity patterns.'} Provide a structured response with insights, recommendations, and any actions to take in JSON format. Include a concise user-friendly response. {format_instructions}`],
   ]);

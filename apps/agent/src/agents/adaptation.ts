@@ -86,9 +86,13 @@ ${state.externalContext.freeTimeBlocks.length === 0 ?
 
   // Create a prompt template
   const prompt = ChatPromptTemplate.fromMessages([
-    ['system', getSystemPrompt('adaptation') + `\n\nRespond with a structured output containing actions, an adaptation strategy, reasoning, and a concise user-friendly response.`],
+    ['system', getSystemPrompt('adaptation') + `\n\nRespond with a structured output containing actions, an adaptation strategy, reasoning, and a concise user-friendly response. IMPORTANT: Output ONLY raw JSON, NO markdown code fences or formatting.`],
     new MessagesPlaceholder('conversation_history'),
-    ['human', `User request: {input}\n\nTask Context:\n${taskContext}${externalInfo}\n\nAnalyze if the current task/plan needs adaptation. Consider if the approach should be modified, if timelines need adjustment, or if goals need to be recalibrated. Provide a structured response with actions to take in JSON format. Include a concise, helpful response to the user explaining the adaptation strategy and changes. {format_instructions}`],
+    ['human', `User request: {input}\n\nTask Context:\n${taskContext}${externalInfo}\n\nAnalyze if the current task/plan needs adaptation. Consider if the approach should be modified, if timelines need adjustment, or if goals need to be recalibrated. Provide a structured response with actions to take in JSON format. Include a concise, helpful response to the user explaining the adaptation strategy and changes.
+
+IMPORTANT for updateTask actions: Only include fields that are actually changing. Do NOT include fields with empty strings, null values, or unchanged values. For example, if only updating the date field, only send: {{"date": "2026-01-27T17:49:43.462Z"}}
+
+{format_instructions}`],
   ]);
 
   // Create the chain

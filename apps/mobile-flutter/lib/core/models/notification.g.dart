@@ -13,6 +13,10 @@ AppNotification _$AppNotificationFromJson(Map<String, dynamic> json) =>
       mode: json['mode'] as String,
       message: json['message'] as String,
       read: json['read'] as bool,
+      triggered: json['triggered'] as bool,
+      triggeredAt: json['triggeredAt'] == null
+          ? null
+          : DateTime.parse(json['triggeredAt'] as String),
       userId: json['userId'] as String,
       taskId: json['taskId'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -29,6 +33,8 @@ Map<String, dynamic> _$AppNotificationToJson(AppNotification instance) =>
       'mode': instance.mode,
       'message': instance.message,
       'read': instance.read,
+      'triggered': instance.triggered,
+      'triggeredAt': instance.triggeredAt?.toIso8601String(),
       'userId': instance.userId,
       'taskId': instance.taskId,
       'createdAt': instance.createdAt.toIso8601String(),

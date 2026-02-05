@@ -10,6 +10,7 @@ import { JsonObject } from '@prisma/client/runtime/library'
 import { metadata } from '@/app/layout'
 import { CreateTaskInput, PrioritizeTasksInput, ProcessTaskInput, ProcessTaskResponse, TaskRefinedData, UpdateTaskInput, ContinuePrioritizeTasksInput } from './interfaces'
 import { breakdownTaskInstruction, prioritizationInstructions, refineTaskInstruction } from './consts'
+import { taskChangeEventService } from './taskChangeEventService'
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -81,6 +82,14 @@ export class TaskService {
       }
     })
 
+    // Notify mobile clients of new task
+    await taskChangeEventService.notifyTaskChangeDebounced({
+      type: 'created',
+      taskId: newTask.id,
+      userId: userId,
+      timestamp: new Date(),
+    })
+
     return newTask;
   }
 
@@ -112,6 +121,7 @@ export class TaskService {
         },
         data: {
           ...updates,
+          version: { increment: 1 }, // Increment version for conflict detection
           children: children ? {
             create: children?.create?.map(child => ({
               ...child,
@@ -178,6 +188,15 @@ export class TaskService {
       timeout: 20000 // in milliseconds (20 seconds)
     })
 
+    // Notify mobile clients of task update
+    await taskChangeEventService.notifyTaskChangeDebounced({
+      type: 'updated',
+      taskId: id,
+      userId: userId,
+      changes: updates,
+      timestamp: new Date(),
+    })
+
     return task
   }
 
@@ -194,6 +213,14 @@ export class TaskService {
     await LogService.createLog({
       type: 'task_deleted',
       userId,
+    })
+
+    // Notify mobile clients of task deletion
+    await taskChangeEventService.notifyTaskChangeDebounced({
+      type: 'deleted',
+      taskId: id,
+      userId: userId,
+      timestamp: new Date(),
     })
   }
 
@@ -303,6 +330,7 @@ export class TaskService {
         },
         data: {
           completed: true,
+          version: { increment: 1 }, // Increment version
         },
         include: {
           children: true,
@@ -324,6 +352,15 @@ export class TaskService {
       return updatedTask
     })
 
+    // Notify mobile clients of task completion
+    await taskChangeEventService.notifyTaskChangeDebounced({
+      type: 'completed',
+      taskId: id,
+      userId: userId,
+      changes: { completed: true },
+      timestamp: new Date(),
+    })
+
     return task
   }
 
@@ -336,6 +373,7 @@ export class TaskService {
         },
         data: {
           completed: false,
+          version: { increment: 1 }, // Increment version
         },
         include: {
           children: true,
@@ -355,6 +393,15 @@ export class TaskService {
       })
 
       return updatedTask
+    })
+
+    // Notify mobile clients of task reactivation
+    await taskChangeEventService.notifyTaskChangeDebounced({
+      type: 'updated',
+      taskId: id,
+      userId: userId,
+      changes: { completed: false },
+      timestamp: new Date(),
     })
 
     return task
